@@ -151,7 +151,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
     setEditName(member.displayName);
     setEditRole(member.role || '');
     setEditEmail(member.email);
-    setEditElement(member.mainElement || 'water');
+    setEditElement(member.elementAttribute || 'water');
     setShowEditModal(true);
   };
 
@@ -332,12 +332,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                   <tr key={member.userId} style={{ borderBottom: '1px solid var(--divider)' }}>
                     <td style={{ padding: '16px', display: 'flex', alignItems: 'center' }}>
                       <div 
-                        className={`member-avatar ${elementClasses[member.mainElement] || ''}`} 
+                        className={`member-avatar ${elementClasses[member.elementAttribute] || ''}`} 
                         style={{ 
                           width: '36px', 
                           height: '36px', 
                           borderRadius: '50%',
-                          backgroundColor: member.mainElement ? `var(--element-${member.mainElement})` : 'var(--primary-color)',
+                          backgroundColor: member.elementAttribute ? `var(--element-${member.elementAttribute})` : 'var(--primary-color)',
                           color: 'white',
                           display: 'flex',
                           alignItems: 'center',
@@ -352,15 +352,15 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                     </td>
                     <td style={{ padding: '16px' }}>{member.role || '-'}</td>
                     <td style={{ padding: '16px' }}>
-                      {member.mainElement && (
+                      {member.elementAttribute && (
                         <span style={{ 
                           padding: '4px 12px', 
-                          backgroundColor: elementLabels[member.mainElement]?.bg || 'var(--element-water-bg)', 
-                          color: elementLabels[member.mainElement]?.color || 'var(--element-water-dark)', 
+                          backgroundColor: elementLabels[member.elementAttribute]?.bg || 'var(--element-water-bg)', 
+                          color: elementLabels[member.elementAttribute]?.color || 'var(--element-water-dark)', 
                           borderRadius: '12px', 
                           fontSize: '0.85rem' 
                         }}>
-                          {elementLabels[member.mainElement]?.name || '水'}
+                          {elementLabels[member.elementAttribute]?.name || '水'}
                         </span>
                       )}
                     </td>
