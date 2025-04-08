@@ -46,7 +46,7 @@ export const getTeamMembers = async (req: AuthRequest, res: Response, next: Next
 export const addMember = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { teamId } = req.params;
-    const { email, role } = req.body;
+    const { email, role, password, displayName } = req.body;
     const adminId = req.user!.id;
     
     // 必須パラメータのチェック
@@ -54,7 +54,7 @@ export const addMember = async (req: AuthRequest, res: Response, next: NextFunct
       throw new BadRequestError('メールアドレスは必須です');
     }
     
-    const updatedUser = await teamMemberService.addMember(teamId, adminId, email, role);
+    const updatedUser = await teamMemberService.addMember(teamId, adminId, email, role, password, displayName);
     
     if (updatedUser) {
       res.status(200).json({
@@ -65,7 +65,8 @@ export const addMember = async (req: AuthRequest, res: Response, next: NextFunct
           displayName: updatedUser.displayName,
           email: updatedUser.email,
           role: updatedUser.teamRole,
-          elementAttribute: updatedUser.elementAttribute
+          elementAttribute: updatedUser.elementAttribute,
+          isNewUser: (updatedUser as any).isNewUser
         }
       });
     } else {

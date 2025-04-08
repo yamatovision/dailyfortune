@@ -140,13 +140,16 @@ export const addMemberById = async (
 
 /**
  * メールアドレスからユーザーを検索してチームメンバーとして追加する
+ * 未登録の場合は新規ユーザーを作成する
  * 外部APIエンドポイント用
  */
 export const addMember = async (
   teamId: string | mongoose.Types.ObjectId,
   adminId: string | mongoose.Types.ObjectId,
   userEmail: string,
-  role?: string
+  role?: string,
+  password?: string,
+  displayName?: string
 ) => {
   // チームの存在確認
   const team = await Team.findById(teamId);
@@ -163,31 +166,75 @@ export const addMember = async (
   }
 
   // 追加対象ユーザーの存在確認
-  const user = await User.findOne({ email: userEmail });
+  let user = await User.findOne({ email: userEmail });
+  let isNewUser = false;
+  
+  // ユーザーが存在しない場合で、パスワードが提供されていれば新規作成
+  if (!user && password) {
+    try {
+      // Firebase Admin SDKからのインポート
+      const { auth } = require('../../config/firebase');
+      
+      // Firebase Authで新規ユーザーを作成
+      const userRecord = await auth.createUser({
+        email: userEmail,
+        password: password,
+        displayName: displayName || userEmail.split('@')[0]
+      });
+      
+      // MongoDBにユーザー情報を作成
+      user = new User({
+        _id: userRecord.uid,
+        email: userEmail,
+        password: password, // モンゴースのミドルウェアでハッシュ化される
+        displayName: displayName || userEmail.split('@')[0],
+        role: 'User',
+        teamId: teamId,
+        teamRole: role || '',
+        plan: 'lite',
+        isActive: true
+      });
+      
+      await user.save();
+      isNewUser = true;
+      
+      console.log(`新規ユーザー(${userEmail})を作成しチームメンバーとして追加しました`);
+    } catch (error) {
+      console.error('新規ユーザー作成エラー:', error);
+      throw new Error('新規ユーザーの作成に失敗しました');
+    }
+  } else if (!user) {
+    // ユーザーが存在せず、パスワードも提供されていない場合
+    throw new BadRequestError('未登録ユーザーを追加するにはパスワードを指定してください');
+  } else {
+    // 既存ユーザーの場合、すでに別のチームに所属していないか確認
+    if (user.teamId && user.teamId.toString() !== teamIdStr) {
+      throw new BadRequestError('このユーザーは既に別のチームに所属しています');
+    }
+    
+    // 既存ユーザーのチーム情報を更新
+    user = await User.findByIdAndUpdate(
+      user._id,
+      {
+        teamId,
+        teamRole: role || ''
+      },
+      { new: true }
+    );
+  }
+
   if (!user) {
-    throw new NotFoundError('指定されたメールアドレスのユーザーが見つかりません');
-  }
-
-  // ユーザーが既に別のチームに所属しているかチェック
-  if (user.teamId && user.teamId.toString() !== teamIdStr) {
-    throw new BadRequestError('このユーザーは既に別のチームに所属しています');
-  }
-
-  // ユーザーのチーム情報を更新
-  const updatedUser = await User.findByIdAndUpdate(
-    user._id,
-    {
-      teamId,
-      teamRole: role || ''
-    },
-    { new: true }
-  );
-
-  if (!updatedUser) {
     throw new Error('ユーザー情報の更新に失敗しました');
   }
+  
+  // レスポンスオブジェクトに新規ユーザーフラグを追加
+  const userWithFlag = user.toObject ? user.toObject() : { ...user };
+  Object.defineProperty(userWithFlag, 'isNewUser', {
+    value: isNewUser,
+    enumerable: true
+  });
 
-  return updatedUser;
+  return userWithFlag;
 };
 
 export const updateMemberRole = async (

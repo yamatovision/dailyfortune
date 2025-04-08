@@ -16,8 +16,8 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
   // 新規メンバー追加用の状態
   const [email, setEmail] = useState<string>('');
   const [role, setRole] = useState<string>('');
-  const [element, setElement] = useState<string>('water');
   const [password, setPassword] = useState<string>('');
+  const [displayName, setDisplayName] = useState<string>('');
   const [showAddForm, setShowAddForm] = useState<boolean>(false);
   
   // 編集モーダル用の状態
@@ -78,7 +78,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
         email,
         role,
         password: password || undefined,
-        element
+        displayName: displayName || undefined
       });
 
       // 新しいメンバーリストを取得するか、結果から直接追加する
@@ -89,6 +89,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
       setEmail('');
       setRole('');
       setPassword('');
+      setDisplayName('');
       setShowAddForm(false);
       setError(null);
     } catch (err) {
@@ -198,11 +199,14 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                     borderRadius: '8px', 
                     border: '1px solid var(--divider)' 
                   }}
-                  placeholder="初期パスワード"
+                  placeholder="未登録ユーザーの初期パスワード"
                 />
+                <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                  未登録ユーザーを招待する場合は必須です。既存ユーザーの場合は空欄でOK。
+                </small>
               </div>
               
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '16px', gridColumn: '1 / 3' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>役割</label>
                 <input
                   type="text"
@@ -220,32 +224,21 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
               </div>
               
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>五行属性</label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={element}
-                    onChange={(e) => setElement(e.target.value)}
-                    style={{ 
-                      width: '100%', 
-                      padding: '10px', 
-                      paddingRight: '30px',
-                      borderRadius: '8px', 
-                      border: '1px solid var(--divider)',
-                      appearance: 'none',
-                      backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23333\'%3e%3cpath d=\'M7 10l5 5 5-5z\'/%3e%3c/svg%3e")',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 10px center',
-                      backgroundSize: '24px'
-                    }}
-                  >
-                    <option value="water">水（創造的・柔軟）</option>
-                    <option value="wood">木（成長的・発展的）</option>
-                    <option value="fire">火（情熱的・活動的）</option>
-                    <option value="earth">土（安定的・保守的）</option>
-                    <option value="metal">金（分析的・論理的）</option>
-                  </select>
-                </div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>表示名（オプション）</label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--divider)' 
+                  }}
+                  placeholder="未入力の場合はメールアドレスから自動生成"
+                />
               </div>
+              
             </div>
             
             <div style={{ textAlign: 'right', marginTop: '16px' }}>

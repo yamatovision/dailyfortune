@@ -452,6 +452,8 @@ export interface TeamRequest {
 export interface AddTeamMemberRequest {
   email: string;
   role: string;
+  password?: string;
+  displayName?: string;
 }
 
 // チャットメッセージ送信リクエスト
