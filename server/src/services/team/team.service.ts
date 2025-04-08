@@ -32,8 +32,10 @@ export const createTeam = async (
 
     // チーム作成者（管理者）を自動的にチームメンバーとして追加
     try {
+      // team._idはObjectIDなので型エラーを解消するために明示的に変換
+      const teamId = team._id as mongoose.Types.ObjectId;
       await addMemberById(
-        team._id.toString(), // チームID（明示的に文字列に変換）
+        teamId.toString(), // チームID（明示的に文字列に変換）
         adminId,             // 管理者ID
         'チーム管理者',      // チーム内の役割
         true                // 管理者チェックをスキップ（作成したばかりのチームなので）

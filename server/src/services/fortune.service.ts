@@ -70,9 +70,10 @@ export class FortuneService {
    * 運勢データを生成する
    * @param userId ユーザーID
    * @param date 日付
+   * @param forceOverwrite 既存データを強制上書きするか（手動更新時はtrue）
    * @returns 生成された運勢情報
    */
-  public async generateFortune(userId: string, date: Date): Promise<any> {
+  public async generateFortune(userId: string, date: Date, forceOverwrite: boolean = false): Promise<any> {
     // ユーザー情報と四柱推命プロファイルを取得
     // ユーザーIDがObjectIDかどうかを確認して適切なクエリを実行
     let user;
@@ -134,8 +135,40 @@ export class FortuneService {
       dayPillar.earthlyBranch
     );
 
-    // 運勢データを保存
-    const fortune = new DailyFortune({
+    // 既存の運勢データがあるか確認
+    let existingFortune = null;
+    
+    if (!forceOverwrite) {
+      // 強制上書きでない場合は既存データをチェック
+      existingFortune = await DailyFortune.findOne({
+        userId: userId,
+        date: {
+          $gte: targetDate,
+          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
+        }
+      });
+    }
+    
+    if (existingFortune && !forceOverwrite) {
+      // 既存データがあり、強制上書きでない場合はエラー
+      throw new Error(`このユーザー(${userId})の${targetDate.toISOString().split('T')[0]}の運勢は既に存在します`);
+    }
+
+    let fortune;
+    
+    if (forceOverwrite && existingFortune) {
+      // 強制上書きモードで既存データがある場合は削除
+      await DailyFortune.deleteOne({
+        userId: userId,
+        date: {
+          $gte: targetDate,
+          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000)
+        }
+      });
+    }
+    
+    // 新規作成
+    fortune = new DailyFortune({
       userId: userId,
       date: targetDate,
       dayPillarId: dayPillar._id,

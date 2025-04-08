@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { DailyFortuneUpdateLog, SystemSetting } from '../../models';
+import { DailyFortuneUpdateLog, SystemSetting, DailyFortune } from '../../models';
 import mongoose from 'mongoose';
+import { fortuneService } from '../../services/fortune.service';
 
 // ローカルでの型定義（Userモデルに合わせる）
 enum UserRole {
@@ -224,8 +225,7 @@ export const runFortuneUpdate = async (req: AuthRequest, res: Response) => {
       setTimeout(async () => {
         try {
           // 直接バッチ関数のロジックを実装
-          // ここではサービスを使って運勢更新処理を直接実行
-          const { fortuneService } = require('../../services/fortune.service');
+          // fortuneServiceはファイル先頭でインポート済み
           
           // Userモデルからユーザーを取得
           const User = mongoose.model('User');
@@ -241,7 +241,21 @@ export const runFortuneUpdate = async (req: AuthRequest, res: Response) => {
               if (!user._id) continue;
               const userId = String(user._id);
               
-              await fortuneService.generateFortune(userId, updateDate);
+              // 手動更新なので既存のデータを削除してから生成
+              const targetDate = new Date(updateDate);
+              targetDate.setHours(0, 0, 0, 0);
+              
+              // 既存の運勢データを削除
+              await DailyFortune.deleteOne({
+                userId: userId,
+                date: {
+                  $gte: targetDate,
+                  $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000)
+                }
+              });
+              
+              // 新しい運勢データを生成
+              await fortuneService.generateFortune(userId, updateDate, true);
               successCount++;
             } catch (error) {
               failedCount++;

@@ -173,13 +173,17 @@ const TeamGoalForm: React.FC<TeamGoalFormProps> = ({ teamId }) => {
           <button 
             type="button" 
             style={{ 
-              padding: '10px 16px', 
-              backgroundColor: 'transparent',
-              border: '1px solid var(--primary-color)',
-              color: 'var(--primary-color)', 
+              padding: '10px 20px', 
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #d0d0d0',
+              color: '#666', 
               borderRadius: '8px', 
               fontWeight: 500,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              minWidth: '120px',
+              height: '42px',
+              transition: 'all 0.2s ease'
             }}
             onClick={() => {
               // フォームをリセット（既存の目標がある場合はその値に戻す）
@@ -202,15 +206,20 @@ const TeamGoalForm: React.FC<TeamGoalFormProps> = ({ teamId }) => {
           <button 
             type="submit" 
             style={{ 
-              padding: '10px 16px', 
-              backgroundColor: 'var(--primary-color)', 
+              padding: '10px 20px', 
+              backgroundColor: '#5e35b1', 
               color: 'white', 
               border: 'none', 
               borderRadius: '8px', 
               fontWeight: 500,
               cursor: 'pointer',
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 4px rgba(94,53,177,0.3)',
+              minWidth: '120px',
+              height: '42px',
+              transition: 'all 0.2s ease'
             }}
             disabled={loading || !goal.trim()}
           >

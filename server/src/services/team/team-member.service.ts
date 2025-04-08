@@ -40,7 +40,24 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
     throw new UnauthorizedError('このチームのメンバー情報にアクセスする権限がありません');
   }
 
-  // チームメンバー一覧取得
+  // チーム管理者が自分自身のチームメンバーでない場合は自動追加
+  const adminId = team.adminId.toString();
+  const adminUser = await User.findById(adminId);
+  
+  if (adminUser && (!adminUser.teamId || adminUser.teamId.toString() !== teamIdStr)) {
+    console.log(`チーム管理者(${adminId})がチームメンバーではないため、自動的に追加します`);
+    
+    // 管理者をチームメンバーとして追加
+    await User.findByIdAndUpdate(
+      adminId,
+      {
+        teamId: teamId,
+        teamRole: 'チーム管理者'
+      }
+    );
+  }
+
+  // チームメンバー一覧取得（管理者も含まれるはず）
   const members = await User.find(
     { teamId: teamId },
     {
@@ -54,26 +71,13 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
     }
   );
 
-  // チーム管理者も追加（まだリストになければ）
-  const adminUser = await User.findById(
-    team.adminId,
-    {
-      _id: 1,
-      displayName: 1,
-      email: 1,
-      teamRole: 1,
-      elementAttribute: 1,
-      motivation: 1,
-      leaveRisk: 1
+  // 何らかの理由で管理者がメンバーに含まれていない場合の対応
+  if (adminUser && adminUser._id && !members.some(member => member._id && member._id.toString() === adminId)) {
+    // 管理者のチームロールが設定されていなければデフォルト値を設定
+    if (!adminUser.teamRole) {
+      adminUser.teamRole = 'チーム管理者';
     }
-  );
-
-  // チーム管理者が見つかった場合、リストに追加（まだ含まれていなければ）
-  if (adminUser && adminUser._id) {
-    const adminId = adminUser._id.toString();
-    if (!members.some(member => member._id && member._id.toString() === adminId)) {
-      members.push(adminUser);
-    }
+    members.push(adminUser);
   }
 
   return members;
@@ -200,19 +204,36 @@ export const updateMemberRole = async (
 
   const teamIdStr = teamId.toString();
   const adminIdStr = adminId.toString();
+  const userIdStr = userId.toString();
 
   // 管理者権限チェック
   if (team.adminId.toString() !== adminIdStr) {
     throw new UnauthorizedError('チームメンバーの役割変更は管理者のみ可能です');
   }
 
-  // 対象ユーザーがチームに所属しているか確認
+  // 対象ユーザーの存在確認
   const user = await User.findById(userId);
   if (!user) {
     throw new NotFoundError('ユーザーが見つかりません');
   }
 
-  if (!user.teamId || user.teamId.toString() !== teamIdStr) {
+  // ユーザーがチーム管理者であるかチェック
+  const isTeamAdmin = team.adminId.toString() === userIdStr;
+
+  // チーム管理者であるがまだチームメンバーとして登録されていない場合、自動追加
+  if (isTeamAdmin && (!user.teamId || user.teamId.toString() !== teamIdStr)) {
+    console.log(`チーム管理者(${userIdStr})がチームメンバーではないため、自動的に追加します`);
+    
+    // 管理者をチームメンバーとして追加
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        teamId: teamId
+      }
+    );
+  } 
+  // 管理者ではなく、チームに所属していない場合はエラー
+  else if (!user.teamId || user.teamId.toString() !== teamIdStr) {
     throw new BadRequestError('指定されたユーザーはこのチームのメンバーではありません');
   }
 

@@ -37,6 +37,39 @@ export interface FortuneUpdateLog {
 }
 
 /**
+ * 日柱情報
+ */
+export interface DayPillar {
+  _id: string;
+  date: string;
+  heavenlyStem: string;
+  earthlyBranch: string;
+  hiddenStems?: string[];
+  energyDescription?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * バッチジョブログ
+ */
+export interface BatchJobLog {
+  _id: string;
+  jobType: string;
+  status: 'scheduled' | 'running' | 'completed' | 'completed_with_errors' | 'failed';
+  startTime: string;
+  endTime?: string;
+  params?: Record<string, any>;
+  totalItems?: number;
+  processedItems?: number;
+  errorItems?: number;
+  result?: any;
+  scheduledBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
  * 運勢更新ログ一覧レスポンス
  */
 export interface FortuneUpdateLogsResponse {
@@ -53,6 +86,42 @@ export interface FortuneUpdateLogsResponse {
  * 運勢更新実行レスポンス
  */
 export interface RunFortuneUpdateResponse {
+  message: string;
+  jobId: string;
+  startTime: string;
+  status: string;
+}
+
+/**
+ * 日柱情報一覧レスポンス
+ */
+export interface DayPillarsResponse {
+  dayPillars: DayPillar[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+/**
+ * 日柱生成ログ一覧レスポンス
+ */
+export interface DayPillarLogsResponse {
+  logs: BatchJobLog[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
+/**
+ * 日柱生成実行レスポンス
+ */
+export interface RunDayPillarGenerationResponse {
   message: string;
   jobId: string;
   startTime: string;

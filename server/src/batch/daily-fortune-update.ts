@@ -118,7 +118,7 @@ export async function updateDailyFortunes(
           const userObj = user.toObject();
           const userId = String(user._id);
           
-          await fortuneService.generateFortune(userId, new Date(targetDate));
+          await fortuneService.generateFortune(userId, new Date(targetDate), forceUpdate); // forceUpdateパラメータを渡す
           successCount++;
         } catch (error) {
           // TypeScript対応のためのnullチェックとキャスト

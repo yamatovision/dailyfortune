@@ -127,6 +127,62 @@ class AdminService {
   public async getSystemStats(period: string = '30'): Promise<AxiosResponse<any>> {
     return ApiService.get(`${ADMIN.STATS}?period=${period}`);
   }
+
+  /**
+   * 日柱情報一覧を取得
+   */
+  public async getDayPillars(params: {
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+  } = {}): Promise<AxiosResponse<any>> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const queryString = queryParams.toString();
+    const url = `${ADMIN.GET_DAY_PILLARS}${queryString ? `?${queryString}` : ''}`;
+    
+    return ApiService.get(url);
+  }
+
+  /**
+   * 日柱生成ログ一覧を取得
+   */
+  public async getDayPillarLogs(params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  } = {}): Promise<AxiosResponse<any>> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.status) queryParams.append('status', params.status);
+    
+    const queryString = queryParams.toString();
+    const url = `${ADMIN.GET_DAY_PILLAR_LOGS}${queryString ? `?${queryString}` : ''}`;
+    
+    return ApiService.get(url);
+  }
+
+  /**
+   * 日柱生成ログ詳細を取得
+   */
+  public async getDayPillarLogDetail(logId: string): Promise<AxiosResponse<any>> {
+    return ApiService.get(ADMIN.GET_DAY_PILLAR_LOG_DETAIL(logId));
+  }
+
+  /**
+   * 手動で日柱生成を実行
+   */
+  public async runDayPillarGeneration(days: number = 30): Promise<AxiosResponse<any>> {
+    return ApiService.post(ADMIN.RUN_DAY_PILLAR_GENERATION, { days });
+  }
 }
 
 // シングルトンインスタンスをエクスポート

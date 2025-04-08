@@ -92,6 +92,24 @@ const Settings = () => {
   const [manualUpdateLoading, setManualUpdateLoading] = useState(false);
   const [manualUpdateDate, setManualUpdateDate] = useState<string>('');
   
+  // 日柱管理用のステート
+  const [dayPillars, setDayPillars] = useState<any[]>([]);
+  const [dayPillarsLoading, setDayPillarsLoading] = useState(false);
+  const [dayPillarsPage, setDayPillarsPage] = useState(1);
+  const [dayPillarsTotalPages, setDayPillarsTotalPages] = useState(1);
+  
+  // 日柱生成ログ用のステート
+  const [dayPillarLogs, setDayPillarLogs] = useState<any[]>([]);
+  const [dayPillarLogsLoading, setDayPillarLogsLoading] = useState(false);
+  const [dayPillarLogsPage, setDayPillarLogsPage] = useState(1);
+  const [dayPillarLogsTotalPages, setDayPillarLogsTotalPages] = useState(1);
+  const [dayPillarLogsFilter, setDayPillarLogsFilter] = useState('all');
+  
+  // 手動日柱生成用のステート
+  const [dayPillarGenerationOpen, setDayPillarGenerationOpen] = useState(false);
+  const [dayPillarGenerationLoading, setDayPillarGenerationLoading] = useState(false);
+  const [dayPillarGenerationDays, setDayPillarGenerationDays] = useState<number>(30);
+  
   // 統計タブ用のステート
   const [dateRange, setDateRange] = useState('30');
   
@@ -103,6 +121,8 @@ const Settings = () => {
     loadFortuneUpdateSetting();
     loadAdminUsers();
     loadFortuneLogs();
+    loadDayPillars();
+    loadDayPillarLogs();
   }, []);
 
   // タブ変更ハンドラー
@@ -285,6 +305,113 @@ const Settings = () => {
     // TODO: 実際のメンテナンスロジックを実装
     showNotification(NotificationType.INFO, `${action}処理を開始しました`);
   };
+  
+  // 日柱情報一覧を取得
+  const loadDayPillars = async (params: { page?: number, startDate?: string, endDate?: string } = {}) => {
+    try {
+      setDayPillarsLoading(true);
+      
+      // 実際のAPIリクエスト
+      const response = await AdminService.getDayPillars({
+        page: params.page || dayPillarsPage,
+        limit: 10,
+        startDate: params.startDate,
+        endDate: params.endDate
+      });
+      
+      if (response.data && response.data.dayPillars) {
+        setDayPillars(response.data.dayPillars);
+        setDayPillarsTotalPages(response.data.pagination.pages);
+      }
+    } catch (error) {
+      console.error('日柱情報一覧の取得に失敗しました:', error);
+      showNotification(NotificationType.ERROR, '日柱情報一覧の取得に失敗しました');
+    } finally {
+      setDayPillarsLoading(false);
+    }
+  };
+  
+  // 日柱情報ページネーション変更ハンドラー
+  const handleDayPillarsPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setDayPillarsPage(value);
+    loadDayPillars({ page: value });
+  };
+  
+  // 日柱生成ログ一覧を取得
+  const loadDayPillarLogs = async (params: { page?: number, status?: string } = {}) => {
+    try {
+      setDayPillarLogsLoading(true);
+      
+      // フィルター条件
+      const status = params.status || (dayPillarLogsFilter !== 'all' ? dayPillarLogsFilter : undefined);
+      
+      // 実際のAPIリクエスト
+      const response = await AdminService.getDayPillarLogs({
+        page: params.page || dayPillarLogsPage,
+        limit: 5,
+        status
+      });
+      
+      if (response.data && response.data.logs) {
+        setDayPillarLogs(response.data.logs);
+        setDayPillarLogsTotalPages(response.data.pagination.pages);
+      }
+    } catch (error) {
+      console.error('日柱生成ログの取得に失敗しました:', error);
+      showNotification(NotificationType.ERROR, '日柱生成ログの取得に失敗しました');
+    } finally {
+      setDayPillarLogsLoading(false);
+    }
+  };
+  
+  // 日柱生成ログのフィルター変更ハンドラー
+  const handleDayPillarLogsFilterChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const value = event.target.value as string;
+    setDayPillarLogsFilter(value);
+    setDayPillarLogsPage(1);
+    loadDayPillarLogs({ page: 1, status: value !== 'all' ? value : undefined });
+  };
+  
+  // 日柱生成ログのページネーション変更ハンドラー
+  const handleDayPillarLogsPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+    setDayPillarLogsPage(value);
+    loadDayPillarLogs({ page: value });
+  };
+  
+  // 手動日柱生成ダイアログを開く
+  const openDayPillarGenerationDialog = () => {
+    setDayPillarGenerationDays(30);
+    setDayPillarGenerationOpen(true);
+  };
+  
+  // 手動日柱生成を実行
+  const handleRunDayPillarGeneration = async () => {
+    try {
+      setDayPillarGenerationLoading(true);
+      
+      // 日数の検証
+      if (dayPillarGenerationDays <= 0 || dayPillarGenerationDays > 365) {
+        showNotification(NotificationType.ERROR, '生成日数は1～365の間で指定してください');
+        return;
+      }
+      
+      // 実際のAPIリクエスト
+      await AdminService.runDayPillarGeneration(dayPillarGenerationDays);
+      
+      setDayPillarGenerationOpen(false);
+      showNotification(NotificationType.SUCCESS, '日柱生成ジョブを開始しました');
+      
+      // ログ一覧を更新
+      setTimeout(() => {
+        loadDayPillarLogs();
+      }, 1000);
+    } catch (error) {
+      console.error('日柱生成の実行に失敗しました:', error);
+      showNotification(NotificationType.ERROR, '日柱生成の実行に失敗しました');
+    } finally {
+      setDayPillarGenerationLoading(false);
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -337,6 +464,41 @@ const Settings = () => {
         severity="warning"
         onConfirm={handleRunManualUpdate}
         onCancel={() => setManualUpdateOpen(false)}
+      />
+      
+      {/* 手動日柱生成確認ダイアログ */}
+      <ConfirmDialog
+        open={dayPillarGenerationOpen}
+        title="日柱情報の手動生成"
+        message={
+          <Box>
+            <Typography gutterBottom>
+              未来の日付の日柱情報を手動で生成します。
+            </Typography>
+            <TextField
+              fullWidth
+              label="生成日数"
+              type="number"
+              value={dayPillarGenerationDays}
+              onChange={(e) => setDayPillarGenerationDays(parseInt(e.target.value, 10))}
+              InputLabelProps={{ shrink: true }}
+              margin="normal"
+              disabled={dayPillarGenerationLoading}
+              inputProps={{ min: 1, max: 365 }}
+              helperText="生成する未来の日数（1～365日）"
+            />
+            {dayPillarGenerationLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <LoadingIndicator message="処理中..." />
+              </Box>
+            )}
+          </Box>
+        }
+        confirmLabel="実行"
+        cancelLabel="キャンセル"
+        severity="warning"
+        onConfirm={handleRunDayPillarGeneration}
+        onCancel={() => setDayPillarGenerationOpen(false)}
       />
 
       {/* 管理者権限タブ */}
@@ -602,6 +764,14 @@ const Settings = () => {
               <Button 
                 variant="contained" 
                 color="primary"
+                onClick={openDayPillarGenerationDialog}
+                startIcon={<UpdateIcon />}
+              >
+                日柱手動生成
+              </Button>
+              <Button 
+                variant="contained" 
+                color="primary"
                 onClick={() => handleMaintenance('backup')}
               >
                 DBバックアップ
@@ -621,6 +791,144 @@ const Settings = () => {
                 AIチャット履歴全削除
               </Button>
             </Stack>
+          </CardContent>
+        </Card>
+        
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" color="primary">
+                日柱生成ログ
+              </Typography>
+              <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
+                <InputLabel id="day-pillar-logs-filter-label">ステータス</InputLabel>
+                <Select
+                  labelId="day-pillar-logs-filter-label"
+                  value={dayPillarLogsFilter}
+                  onChange={(e: any) => handleDayPillarLogsFilterChange(e)}
+                  label="ステータス"
+                >
+                  <MenuItem value="all">すべて</MenuItem>
+                  <MenuItem value="scheduled">予定</MenuItem>
+                  <MenuItem value="running">実行中</MenuItem>
+                  <MenuItem value="completed">完了</MenuItem>
+                  <MenuItem value="completed_with_errors">警告あり</MenuItem>
+                  <MenuItem value="failed">失敗</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+            
+            {dayPillarLogsLoading ? (
+              <LoadingIndicator />
+            ) : (
+              <>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>実行日時</TableCell>
+                        <TableCell>ステータス</TableCell>
+                        <TableCell>生成日数</TableCell>
+                        <TableCell>成功/エラー</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {dayPillarLogs.length > 0 ? (
+                        dayPillarLogs.map((log) => (
+                          <TableRow key={log._id}>
+                            <TableCell>{new Date(log.startTime).toLocaleString()}</TableCell>
+                            <TableCell>
+                              {log.status === 'completed' && <Chip size="small" label="完了" color="success" />}
+                              {log.status === 'scheduled' && <Chip size="small" label="予定" color="info" />}
+                              {log.status === 'running' && <Chip size="small" label="実行中" color="warning" />}
+                              {log.status === 'completed_with_errors' && <Chip size="small" label="警告あり" color="warning" />}
+                              {log.status === 'failed' && <Chip size="small" label="失敗" color="error" />}
+                            </TableCell>
+                            <TableCell>{log.params?.days || '-'}</TableCell>
+                            <TableCell>
+                              {log.result ? (
+                                `${log.result.created || 0} / ${log.result.errors || 0}`
+                              ) : (
+                                '-'
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">ログがありません</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                
+                {dayPillarLogsTotalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Pagination 
+                      count={dayPillarLogsTotalPages} 
+                      page={dayPillarLogsPage} 
+                      onChange={handleDayPillarLogsPageChange} 
+                      color="primary" 
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="primary">
+              日柱情報一覧
+            </Typography>
+            
+            {dayPillarsLoading ? (
+              <LoadingIndicator />
+            ) : (
+              <>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>日付</TableCell>
+                        <TableCell>天干</TableCell>
+                        <TableCell>地支</TableCell>
+                        <TableCell>説明</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {dayPillars.length > 0 ? (
+                        dayPillars.map((pillar) => (
+                          <TableRow key={pillar._id}>
+                            <TableCell>{new Date(pillar.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{pillar.heavenlyStem}</TableCell>
+                            <TableCell>{pillar.earthlyBranch}</TableCell>
+                            <TableCell>{pillar.energyDescription || '-'}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">日柱情報がありません</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                
+                {dayPillarsTotalPages > 1 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                    <Pagination 
+                      count={dayPillarsTotalPages} 
+                      page={dayPillarsPage} 
+                      onChange={handleDayPillarsPageChange} 
+                      color="primary" 
+                    />
+                  </Box>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </TabPanel>

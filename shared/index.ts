@@ -143,6 +143,19 @@ export const ADMIN = {
   ADD_ADMIN: `${API_BASE_PATH}/admin/admins`,
   REMOVE_ADMIN: (userId: string) => `${API_BASE_PATH}/admin/admins/${userId}`,
   UPDATE_ADMIN_ROLE: (userId: string) => `${API_BASE_PATH}/admin/admins/${userId}/role`,
+  
+  // 運勢更新管理
+  GET_FORTUNE_UPDATE_SETTINGS: `${API_BASE_PATH}/admin/settings/fortune-update`,
+  UPDATE_FORTUNE_UPDATE_SETTINGS: `${API_BASE_PATH}/admin/settings/fortune-update`,
+  GET_FORTUNE_UPDATE_LOGS: `${API_BASE_PATH}/admin/settings/fortune-updates/logs`,
+  GET_FORTUNE_UPDATE_LOG_DETAIL: (logId: string) => `${API_BASE_PATH}/admin/settings/fortune-updates/logs/${logId}`,
+  RUN_FORTUNE_UPDATE: `${API_BASE_PATH}/admin/settings/fortune-updates/manual-run`,
+  
+  // 日柱管理
+  GET_DAY_PILLARS: `${API_BASE_PATH}/admin/settings/day-pillars`,
+  GET_DAY_PILLAR_LOGS: `${API_BASE_PATH}/admin/settings/day-pillars/logs`,
+  GET_DAY_PILLAR_LOG_DETAIL: (logId: string) => `${API_BASE_PATH}/admin/settings/day-pillars/logs/${logId}`,
+  RUN_DAY_PILLAR_GENERATION: `${API_BASE_PATH}/admin/settings/day-pillars/manual-run`,
 };
 
 // ========== データモデル ==========
