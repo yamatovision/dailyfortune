@@ -1061,233 +1061,241 @@
           チームメンバー相性分析
         </div>
         
-        <!-- 相性マトリックス -->
-        <div class="card" style="padding: 20px; overflow-x: auto;">
-          <h3 style="font-size: 1.1rem; font-weight: 500; margin-bottom: 16px;">相性マトリックス</h3>
-          
-          <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
-            <thead>
-              <tr>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 8px 0 0 0;"></th>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar water-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">鈴</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">鈴木</div>
-                </th>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar metal-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">田</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">田中</div>
-                </th>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar fire-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">渡</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">渡辺</div>
-                </th>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar earth-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">佐</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">佐藤</div>
-                </th>
-                <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 0 8px 0 0;">
-                  <div class="member-avatar wood-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">高</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">高橋</div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- 鈴木の行 -->
-              <tr style="border-bottom: 1px solid var(--divider);">
-                <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar water-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">鈴</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">鈴木</div>
-                </td>
-                <td style="padding: 16px; text-align: center;">-</td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">90%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">45%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
-                  <span style="color: #ff8f00; font-weight: 500;">65%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">40%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-              </tr>
-              
-              <!-- 田中の行 -->
-              <tr style="border-bottom: 1px solid var(--divider);">
-                <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar metal-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">田</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">田中</div>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">90%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center;">-</td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">85%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">80%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">50%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-              </tr>
-              
-              <!-- 渡辺の行 -->
-              <tr style="border-bottom: 1px solid var(--divider);">
-                <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar fire-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">渡</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">渡辺</div>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">45%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">85%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center;">-</td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">90%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
-                  <span style="color: #ff8f00; font-weight: 500;">60%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
-                </td>
-              </tr>
-              
-              <!-- 佐藤の行 -->
-              <tr style="border-bottom: 1px solid var(--divider);">
-                <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
-                  <div class="member-avatar earth-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">佐</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">佐藤</div>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
-                  <span style="color: #ff8f00; font-weight: 500;">65%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">80%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">90%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center;">-</td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">85%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-              </tr>
-              
-              <!-- 高橋の行 -->
-              <tr>
-                <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 0 0 0 8px;">
-                  <div class="member-avatar wood-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">高</div>
-                  <div style="font-size: 0.8rem; margin-top: 4px;">高橋</div>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">40%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
-                  <span style="color: #c62828; font-weight: 500;">50%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
-                  <span style="color: #ff8f00; font-weight: 500;">60%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
-                </td>
-                <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
-                  <span style="color: #00796b; font-weight: 500;">85%</span><br>
-                  <span style="font-size: 0.75rem; color: var(--success);">相生</span>
-                </td>
-                <td style="padding: 16px; text-align: center; border-radius: 0 0 8px 0;">-</td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- タブ切り替え -->
+        <div style="margin-bottom: 20px;">
+          <div style="display: flex; background-color: #f5f5f5; border-radius: 8px; overflow: hidden;">
+            <div id="classic-tab" style="flex: 1; text-align: center; padding: 12px; cursor: pointer; background-color: var(--primary-color); color: white; font-weight: 500;">
+              従来の相性マトリックス
+            </div>
+            <div id="jobs-tab" style="flex: 1; text-align: center; padding: 12px; cursor: pointer;">
+              ジョブズ式シンプル相性
+            </div>
+          </div>
         </div>
         
-        <!-- 相性分析の詳細と協力のヒント -->
-        <div class="card" style="padding: 20px; margin-top: 20px;">
-          <h3 style="font-size: 1.1rem; font-weight: 500; margin-bottom: 16px;">相性分析と協力のヒント</h3>
-          
-          <div style="margin-bottom: 16px;">
-            <p style="margin-bottom: 8px;">
-              <strong>主な強み:</strong> 田中（金）と鈴木（水）の相性は極めて良好で、論理的分析と創造的発想を組み合わせたプロジェクトに最適です。
-            </p>
-            <p style="margin-bottom: 8px;">
-              <strong>主な課題:</strong> 高橋（木）と鈴木（水）の相性には工夫が必要です。コミュニケーション方法を明確にし、お互いの強みを活かす環境設定が重要です。
-            </p>
-            <p style="margin-bottom: 8px;">
-              <strong>アドバイス:</strong> チーム全体として、土と金の要素が強いため、創造性と成長（水と木）を促進する活動を意識的に取り入れることで、より均衡のとれたチームダイナミクスが形成されます。
-            </p>
+        <!-- 従来の相性マトリックス表示 -->
+        <div id="classic-view">
+          <!-- 相性マトリックス -->
+          <div class="card" style="padding: 20px; overflow-x: auto;">
+            <h3 style="font-size: 1.1rem; font-weight: 500; margin-bottom: 16px;">相性マトリックス</h3>
+            
+            <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+              <thead>
+                <tr>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 8px 0 0 0;"></th>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar water-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">鈴</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">鈴木</div>
+                  </th>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar metal-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">田</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">田中</div>
+                  </th>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar fire-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">渡</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">渡辺</div>
+                  </th>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar earth-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">佐</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">佐藤</div>
+                  </th>
+                  <th style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 0 8px 0 0;">
+                    <div class="member-avatar wood-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">高</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">高橋</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- 鈴木の行 -->
+                <tr style="border-bottom: 1px solid var(--divider);">
+                  <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar water-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">鈴</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">鈴木</div>
+                  </td>
+                  <td style="padding: 16px; text-align: center;">-</td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">90%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">45%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
+                    <span style="color: #ff8f00; font-weight: 500;">65%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">40%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                </tr>
+                
+                <!-- 田中の行 -->
+                <tr style="border-bottom: 1px solid var(--divider);">
+                  <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar metal-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">田</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">田中</div>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">90%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center;">-</td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">85%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">80%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">50%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                </tr>
+                
+                <!-- 渡辺の行 -->
+                <tr style="border-bottom: 1px solid var(--divider);">
+                  <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar fire-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">渡</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">渡辺</div>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">45%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">85%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center;">-</td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">90%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
+                    <span style="color: #ff8f00; font-weight: 500;">60%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
+                  </td>
+                </tr>
+                
+                <!-- 佐藤の行 -->
+                <tr style="border-bottom: 1px solid var(--divider);">
+                  <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white;">
+                    <div class="member-avatar earth-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">佐</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">佐藤</div>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
+                    <span style="color: #ff8f00; font-weight: 500;">65%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">80%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">90%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center;">-</td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">85%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                </tr>
+                
+                <!-- 高橋の行 -->
+                <tr>
+                  <td style="padding: 12px 8px; text-align: center; background-color: var(--primary-light); color: white; border-radius: 0 0 0 8px;">
+                    <div class="member-avatar wood-avatar" style="width: 36px; height: 36px; font-size: 0.9rem; margin: 0 auto;">高</div>
+                    <div style="font-size: 0.8rem; margin-top: 4px;">高橋</div>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">40%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 82, 82, 0.1);">
+                    <span style="color: #c62828; font-weight: 500;">50%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--danger);">相克</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(255, 193, 7, 0.1);">
+                    <span style="color: #ff8f00; font-weight: 500;">60%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--warning);">中和</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; background-color: rgba(29, 233, 182, 0.1);">
+                    <span style="color: #00796b; font-weight: 500;">85%</span><br>
+                    <span style="font-size: 0.75rem; color: var(--success);">相生</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center; border-radius: 0 0 8px 0;">-</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           
-          <button class="btn btn-primary">
-            <span class="material-icons">psychology</span>
-            詳細なチーム相性レポートを見る
-          </button>
+          <!-- 相性分析の詳細と協力のヒント -->
+          <div class="card" style="padding: 20px; margin-top: 20px;">
+            <h3 style="font-size: 1.1rem; font-weight: 500; margin-bottom: 16px;">相性分析と協力のヒント</h3>
+            
+            <div style="margin-bottom: 16px;">
+              <p style="margin-bottom: 8px;">
+                <strong>主な強み:</strong> 田中（金）と鈴木（水）の相性は極めて良好で、論理的分析と創造的発想を組み合わせたプロジェクトに最適です。
+              </p>
+              <p style="margin-bottom: 8px;">
+                <strong>主な課題:</strong> 高橋（木）と鈴木（水）の相性には工夫が必要です。コミュニケーション方法を明確にし、お互いの強みを活かす環境設定が重要です。
+              </p>
+              <p style="margin-bottom: 8px;">
+                <strong>アドバイス:</strong> チーム全体として、土と金の要素が強いため、創造性と成長（水と木）を促進する活動を意識的に取り入れることで、より均衡のとれたチームダイナミクスが形成されます。
+              </p>
+            </div>
+            
+            <button class="btn btn-primary">
+              <span class="material-icons">psychology</span>
+              詳細なチーム相性レポートを見る
+            </button>
+          </div>
         </div>
+        
+        <!-- ジョブズ式シンプル相性表示（削除） -->
       </div>
+      
+      <script>
+        // タブ切り替え機能
+        document.addEventListener('DOMContentLoaded', function() {
+          const classicTab = document.getElementById('classic-tab');
+          const jobsTab = document.getElementById('jobs-tab');
+          const classicView = document.getElementById('classic-view');
+          const jobsView = document.getElementById('jobs-view');
+          
+          classicTab.addEventListener('click', function() {
+            classicTab.style.backgroundColor = 'var(--primary-color)';
+            classicTab.style.color = 'white';
+            jobsTab.style.backgroundColor = '';
+            jobsTab.style.color = '';
+            
+            classicView.style.display = 'block';
+            jobsView.style.display = 'none';
+          });
+          
+          jobsTab.addEventListener('click', function() {
+            jobsTab.style.backgroundColor = 'var(--primary-color)';
+            jobsTab.style.color = 'white';
+            classicTab.style.backgroundColor = '';
+            classicTab.style.color = '';
+            
+            jobsView.style.display = 'block';
+            classicView.style.display = 'none';
+          });
+        });
+      </script>
       
       <div class="page-bottom-padding"></div>
     </div>
     
     <div class="tab-content" id="executive-dashboard">
       <!-- 統計情報 -->
-      <div class="section">
-        <div class="section-title">
-          <span class="material-icons">insights</span>
-          チーム概要
-        </div>
-        
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon primary">
-              <span class="material-icons">people</span>
-            </div>
-            <div class="stat-value">5</div>
-            <div class="stat-label">メンバー数</div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon success">
-              <span class="material-icons">mood</span>
-            </div>
-            <div class="stat-value">82%</div>
-            <div class="stat-label">平均モチベーション</div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon warning">
-              <span class="material-icons">warning</span>
-            </div>
-            <div class="stat-value">2</div>
-            <div class="stat-label">アラート数</div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon danger">
-              <span class="material-icons">trending_down</span>
-            </div>
-            <div class="stat-value">1</div>
-            <div class="stat-label">離職リスク</div>
-          </div>
-        </div>
-      </div>
+      <!-- 統計情報セクションを削除 -->
       
       <!-- アラート通知 -->
       <div class="section">
