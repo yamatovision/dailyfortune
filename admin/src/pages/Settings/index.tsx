@@ -264,7 +264,13 @@ const Settings = () => {
 
   // 手動運勢更新ダイアログを開く
   const openManualUpdateDialog = () => {
-    const today = new Date().toISOString().split('T')[0];
+    // 日本のローカル時間で今日の日付を取得（YYYY-MM-DD形式）
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
+    
     setManualUpdateDate(today);
     setManualUpdateOpen(true);
   };

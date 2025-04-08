@@ -219,7 +219,9 @@ export class FortuneService {
     const weightedScore = stemCompatibility * 0.6 + branchCompatibility * 0.4;
     
     // 0-100の範囲にスケーリング
-    return Math.round(weightedScore * 20 + 50);
+    // 2つの方法でスコアを計算し、確実に100以下に収める
+    const preliminaryScore = Math.round(weightedScore * 20 + 50);
+    return Math.min(Math.round(preliminaryScore * 2 / 3), 100);
   }
 
   /**
