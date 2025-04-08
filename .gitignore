@@ -1,0 +1,69 @@
+# 環境変数・シークレット
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+*firebase-adminsdk*.json
+sys-*-firebase-adminsdk-*.json
+
+# APIキーなどの機密情報
+CLAUDE.md
+server/src/tests/services/claude-api.test.ts
+
+# ビルド出力
+dist/
+build/
+*.tsbuildinfo
+
+# 依存関係
+node_modules/
+
+# ログ
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# キャッシュ/一時ファイル
+.temp/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist
+.fusebox/
+.dynamodb/
+.tern-port
+
+# システム固有
+.DS_Store
+Thumbs.db
+.vercel
+.netlify
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDE / エディタ
+.idea/
+.vscode/
+*.code-workspace
+.project
+.classpath
+.c9/
+*.launch
+*.sublime-workspace
+
+# テスト・カバレッジ
+coverage/
+.nyc_output/
+jest-report/
+
+# ローカルツール
+.appgenius_temp/
+.claude_data/
+temp/firebase-service-account.json
+/server/firebase-service-account.json
