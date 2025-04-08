@@ -102,16 +102,20 @@ export async function updateDailyFortunes(
       // ユーザーのバッチ取得
       const users = await User.find({ isActive: true })
         .skip(page * batchSize)
-        .limit(batchSize)
-        .select('_id');
+        .limit(batchSize);
       
       if (users.length === 0) break;
       
       // 各ユーザーの運勢を更新
       for (const user of users) {
         try {
+          // ユーザーオブジェクトから正しいIDを取得
           // TypeScript対応のためのnullチェックとキャスト
           if (!user._id) continue;
+          
+          // User モデルでは _id が Firebase UID または MongoDB ObjectID を格納している
+          // user.toObject() でプレーンオブジェクトにして扱うことで型エラーを回避
+          const userObj = user.toObject();
           const userId = String(user._id);
           
           await fortuneService.generateFortune(userId, new Date(targetDate));

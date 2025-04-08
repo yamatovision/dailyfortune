@@ -79,6 +79,65 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
   return members;
 };
 
+/**
+ * ユーザーIDを使用してチームメンバーを追加する
+ * チーム作成時などの内部処理用に使用
+ */
+export const addMemberById = async (
+  teamId: string | mongoose.Types.ObjectId,
+  userId: string | mongoose.Types.ObjectId,
+  role?: string,
+  skipAdminCheck: boolean = false
+) => {
+  // チームの存在確認
+  const team = await Team.findById(teamId);
+  if (!team) {
+    throw new NotFoundError('チームが見つかりません');
+  }
+
+  const teamIdStr = teamId.toString();
+
+  // 追加対象ユーザーの存在確認
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError('指定されたユーザーが見つかりません');
+  }
+
+  // 管理者チェックをスキップしない場合（通常のケース）
+  if (!skipAdminCheck) {
+    // 実行者が管理者かどうかを確認
+    const isAdmin = await isTeamAdmin(teamId, userId);
+    if (!isAdmin) {
+      throw new UnauthorizedError('チームメンバーの追加は管理者のみ可能です');
+    }
+  }
+
+  // ユーザーが既に別のチームに所属しているかチェック
+  if (user.teamId && user.teamId.toString() !== teamIdStr) {
+    throw new BadRequestError('このユーザーは既に別のチームに所属しています');
+  }
+
+  // ユーザーのチーム情報を更新
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      teamId,
+      teamRole: role || ''
+    },
+    { new: true }
+  );
+
+  if (!updatedUser) {
+    throw new Error('ユーザー情報の更新に失敗しました');
+  }
+
+  return updatedUser;
+};
+
+/**
+ * メールアドレスからユーザーを検索してチームメンバーとして追加する
+ * 外部APIエンドポイント用
+ */
 export const addMember = async (
   teamId: string | mongoose.Types.ObjectId,
   adminId: string | mongoose.Types.ObjectId,

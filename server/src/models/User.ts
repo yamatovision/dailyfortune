@@ -16,6 +16,9 @@ export interface IUser {
   motivation?: number;              // モチベーションスコア（0-100）
   leaveRisk?: 'none' | 'low' | 'medium' | 'high';  // 離職リスク
   
+  // Firebase 関連
+  uid?: string;                     // Firebase UID (Firebase 認証と連携するため)
+  
   // 基本的な誕生情報
   birthDate?: Date;                 // 生年月日
   birthTime?: string;               // 出生時間（HH:MM形式）
@@ -95,6 +98,11 @@ const userSchema = new Schema<IUserDocument>(
     _id: {
       type: Schema.Types.Mixed, // FirebaseのUIDを格納できるように変更
       required: true
+    },
+    uid: {
+      type: String,
+      index: true,
+      sparse: true // すべてのドキュメントにこのフィールドがあるとは限らない
     },
     email: {
       type: String,

@@ -19,3 +19,11 @@ export {
   getFortuneUpdateLogDetail,
   runFortuneUpdate
 } from './fortune-update.controller';
+
+// 日柱管理コントローラー
+export {
+  getDayPillarLogs,
+  getDayPillarLogDetail,
+  getDayPillars,
+  runDayPillarGeneration
+} from './day-pillar.controller';

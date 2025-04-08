@@ -4,7 +4,7 @@ import mongoose, { Document, Schema } from 'mongoose';
  * 運勢更新エラー情報のインターフェース
  */
 export interface IUpdateError {
-  userId?: mongoose.Types.ObjectId;
+  userId?: string | mongoose.Types.ObjectId; // FirebaseのUIDまたはMongoDB ObjectID
   message: string;
   stack?: string;
 }
@@ -23,7 +23,7 @@ export interface IDailyFortuneUpdateLogBase {
   isAutomaticRetry: boolean;  // 自動リトライかどうか
   retryCount?: number;  // リトライ回数
   lastRetryAt?: Date;  // 最終リトライ日時
-  createdBy: mongoose.Types.ObjectId;  // 作成者（自動実行の場合はシステム管理者ID）
+  createdBy: string | mongoose.Types.ObjectId;  // 作成者ID（Firebase UIDまたはMongoDB ObjectID）
   updateErrors?: IUpdateError[];  // エラー情報 (errors名を変更)
 }
 
@@ -90,8 +90,7 @@ const dailyFortuneUpdateLogSchema = new Schema<IDailyFortuneUpdateLogDocument>(
     updateErrors: [
       {
         userId: {
-          type: Schema.Types.ObjectId,
-          ref: 'User'
+          type: Schema.Types.Mixed, // FirebaseのUIDまたはMongoDB ObjectID
         },
         message: {
           type: String,
@@ -114,8 +113,7 @@ const dailyFortuneUpdateLogSchema = new Schema<IDailyFortuneUpdateLogDocument>(
       type: Date
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.Mixed, // FirebaseのUIDを直接格納できるように変更
       required: [true, '作成者は必須です']
     }
   },

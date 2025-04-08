@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Team, ITeamDocument } from '../../models/Team';
 import { User } from '../../models/User';
 import { NotFoundError, UnauthorizedError, BadRequestError } from '../../utils/error-handler';
+import { addMemberById } from './team-member.service';
 
 export const createTeam = async (
   name: string,
@@ -28,6 +29,19 @@ export const createTeam = async (
       iconColor: iconColor || 'primary',
       iconInitial: name.charAt(0)
     });
+
+    // チーム作成者（管理者）を自動的にチームメンバーとして追加
+    try {
+      await addMemberById(
+        team._id.toString(), // チームID（明示的に文字列に変換）
+        adminId,             // 管理者ID
+        'チーム管理者',      // チーム内の役割
+        true                // 管理者チェックをスキップ（作成したばかりのチームなので）
+      );
+    } catch (memberError: any) {
+      console.error('チーム作成者をメンバーとして追加できませんでした:', memberError);
+      // チーム作成自体は成功しているため、メンバー追加のエラーはスローせずに処理を続行
+    }
 
     return team;
   } catch (error: any) {

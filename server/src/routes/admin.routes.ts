@@ -89,4 +89,38 @@ router.post(
   adminController.runFortuneUpdate
 );
 
+// ======== 日柱管理API ========
+
+// 日柱生成ログ一覧取得（SuperAdmin専用）
+router.get(
+  '/settings/day-pillars/logs',
+  authenticate,
+  requireSuperAdmin,
+  adminController.getDayPillarLogs
+);
+
+// 日柱生成ログ詳細取得（SuperAdmin専用）
+router.get(
+  '/settings/day-pillars/logs/:logId',
+  authenticate,
+  requireSuperAdmin,
+  adminController.getDayPillarLogDetail
+);
+
+// 既存の日柱情報一覧取得（SuperAdmin専用）
+router.get(
+  '/settings/day-pillars',
+  authenticate,
+  requireSuperAdmin,
+  adminController.getDayPillars
+);
+
+// 手動日柱生成実行（SuperAdmin専用）
+router.post(
+  '/settings/day-pillars/manual-run',
+  authenticate,
+  requireSuperAdmin,
+  adminController.runDayPillarGeneration
+);
+
 export default router;

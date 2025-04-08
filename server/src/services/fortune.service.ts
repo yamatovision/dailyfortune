@@ -76,14 +76,19 @@ export class FortuneService {
     // ユーザー情報と四柱推命プロファイルを取得
     // ユーザーIDがObjectIDかどうかを確認して適切なクエリを実行
     let user;
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      user = await User.findById(userId);
-    } else {
-      // FirebaseのUID形式の場合は別のフィールドで検索
+    
+    // FirebaseのUID形式の場合はまず _id で直接検索
+    // User モデルでは _id に Firebase UID を直接格納する場合がある
+    user = await User.findById(userId);
+    
+    // 見つからなければ uid フィールドで検索
+    if (!user) {
       user = await User.findOne({ uid: userId });
     }
     
+    // それでも見つからなければエラー
     if (!user) {
+      console.log(`ユーザーが見つかりません。検索ID: ${userId}`);
       throw new Error('ユーザーが見つかりません');
     }
 

@@ -9,7 +9,7 @@ export interface ISystemSetting {
   value: string;
   description: string;
   updatedAt: Date;
-  updatedBy: mongoose.Types.ObjectId;
+  updatedBy: string | mongoose.Types.ObjectId; // FirebaseのUIDまたはMongoDBのObjectID
 }
 
 /**
@@ -40,8 +40,7 @@ const systemSettingSchema = new Schema<ISystemSettingDocument>(
       required: [true, '説明は必須です']
     },
     updatedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: Schema.Types.Mixed, // FirebaseのUIDを直接格納できるように変更
       required: [true, '更新者IDは必須です']
     }
   },

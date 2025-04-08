@@ -69,7 +69,7 @@ export const updateFortuneUpdateSettings = async (req: AuthRequest, res: Respons
       {
         value,
         description: description || '毎日の運勢更新実行時間',
-        updatedBy: new mongoose.Types.ObjectId(req.user.uid)
+        updatedBy: req.user.uid // FirebaseのUIDを直接使用
       },
       { new: true, upsert: true }
     );
@@ -194,23 +194,100 @@ export const runFortuneUpdate = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: 'targetUserIdsは配列で指定してください' });
     }
     
+    // アクティブユーザー数を取得
+    const User = mongoose.model('User');
+    const totalUsers = targetUserIds 
+      ? targetUserIds.length 
+      : await User.countDocuments({ isActive: true });
+    
     // 新しい運勢更新ログを作成
     const newLog = new DailyFortuneUpdateLog({
       date: updateDate,
       status: 'scheduled',
       startTime: new Date(),
-      totalUsers: targetUserIds ? targetUserIds.length : 0, // ユーザー数は後で更新
+      totalUsers: totalUsers, // アクティブユーザー数を設定
       successCount: 0,
       failedCount: 0,
       isAutomaticRetry: false,
-      createdBy: new mongoose.Types.ObjectId(req.user.uid)
+      createdBy: req.user.uid // FirebaseのUIDを直接使用
     });
     
     await newLog.save();
     
-    // 実際の運勢生成処理はバックグラウンドジョブで実行
-    // ここではジョブを開始したことを返す
-    // TODO: 実際のジョブ実行処理を実装
+    // 実際の運勢生成処理を開始（バックグラウンドで実行）
+    // TODO: 本格的な実装は別途行う予定
+    try {
+      // 動的インポートではなく、直接バッチ関数を呼び出す
+      const userId = req.user?.uid || '';
+      
+      // 非同期で実行するが結果は待たない
+      setTimeout(async () => {
+        try {
+          // 直接バッチ関数のロジックを実装
+          // ここではサービスを使って運勢更新処理を直接実行
+          const { fortuneService } = require('../../services/fortune.service');
+          
+          // Userモデルからユーザーを取得
+          const User = mongoose.model('User');
+          const users = await User.find({ isActive: true }).limit(100);
+          
+          let successCount = 0;
+          let failedCount = 0;
+          let updateErrors: any[] = [];
+          
+          // 各ユーザーの運勢を更新
+          for (const user of users) {
+            try {
+              if (!user._id) continue;
+              const userId = String(user._id);
+              
+              await fortuneService.generateFortune(userId, updateDate);
+              successCount++;
+            } catch (error) {
+              failedCount++;
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              const stack = error instanceof Error ? error.stack : undefined;
+              updateErrors.push({ userId: String(user._id), message: errorMsg, stack });
+              console.error(`ユーザー ${user._id} の運勢生成中にエラー:`, errorMsg);
+            }
+          }
+          
+          // 結果オブジェクトを作成
+          const result = {
+            success: failedCount === 0,
+            message: `運勢更新処理が完了しました。更新ユーザー数: ${successCount}, 失敗: ${failedCount}`,
+            date: updateDate,
+            totalUsers: users.length,
+            successCount,
+            failedCount,
+            updateErrors: updateErrors.length > 0 ? updateErrors : undefined
+          };
+          console.log('運勢更新バッチ実行結果:', result);
+          
+          // 成功時にログを更新
+          await DailyFortuneUpdateLog.findByIdAndUpdate(newLog._id, {
+            status: result.success ? 'completed' : 'failed',
+            endTime: new Date(),
+            successCount: result.successCount || 0,
+            failedCount: result.failedCount || 0
+          });
+        } catch (batchError) {
+          console.error('運勢更新バッチ実行エラー:', batchError);
+          
+          // エラー時にログを更新
+          await DailyFortuneUpdateLog.findByIdAndUpdate(newLog._id, {
+            status: 'failed',
+            endTime: new Date(),
+            updateErrors: [{
+              userId: 'system',
+              message: batchError instanceof Error ? batchError.message : String(batchError)
+            }]
+          });
+        }
+      }, 100);
+    } catch (error) {
+      console.error('バッチ処理開始エラー:', error);
+    }
     
     return res.status(200).json({
       message: '運勢更新ジョブを開始しました',
