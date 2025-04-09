@@ -64,6 +64,13 @@ const UsersManagement = () => {
   // 通知コンテキスト
   const { showNotification } = useNotification();
 
+  // 新規ユーザー追加用の状態
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState('User');
+  const [newUserPlan, setNewUserPlan] = useState('lite');
+  const [addLoading, setAddLoading] = useState(false);
+
   // 初期データ読み込み
   useEffect(() => {
     loadUsers();
@@ -128,9 +135,16 @@ const UsersManagement = () => {
 
   // 編集ダイアログを開く
   const openEditDialog = (user: any) => {
-    setEditUserId(user.id);
+    // user.id または user._id を使用し、どちらもなければ操作をキャンセル
+    const userId = user.id || user._id;
+    if (!userId) {
+      showNotification(NotificationType.ERROR, 'ユーザーIDが取得できませんでした');
+      return;
+    }
+    
+    setEditUserId(userId);
     setEditUserRole(user.role);
-    setEditUserPlan(user.plan || 'free');
+    setEditUserPlan(user.plan || 'lite');
     setEditDialogOpen(true);
   };
 
@@ -182,7 +196,14 @@ const UsersManagement = () => {
 
   // 削除ダイアログを開く
   const openDeleteDialog = (user: any) => {
-    setDeleteUserId(user.id);
+    // user.id または user._id を使用し、どちらもなければ操作をキャンセル
+    const userId = user.id || user._id;
+    if (!userId) {
+      showNotification(NotificationType.ERROR, 'ユーザーIDが取得できませんでした');
+      return;
+    }
+    
+    setDeleteUserId(userId);
     setDeleteUserName(user.displayName || user.email);
     setDeleteDialogOpen(true);
   };
@@ -212,8 +233,9 @@ const UsersManagement = () => {
 
   // ロールに基づいたチップの色を取得
   const getRoleColor = (role: string) => {
-    switch (role) {
+    switch (role.toLowerCase()) {
       case 'super_admin':
+      case 'superadmin':
         return 'secondary';
       case 'admin':
         return 'primary';
@@ -225,8 +247,6 @@ const UsersManagement = () => {
   // プランに基づいたチップの色を取得
   const getPlanColor = (plan: string) => {
     switch (plan) {
-      case 'premium':
-        return 'success';
       case 'elite':
         return 'warning';
       default:
@@ -265,9 +285,9 @@ const UsersManagement = () => {
                   onChange={(e: any) => handleRoleFilterChange(e)}
                 >
                   <MenuItem value="all">すべて</MenuItem>
-                  <MenuItem value="user">一般ユーザー</MenuItem>
-                  <MenuItem value="admin">管理者</MenuItem>
-                  <MenuItem value="super_admin">スーパー管理者</MenuItem>
+                  <MenuItem value="User">一般ユーザー</MenuItem>
+                  <MenuItem value="Admin">管理者</MenuItem>
+                  <MenuItem value="SuperAdmin">スーパー管理者</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -281,8 +301,7 @@ const UsersManagement = () => {
                   onChange={(e: any) => handlePlanFilterChange(e)}
                 >
                   <MenuItem value="all">すべて</MenuItem>
-                  <MenuItem value="free">無料</MenuItem>
-                  <MenuItem value="premium">プレミアム</MenuItem>
+                  <MenuItem value="lite">ライト</MenuItem>
                   <MenuItem value="elite">エリート</MenuItem>
                 </Select>
               </FormControl>
@@ -304,6 +323,7 @@ const UsersManagement = () => {
                 variant="outlined"
                 color="primary"
                 startIcon={<AddIcon />}
+                onClick={() => setAddDialogOpen(true)}
                 fullWidth
               >
                 新規追加
@@ -336,52 +356,63 @@ const UsersManagement = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {users.length > 0 ? (
-                      users.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{user.displayName || '-'}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={user.role === 'super_admin' ? 'スーパー管理者' : user.role === 'admin' ? '管理者' : '一般ユーザー'}
-                              color={getRoleColor(user.role) as any}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              label={user.plan === 'premium' ? 'プレミアム' : user.plan === 'elite' ? 'エリート' : '無料'}
-                              color={getPlanColor(user.plan) as any}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => openEditDialog(user)}
-                              title="編集"
-                            >
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => openDeleteDialog(user)}
-                              title="削除"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
+                    {users.length > 0 ? 
+                      users.map(user => {
+                        // 確実に一意のキーを生成
+                        const rowKey = `user-row-${user.id || user._id || user.email}`;
+                        return (
+                          <TableRow key={rowKey}>
+                            <TableCell>{user.displayName || '-'}</TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={
+                                  user.role === 'super_admin' || user.role === 'SuperAdmin' ? 'スーパー管理者' : 
+                                  user.role === 'admin' || user.role === 'Admin' ? '管理者' : 
+                                  '一般ユーザー'
+                                }
+                                color={getRoleColor(user.role) as any}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={user.plan === 'elite' ? 'エリート' : 'ライト'}
+                                color={getPlanColor(user.plan) as any}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => openEditDialog(user)}
+                                  title="編集"
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                                {' '}
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => openDeleteDialog(user)}
+                                  title="削除"
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    : 
+                      <TableRow key="no-users">
                         <TableCell colSpan={5} align="center">
                           ユーザーが見つかりません
                         </TableCell>
                       </TableRow>
-                    )}
+                    }
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -421,9 +452,9 @@ const UsersManagement = () => {
                 onChange={(e) => setEditUserRole(e.target.value)}
                 disabled={editLoading}
               >
-                <MenuItem value="user">一般ユーザー</MenuItem>
-                <MenuItem value="admin">管理者</MenuItem>
-                <MenuItem value="super_admin">スーパー管理者</MenuItem>
+                <MenuItem value="User">一般ユーザー</MenuItem>
+                <MenuItem value="Admin">管理者</MenuItem>
+                <MenuItem value="SuperAdmin">スーパー管理者</MenuItem>
               </Select>
             </FormControl>
             
@@ -436,8 +467,7 @@ const UsersManagement = () => {
                 onChange={(e) => setEditUserPlan(e.target.value)}
                 disabled={editLoading}
               >
-                <MenuItem value="free">無料</MenuItem>
-                <MenuItem value="premium">プレミアム</MenuItem>
+                <MenuItem value="lite">ライト</MenuItem>
                 <MenuItem value="elite">エリート</MenuItem>
               </Select>
             </FormControl>
@@ -457,21 +487,32 @@ const UsersManagement = () => {
             キャンセル
           </Button>
           <Button
-            onClick={updateUserRole}
+            onClick={async () => {
+              setEditLoading(true);
+              try {
+                // 権限の更新
+                await AdminService.updateUserRole(editUserId!, editUserRole);
+                
+                // プランの更新
+                await AdminService.updateUserPlan(editUserId!, editUserPlan);
+                
+                showNotification(NotificationType.SUCCESS, 'ユーザー情報を更新しました');
+                setEditDialogOpen(false);
+                
+                // ユーザー一覧を更新
+                loadUsers();
+              } catch (error) {
+                console.error('ユーザー情報の更新に失敗しました:', error);
+                showNotification(NotificationType.ERROR, 'ユーザー情報の更新に失敗しました');
+              } finally {
+                setEditLoading(false);
+              }
+            }}
             color="primary"
             disabled={editLoading}
             variant="contained"
-            sx={{ mr: 1 }}
           >
-            権限を更新
-          </Button>
-          <Button
-            onClick={updateUserPlan}
-            color="primary"
-            disabled={editLoading}
-            variant="contained"
-          >
-            プランを更新
+            更新
           </Button>
         </DialogActions>
       </Dialog>
@@ -487,6 +528,110 @@ const UsersManagement = () => {
         onConfirm={deleteUser}
         onCancel={() => setDeleteDialogOpen(false)}
       />
+
+      {/* 新規ユーザー追加ダイアログ */}
+      <Dialog
+        open={addDialogOpen}
+        onClose={() => !addLoading && setAddDialogOpen(false)}
+        aria-labelledby="add-user-dialog-title"
+      >
+        <DialogTitle id="add-user-dialog-title">
+          新規ユーザーの追加
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ minWidth: 300, mt: 2 }}>
+            <TextField
+              fullWidth
+              label="メールアドレス"
+              variant="outlined"
+              value={newUserEmail}
+              onChange={(e) => setNewUserEmail(e.target.value)}
+              disabled={addLoading}
+              margin="normal"
+              required
+              type="email"
+            />
+            
+            <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
+              <InputLabel id="new-role-label">権限</InputLabel>
+              <Select
+                labelId="new-role-label"
+                value={newUserRole}
+                label="権限"
+                onChange={(e) => setNewUserRole(e.target.value)}
+                disabled={addLoading}
+              >
+                <MenuItem value="User">一般ユーザー</MenuItem>
+                <MenuItem value="Admin">管理者</MenuItem>
+                <MenuItem value="SuperAdmin">スーパー管理者</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel id="new-plan-label">プラン</InputLabel>
+              <Select
+                labelId="new-plan-label"
+                value={newUserPlan}
+                label="プラン"
+                onChange={(e) => setNewUserPlan(e.target.value)}
+                disabled={addLoading}
+              >
+                <MenuItem value="lite">ライト</MenuItem>
+                <MenuItem value="elite">エリート</MenuItem>
+              </Select>
+            </FormControl>
+
+            {addLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setAddDialogOpen(false)}
+            disabled={addLoading}
+          >
+            キャンセル
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!newUserEmail) {
+                showNotification(NotificationType.ERROR, 'メールアドレスを入力してください');
+                return;
+              }
+              
+              setAddLoading(true);
+              try {
+                // APIリクエスト
+                await AdminService.addAdmin(newUserEmail);
+                
+                showNotification(NotificationType.SUCCESS, 'ユーザーを追加しました');
+                setAddDialogOpen(false);
+                
+                // 入力フィールドをリセット
+                setNewUserEmail('');
+                setNewUserRole('User');
+                setNewUserPlan('lite');
+                
+                // ユーザー一覧を更新
+                loadUsers();
+              } catch (error) {
+                console.error('ユーザーの追加に失敗しました:', error);
+                showNotification(NotificationType.ERROR, 'ユーザーの追加に失敗しました');
+              } finally {
+                setAddLoading(false);
+              }
+            }}
+            color="primary"
+            disabled={addLoading || !newUserEmail}
+            variant="contained"
+          >
+            追加
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

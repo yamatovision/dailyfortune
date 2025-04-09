@@ -447,7 +447,6 @@ const Settings = () => {
           textColor="primary"
           indicatorColor="primary"
         >
-          <Tab label="管理者権限" />
           <Tab label="システム設定" />
           <Tab label="利用統計" />
         </Tabs>
@@ -521,113 +520,8 @@ const Settings = () => {
         onCancel={() => setDayPillarGenerationOpen(false)}
       />
 
-      {/* 管理者権限タブ */}
-      <TabPanel value={tabValue} index={0}>
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              管理者アカウントの追加
-            </Typography>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={8}>
-                <TextField
-                  fullWidth
-                  label="メールアドレス"
-                  variant="outlined"
-                  placeholder="example@mail.com"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  disabled={adminLoading}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <Button 
-                  variant="contained" 
-                  startIcon={<SearchIcon />}
-                  onClick={handleAdminSearch}
-                  fullWidth
-                  disabled={adminLoading}
-                >
-                  {adminLoading ? '検索中...' : '検索'}
-                </Button>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom color="primary">
-              管理者一覧
-            </Typography>
-            
-            {adminLoading ? (
-              <LoadingIndicator />
-            ) : (
-              <>
-                <TableContainer component={Paper} sx={{ my: 2 }}>
-                  <Table aria-label="管理者テーブル">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>ユーザー名</TableCell>
-                        <TableCell>メールアドレス</TableCell>
-                        <TableCell>権限</TableCell>
-                        <TableCell>アクション</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {adminUsers.length > 0 ? (
-                        adminUsers.map((user) => (
-                          <TableRow key={user._id || user.uid || user.id || user.email}>
-                            <TableCell>{user.displayName || '-'}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              <Chip 
-                                key={`role-${user._id || user.uid || user.id || user.email}`}
-                                size="small" 
-                                label={user.role === 'super_admin' ? 'スーパー管理者' : '管理者'} 
-                                color={user.role === 'super_admin' ? 'secondary' : 'primary'}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <IconButton key={`edit-${user._id || user.uid || user.id || user.email}`} size="small" color="primary" title="編集">
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton key={`delete-${user._id || user.uid || user.id || user.email}`} size="small" color="error" title="削除">
-                                <DeleteIcon />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            管理者ユーザーがいません
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-                
-                {adminTotalPages > 1 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <Pagination 
-                      count={adminTotalPages} 
-                      page={adminPage} 
-                      onChange={handleAdminPageChange} 
-                      color="primary" 
-                    />
-                  </Box>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </TabPanel>
-
       {/* システム設定タブ */}
-      <TabPanel value={tabValue} index={1}>
+      <TabPanel value={tabValue} index={0}>
         <Card sx={{ mb: 4 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom color="primary">
@@ -982,7 +876,7 @@ const Settings = () => {
       </TabPanel>
 
       {/* 利用統計タブ */}
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={1}>
         <Card sx={{ mb: 4 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom color="primary">
