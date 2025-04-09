@@ -13,6 +13,7 @@ import Profile from './pages/Profile'
 import Fortune from './pages/Fortune'
 import Chat from './pages/Chat'
 import Team from './pages/Team'
+import AisyouPage from './pages/Team/Aisyou'
 import AdminDashboard from './pages/Admin'
 import Unauthorized from './pages/Unauthorized'
 
@@ -105,6 +106,11 @@ function App() {
           <Route path="/team/:teamId" element={
             <ProtectedRoute>
               <Team />
+            </ProtectedRoute>
+          } />
+          <Route path="/team/:teamId/aisyou" element={
+            <ProtectedRoute>
+              <AisyouPage />
             </ProtectedRoute>
           } />
           

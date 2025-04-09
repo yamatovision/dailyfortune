@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { fortuneService } from '../services/fortune.service';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { Team } from '../models/Team';
+import { User } from '../models/User';
+import { DailyFortune } from '../models/DailyFortune';
 
 /**
  * 運勢コントローラー
@@ -91,6 +94,93 @@ export class FortuneController {
       } else {
         res.status(500).json({ error: 'サーバーエラーが発生しました' });
       }
+    }
+  }
+
+  /**
+   * チームの運勢ランキングを取得
+   * @param req リクエスト
+   * @param res レスポンス
+   */
+  public async getTeamFortuneRanking(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: '認証されていません' });
+        return;
+      }
+
+      const { teamId } = req.params;
+      
+      // チームが存在するか確認
+      const team = await Team.findById(teamId);
+      if (!team) {
+        res.status(404).json({ error: 'チームが見つかりません' });
+        return;
+      }
+      
+      // リクエストユーザーがチームメンバーかを確認
+      const isMember = team.members?.some(member => member.userId.toString() === userId) || false;
+      if (!isMember) {
+        res.status(403).json({ error: 'このチームのデータにアクセスする権限がありません' });
+        return;
+      }
+      
+      // 今日の日付 (日本時間)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // チームメンバーのユーザーID一覧を取得
+      const memberIds = team.members?.map(member => member.userId) || [];
+      
+      // チームメンバー全員の今日の運勢を取得
+      const fortunes = await DailyFortune.find({
+        userId: { $in: memberIds },
+        date: {
+          $gte: today,
+          $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+        }
+      }).lean();
+      
+      // 各メンバーの詳細情報を取得
+      const members = await User.find({ _id: { $in: memberIds } }).lean();
+      
+      // 運勢ランキングデータを作成
+      const ranking = fortunes.map(fortune => {
+        const member = members.find(m => m._id.toString() === fortune.userId.toString());
+        return {
+          userId: fortune.userId,
+          displayName: member?.displayName || '不明なユーザー',
+          score: fortune.fortuneScore, // scoreプロパティ → fortuneScoreプロパティに修正
+          elementAttribute: member?.elementAttribute || 'unknown',
+          jobTitle: member?.jobTitle || '',
+          isCurrentUser: fortune.userId.toString() === userId
+        };
+      });
+      
+      // スコアの降順で並べ替え
+      ranking.sort((a, b) => b.score - a.score);
+      
+      // 順位を追加
+      const rankedList = ranking.map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }));
+      
+      // レスポンスを返す
+      res.status(200).json({
+        success: true,
+        data: {
+          teamId,
+          teamName: team.name,
+          date: today,
+          nextUpdateTime: '03:00', // 次回更新時刻（固定）
+          ranking: rankedList
+        }
+      });
+    } catch (error: any) {
+      console.error('チーム運勢ランキング取得エラー:', error);
+      res.status(500).json({ error: 'サーバーエラーが発生しました' });
     }
   }
 }

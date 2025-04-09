@@ -33,12 +33,12 @@ const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps)
     { text: '設定', icon: <AccountCircleIcon />, path: '/profile' },
   ]
 
-  // チームメニュー項目（Admin/SuperAdminのみ表示）- 現在は無効化（表示のみ）
+  // チームメニュー項目（有効化）
   const teamMenuItem = { 
     text: 'チーム', 
     icon: <GroupIcon />, 
-    path: '#', // 無効化するためにハッシュにする
-    disabled: true // 無効化フラグ
+    path: '/team', // チームページへのパス
+    disabled: false // 有効化
   }
   
   // 最終的なメニュー項目（権限に応じて構築）

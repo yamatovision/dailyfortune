@@ -10,6 +10,11 @@ export interface ITeam {
   description?: string;
   iconInitial?: string;
   iconColor?: 'primary' | 'water' | 'wood' | 'fire' | 'earth' | 'metal';
+  members?: Array<{ 
+    userId: mongoose.Types.ObjectId | string;
+    role?: string;
+    joinedAt?: Date;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,7 +65,18 @@ const teamSchema = new Schema<ITeamDocument>(
         message: '{VALUE}は有効なアイコンカラーではありません'
       },
       default: 'primary'
-    }
+    },
+    members: [{
+      userId: {
+        type: Schema.Types.Mixed,
+        ref: 'User'
+      },
+      role: String,
+      joinedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
   },
   {
     timestamps: true,

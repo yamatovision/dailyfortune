@@ -4,13 +4,16 @@ import mongoose, { Document, Schema } from 'mongoose';
  * 相性モデルのインターフェース
  */
 export interface ICompatibility {
-  user1Id: mongoose.Types.ObjectId;
-  user2Id: mongoose.Types.ObjectId;
+  user1Id: string;
+  user2Id: string;
   compatibilityScore: number;
   relationship: 'mutual_generation' | 'mutual_restriction' | 'neutral';
+  relationshipType?: '相生' | '相克' | '中和';
   user1Element: 'wood' | 'fire' | 'earth' | 'metal' | 'water';
   user2Element: 'wood' | 'fire' | 'earth' | 'metal' | 'water';
   detailDescription: string;
+  teamInsight?: string;
+  collaborationTips?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,12 +29,12 @@ export interface ICompatibilityDocument extends ICompatibility, Document {}
 const compatibilitySchema = new Schema<ICompatibilityDocument>(
   {
     user1Id: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: [true, 'ユーザー1IDは必須です']
     },
     user2Id: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: [true, 'ユーザー2IDは必須です']
     },
@@ -48,6 +51,13 @@ const compatibilitySchema = new Schema<ICompatibilityDocument>(
         message: '{VALUE}は有効な関係タイプではありません'
       },
       required: [true, '関係タイプは必須です']
+    },
+    relationshipType: {
+      type: String,
+      enum: {
+        values: ['相生', '相克', '中和'],
+        message: '{VALUE}は有効な関係表示名ではありません'
+      }
     },
     user1Element: {
       type: String,
@@ -68,6 +78,12 @@ const compatibilitySchema = new Schema<ICompatibilityDocument>(
     detailDescription: {
       type: String,
       required: [true, '相性の詳細説明は必須です']
+    },
+    teamInsight: {
+      type: String
+    },
+    collaborationTips: {
+      type: [String]
     }
   },
   {
@@ -90,6 +106,22 @@ compatibilitySchema.pre('save', function(next) {
     this.user1Element = this.user2Element;
     this.user2Element = tempElement;
   }
+
+  // relationshipTypeが設定されていない場合、relationshipから自動設定
+  if (!this.relationshipType) {
+    switch (this.relationship) {
+      case 'mutual_generation':
+        this.relationshipType = '相生';
+        break;
+      case 'mutual_restriction':
+        this.relationshipType = '相克';
+        break;
+      case 'neutral':
+        this.relationshipType = '中和';
+        break;
+    }
+  }
+  
   next();
 });
 

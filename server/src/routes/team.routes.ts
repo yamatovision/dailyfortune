@@ -4,7 +4,8 @@ import {
   teamController, 
   teamMemberController, 
   teamGoalController,
-  teamMemberCardController
+  teamMemberCardController,
+  compatibilityController
 } from '../controllers/team';
 
 const router = express.Router();
@@ -34,5 +35,9 @@ router.get('/test-card', (req, res) => {
 router.get('/:teamId/goal', authenticate, teamGoalController.getTeamGoal);
 router.post('/:teamId/goal', authenticate, teamGoalController.createOrUpdateTeamGoal);
 router.put('/:teamId/goal/progress', authenticate, teamGoalController.updateTeamGoalProgress);
+
+// チーム相性関連のルート
+router.get('/:teamId/compatibility', authenticate, compatibilityController.getTeamCompatibilities);
+router.get('/:teamId/compatibility/:userId1/:userId2', authenticate, compatibilityController.getMemberCompatibility);
 
 export default router;
