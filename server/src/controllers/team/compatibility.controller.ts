@@ -114,7 +114,7 @@ class CompatibilityController {
       
       res.status(200).json({
         success: true,
-        data: formattedCompatibility
+        compatibility: formattedCompatibility
       });
     } catch (error) {
       handleError(error, res);

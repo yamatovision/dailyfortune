@@ -154,9 +154,9 @@ export class FortuneController {
         return {
           userId: fortune.userId,
           displayName: member?.displayName || '不明なユーザー',
-          score: fortune.fortuneScore, // scoreプロパティ → fortuneScoreプロパティに修正
+          score: fortune.fortuneScore, // スコア
           elementAttribute: member?.elementAttribute || 'unknown',
-          jobTitle: member?.jobTitle || '',
+          jobTitle: member?.teamRole || member?.jobTitle || '',
           isCurrentUser: fortune.userId.toString() === userId
         };
       });

@@ -347,88 +347,88 @@
 ### 3.5.1 チーム相性データモデルとAPI
 
 #### 3.5.1.1 Compatibility データモデル拡張 (1日)
-- [ ] `server/src/models/Compatibility.ts` の拡張
-  - [ ] 詳細説明フィールド (detailDescription) の追加（Claude AIからの返答をそのまま格納）
-  - [ ] 関係性タイプ表示 (relationshipType) の追加（'相生' | '相克' | '中和'）
-  - [ ] compatibilityScoreフィールドの削除（数値化は不要）
-  - [ ] バリデーション実装
-  - [ ] インデックス最適化
+- [x] `server/src/models/Compatibility.ts` の拡張
+  - [x] 詳細説明フィールド (detailDescription) の追加（Claude AIからの返答をそのまま格納）
+  - [x] 関係性タイプ表示 (relationshipType) の追加（'相生' | '相克' | '中和'）
+  - [x] compatibilityScoreフィールドの削除（数値化は不要）
+  - [x] バリデーション実装
+  - [x] インデックス最適化
 
 #### 3.5.1.2 チーム運勢ランキングAPI (2日)
-- [ ] `server/src/controllers/fortune.controller.ts` の拡張
-  - [ ] チーム運勢ランキング取得エンドポイント (`GET /api/v1/fortune/team/:teamId/ranking`)
-  - [ ] ユーザーのDailyFortune連携・集計ロジック
-  - [ ] 順位付けとエレメント情報の付与
-  - [ ] メンバーごとのラッキーアイテム情報の付与
+- [x] `server/src/controllers/fortune.controller.ts` の拡張
+  - [x] チーム運勢ランキング取得エンドポイント (`GET /api/v1/fortune/team/:teamId/ranking`)
+  - [x] ユーザーのDailyFortune連携・集計ロジック
+  - [x] 順位付けとエレメント情報の付与
+  - [x] メンバーごとのラッキーアイテム情報の付与
 
 #### 3.5.1.3 チームメンバー相性取得API (2日)
-- [ ] `server/src/controllers/team/team-compatibility.controller.ts` の作成
-  - [ ] メンバー間相性取得エンドポイント (`GET /api/v1/teams/:teamId/compatibility/:userId1/:userId2`)
-  - [ ] 相性情報の取得と生成ロジック
-  - [ ] 相性分析へのClaudeAI連携
-  - [ ] 認証とチームメンバーシップ確認
+- [x] `server/src/controllers/team/team-compatibility.controller.ts` の作成
+  - [x] メンバー間相性取得エンドポイント (`GET /api/v1/teams/:teamId/compatibility/:userId1/:userId2`)
+  - [x] 相性情報の取得と生成ロジック
+  - [x] 相性分析へのClaudeAI連携
+  - [x] 認証とチームメンバーシップ確認
 
 #### 3.5.1.4 相性サービス (3日)
-- [ ] `server/src/services/compatibility.service.ts` の作成
-  - [ ] 五行相性関係判定ロジック（相生・相克・中和の分類のみ）
-  - [ ] ClaudeAIによる相性詳細説明生成（統合されたテキスト形式）
-  - [ ] 相性データのキャッシュと保存ロジック
+- [x] `server/src/services/compatibility.service.ts` の作成
+  - [x] 五行相性関係判定ロジック（相生・相克・中和の分類のみ）
+  - [x] ClaudeAIによる相性詳細説明生成（統合されたテキスト形式）
+  - [x] 相性データのキャッシュと保存ロジック
 
 #### 3.5.1.5 ルーティングとミドルウェア (1日)
-- [ ] `server/src/routes/team.routes.ts` の拡張
-  - [ ] 相性関連エンドポイントの追加
-  - [ ] 運勢ランキングエンドポイントの追加
-  - [ ] 認証・認可ミドルウェア連携
-  - [ ] APIドキュメント用Swagger注釈追加
+- [x] `server/src/routes/team.routes.ts` の拡張
+  - [x] 相性関連エンドポイントの追加
+  - [x] 運勢ランキングエンドポイントの追加
+  - [x] 認証・認可ミドルウェア連携
+  - [x] APIドキュメント用Swagger注釈追加
 
 #### 3.5.1.6 ユニットテスト (2日)
-- [ ] `server/src/tests/services/compatibility.service.test.ts` の作成
-- [ ] `server/src/tests/controllers/team-compatibility.controller.test.ts` の作成
-- [ ] `server/src/tests/controllers/fortune.controller.team-ranking.test.ts` の作成
-  - [ ] 相性計算の正確性テスト
-  - [ ] ランキング生成ロジックのテスト
-  - [ ] ClaudeAI連携のモックテスト
-  - [ ] エラーハンドリングテスト
+- [x] `server/src/tests/services/compatibility.service.test.ts` の作成
+- [x] `server/src/tests/controllers/team-compatibility.controller.test.ts` の作成
+- [x] `server/src/tests/controllers/fortune.controller.team-ranking.test.ts` の作成
+  - [x] 相性計算の正確性テスト
+  - [x] ランキング生成ロジックのテスト
+  - [x] ClaudeAI連携のモックテスト
+  - [x] エラーハンドリングテスト
 
 ### 3.5.2 フロントエンド - チーム相性ページ
 
 #### 3.5.2.1 相性データサービス (1日)
 - [ ] `client/src/services/compatibility.service.ts` の作成
-  - [ ] チームメンバー相性API連携
-  - [ ] 運勢ランキングAPI連携
-  - [ ] エラーハンドリング
-  - [ ] キャッシュ戦略実装
+  - [x] チームメンバー相性API連携 (team.service.tsに実装済み)
+  - [x] 運勢ランキングAPI連携 (team.service.tsに実装済み)
+  - [x] エラーハンドリング
+  - [x] キャッシュ戦略実装
 
 #### 3.5.2.2 チーム相性ページコンポーネント (3日)
-- [ ] `client/src/pages/Aisyou/index.tsx` の作成
-  - [ ] ページレイアウト実装
-  - [ ] 認証・権限連携
-  - [ ] チームID取得処理
-  - [ ] ページナビゲーション
-  - [ ] エラーハンドリング
+- [x] `client/src/pages/Team/Aisyou.tsx` の作成 (計画と異なりpages/Team/内に実装)
+  - [x] ページレイアウト実装
+  - [x] 認証・権限連携
+  - [x] チームID取得処理
+  - [x] ページナビゲーション
+  - [x] エラーハンドリング
 
 #### 3.5.2.3 運勢ランキングコンポーネント (2日)
-- [ ] `client/src/components/aisyou/FortuneRanking.tsx` の作成
-  - [ ] ランキングカード表示
-  - [ ] 五行属性に応じたカラー表示
-  - [ ] 自分のランキング強調表示
-  - [ ] レスポンシブデザイン対応
-  - [ ] アニメーション効果
+- [x] 運勢ランキング機能の実装 (Aisyou.tsx内に直接実装)
+  - [x] ランキングカード表示
+  - [x] 五行属性に応じたカラー表示
+  - [x] 自分のランキング強調表示
+  - [x] レスポンシブデザイン対応
+  - [x] アニメーション効果
 
 #### 3.5.2.4 チームメンバーリストコンポーネント (2日)
-- [ ] `client/src/components/aisyou/TeamMemberList.tsx` の作成
-  - [ ] メンバーカード表示
-  - [ ] 五行属性表示
-  - [ ] 「相性を見る」ボタン実装
-  - [ ] レスポンシブグリッドレイアウト
+- [x] チームメンバーリスト機能の実装 (Aisyou.tsx内に直接実装)
+  - [x] メンバーカード表示
+  - [x] 五行属性表示
+  - [x] 「相性を見る」ボタン実装
+  - [x] レスポンシブグリッドレイアウト
 
 #### 3.5.2.5 相性詳細モーダルコンポーネント (3日)
-- [ ] `client/src/components/aisyou/CompatibilityModal.tsx` の作成
-  - [ ] 相性情報表示（関係性タイプのみ）
-  - [ ] 五行関係の視覚化
-  - [ ] 詳細説明のマークダウン表示（Claude AIからの返答を整形）
-  - [ ] 「相談する」ボタン（将来連携用）
-  - [ ] アニメーション効果
+- [x] 相性詳細モーダル機能の実装 (Aisyou.tsx内に直接実装)
+  - [x] 相性情報表示（関係性タイプのみ）
+  - [x] 五行関係の視覚化
+  - [x] 詳細説明のマークダウン表示（Claude AIからの返答を整形）
+  - [x] 「相談する」ボタン（将来連携用）
+  - [x] アニメーション効果
 
 #### 3.5.2.6 統合テスト (1日)
 - [ ] E2Eテスト

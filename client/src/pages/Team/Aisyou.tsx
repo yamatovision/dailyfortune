@@ -175,7 +175,7 @@ const AisyouPage: React.FC = () => {
 
         setTeam(teamData);
         // APIレスポンス構造に合わせて修正
-        setRanking(rankingData.data || []);
+        setRanking(rankingData.data?.ranking || []);
         setMembers(membersData || []);
         setError(null);
       } catch (error) {
@@ -317,13 +317,13 @@ const AisyouPage: React.FC = () => {
                   variant="h6" 
                   sx={{ 
                     fontWeight: 'bold',
-                    color: item.fortuneScore >= 80 ? '#4CAF50' : 
-                           item.fortuneScore >= 60 ? '#8BC34A' :
-                           item.fortuneScore >= 40 ? '#FFC107' :
-                           item.fortuneScore >= 20 ? '#FF9800' : '#F44336'
+                    color: item.score >= 80 ? '#4CAF50' : 
+                           item.score >= 60 ? '#8BC34A' :
+                           item.score >= 40 ? '#FFC107' :
+                           item.score >= 20 ? '#FF9800' : '#F44336'
                   }}
                 >
-                  {item.fortuneScore || 0}点
+                  {item.score || 0}点
                 </Typography>
               </Box>
             ))}
@@ -429,35 +429,35 @@ const AisyouPage: React.FC = () => {
             <Box display="flex" justifyContent="center" p={3}>
               <CircularProgress />
             </Box>
-          ) : compatibility && compatibility.data ? (
+          ) : compatibility ? (
             <Box component="div">
               {/* 相性スコアと概要 */}
               <Box display="flex" alignItems="center" mb={3}>
-                <CompatibilityScore score={compatibility.data.score || 0}>
-                  {compatibility.data.score || 0}
+                <CompatibilityScore score={compatibility.score || 0}>
+                  {compatibility.score || 0}
                 </CompatibilityScore>
                 <Box ml={2}>
                   <RelationshipChip 
-                    label={compatibility.data.relationshipType || 
-                           (compatibility.data.relationship ? 
-                             relationshipLabels[compatibility.data.relationship as keyof typeof relationshipLabels] : 
+                    label={compatibility.relationshipType || 
+                           (compatibility.relationship ? 
+                             relationshipLabels[compatibility.relationship as keyof typeof relationshipLabels] : 
                              '関係性不明')}
-                    relationshipType={compatibility.data.relationship || 'neutral'}
+                    relationshipType={compatibility.relationship || 'neutral'}
                   />
-                  {compatibility.data.users && compatibility.data.users.length >= 2 && (
+                  {compatibility.users && compatibility.users.length >= 2 && (
                     <Typography variant="body1" sx={{ mt: 1 }}>
-                      {compatibility.data.users[0].displayName} ({
-                        compatibility.data.users[0].element === 'wood' ? '木' :
-                        compatibility.data.users[0].element === 'fire' ? '火' :
-                        compatibility.data.users[0].element === 'earth' ? '土' :
-                        compatibility.data.users[0].element === 'metal' ? '金' :
-                        compatibility.data.users[0].element === 'water' ? '水' : '不明'
-                      }) と {compatibility.data.users[1].displayName} ({
-                        compatibility.data.users[1].element === 'wood' ? '木' :
-                        compatibility.data.users[1].element === 'fire' ? '火' :
-                        compatibility.data.users[1].element === 'earth' ? '土' :
-                        compatibility.data.users[1].element === 'metal' ? '金' :
-                        compatibility.data.users[1].element === 'water' ? '水' : '不明'
+                      {compatibility.users[0].displayName} ({
+                        compatibility.users[0].element === 'wood' ? '木' :
+                        compatibility.users[0].element === 'fire' ? '火' :
+                        compatibility.users[0].element === 'earth' ? '土' :
+                        compatibility.users[0].element === 'metal' ? '金' :
+                        compatibility.users[0].element === 'water' ? '水' : '不明'
+                      }) と {compatibility.users[1].displayName} ({
+                        compatibility.users[1].element === 'wood' ? '木' :
+                        compatibility.users[1].element === 'fire' ? '火' :
+                        compatibility.users[1].element === 'earth' ? '土' :
+                        compatibility.users[1].element === 'metal' ? '金' :
+                        compatibility.users[1].element === 'water' ? '水' : '不明'
                       }) の相性です
                     </Typography>
                   )}
@@ -470,37 +470,37 @@ const AisyouPage: React.FC = () => {
                   相性の詳細
                 </Typography>
                 <Typography variant="body1">
-                  {compatibility.data.detailDescription}
+                  {compatibility.detailDescription}
                 </Typography>
               </Paper>
               
               {/* チーム内での関係性 */}
-              {compatibility.data.teamInsight && (
+              {compatibility.teamInsight && (
                 <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
                   <Typography variant="h6" gutterBottom>
                     チーム内での関係性
                   </Typography>
                   <Typography variant="body1">
-                    {compatibility.data.teamInsight}
+                    {compatibility.teamInsight}
                   </Typography>
                 </Paper>
               )}
               
               {/* 協力のためのアドバイス */}
-              {compatibility.data.collaborationTips && (
+              {compatibility.collaborationTips && (
                 <Box mb={2}>
                   <Typography variant="h6" gutterBottom>
                     効果的な協力のためのアドバイス
                   </Typography>
                   <Box component="ul" sx={{ pl: 2 }}>
-                    {Array.isArray(compatibility.data.collaborationTips) ? 
-                      compatibility.data.collaborationTips.map((tip: string, index: number) => (
+                    {Array.isArray(compatibility.collaborationTips) ? 
+                      compatibility.collaborationTips.map((tip: string, index: number) => (
                         <Typography component="li" key={index} variant="body1" sx={{ mb: 1 }}>
                           {tip}
                         </Typography>
                       )) : 
                       <Typography component="li" variant="body1">
-                        {compatibility.data.collaborationTips}
+                        {compatibility.collaborationTips}
                       </Typography>
                     }
                   </Box>

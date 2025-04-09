@@ -491,9 +491,6 @@ const Profile = () => {
                       属性未設定
                     </Box>
                   )}
-                  <Box component="span" sx={{ color: 'text.secondary' }}>
-                    {userProfile?.jobTitle || '役割未設定'}
-                  </Box>
                 </Typography>
               </Box>
             </Box>

@@ -101,6 +101,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   localTimeOffset: profileData.localTimeOffset || userData.localTimeOffset,
                   // 個人目標
                   goal: profileData.goal || userData.goal,
+                  // チーム関連情報を追加
+                  teamRole: profileData.teamRole || userData.teamRole,
+                  jobTitle: profileData.teamRole || profileData.jobTitle || userData.teamRole || userData.jobTitle, // teamRoleを優先
                   // 四柱推命関連情報も追加
                   elementAttribute: profileData.elementAttribute || userData.elementAttribute,
                   dayMaster: profileData.dayMaster || userData.dayMaster,
