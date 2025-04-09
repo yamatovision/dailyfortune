@@ -6,6 +6,18 @@ import { connectToDatabase } from './config/database';
 // 環境変数の読み込み
 dotenv.config();
 
+// 重要な環境変数が設定されていることを確認
+const requiredEnvVars = ['MONGODB_URI', 'FIREBASE_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`環境変数が設定されていません: ${missingEnvVars.join(', ')}`);
+  console.error('サーバー起動に必要な環境変数を設定してください');
+  if (require.main === module) {
+    process.exit(1);
+  }
+}
+
 // ロガーのインポート
 import logger from './utils/logger';
 import { requestTracer, requestLogger, errorLogger } from './utils/logger/middleware';

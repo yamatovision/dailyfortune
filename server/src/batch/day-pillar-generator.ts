@@ -13,10 +13,10 @@ import { BatchJobLog } from '../models/BatchJobLog';
 
 /**
  * 日柱生成処理のメイン関数
- * @param days 生成する日数（デフォルト30日）
+ * @param daysInput 生成する日数（デフォルト30日）
  * @returns 生成結果の情報
  */
-export async function generateDayPillars(days: number = 30): Promise<{
+export async function generateDayPillars(daysInput?: number): Promise<{
   success: boolean;
   message: string;
   total: number;
@@ -25,19 +25,34 @@ export async function generateDayPillars(days: number = 30): Promise<{
   errors: number;
   errorDetails?: any;
 }> {
-  console.log(`日柱生成バッチ処理を開始します。対象日数: ${days}日`);
+  // 明示的に型変換とデフォルト値設定を行う
+  const days = daysInput === undefined || isNaN(Number(daysInput)) ? 30 : Number(daysInput);
+  console.log(`日柱生成バッチ処理を開始します。対象日数: ${days}日（入力値: ${daysInput}）`);
   
   let logId: string | null = null;
   
   try {
+    // 環境変数の確認
+    if (!process.env.MONGODB_URI) {
+      console.error('MONGODB_URI環境変数が設定されていません');
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    // データベース接続状態のログ出力
+    console.log(`データベース接続状態: ${mongoose.connection.readyState} (0:切断, 1:接続済み, 2:接続中, 3:切断中)`);
+    
     // データベース接続（既に接続されている場合はスキップ）
     if (mongoose.connection.readyState !== 1) {
       try {
+        console.log('データベースに接続します...');
         await connectToDatabase();
+        console.log('データベース接続に成功しました');
       } catch (error) {
         console.error('データベース接続エラー:', error);
         throw new Error(`データベース接続エラー: ${error instanceof Error ? error.message : String(error)}`);
       }
+    } else {
+      console.log('データベースに既に接続されています');
     }
     
     // バッチ実行ログの作成

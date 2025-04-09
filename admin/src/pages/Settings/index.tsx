@@ -35,6 +35,7 @@ import AdminService from '../../services/admin.service';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import LoadingIndicator from '../../components/common/LoadingIndicator';
 import { FortuneUpdateLog, NotificationType } from '../../types';
+import { ADMIN } from '@shared/index';
 
 // タブパネルのプロパティ型
 interface TabPanelProps {
@@ -401,18 +402,31 @@ const Settings = () => {
         return;
       }
       
-      // 実際のAPIリクエスト
-      await AdminService.runDayPillarGeneration(dayPillarGenerationDays);
+      // APIエンドポイントとURLをコンソールに出力（デバッグ用）
+      console.log('日柱生成APIエンドポイント:', ADMIN.RUN_DAY_PILLAR_GENERATION);
       
-      setDayPillarGenerationOpen(false);
-      showNotification(NotificationType.SUCCESS, '日柱生成ジョブを開始しました');
-      
-      // ログ一覧を更新
-      setTimeout(() => {
-        loadDayPillarLogs();
-      }, 1000);
+      try {
+        // 実際のAPIリクエスト
+        const response = await AdminService.runDayPillarGeneration(dayPillarGenerationDays);
+        console.log('日柱生成API成功レスポンス:', response.data);
+        
+        setDayPillarGenerationOpen(false);
+        showNotification(NotificationType.SUCCESS, '日柱生成ジョブを開始しました');
+        
+        // ログ一覧を更新
+        setTimeout(() => {
+          loadDayPillarLogs();
+        }, 1000);
+      } catch (apiError: any) {
+        console.error('API呼び出しエラー:', apiError);
+        console.error('エラーレスポンス:', apiError.response?.data);
+        
+        // より詳細なエラーメッセージを表示
+        const errorMessage = apiError.response?.data?.message || '日柱生成の実行に失敗しました';
+        showNotification(NotificationType.ERROR, errorMessage);
+      }
     } catch (error) {
-      console.error('日柱生成の実行に失敗しました:', error);
+      console.error('日柱生成の実行中に例外が発生しました:', error);
       showNotification(NotificationType.ERROR, '日柱生成の実行に失敗しました');
     } finally {
       setDayPillarGenerationLoading(false);
@@ -564,21 +578,22 @@ const Settings = () => {
                     <TableBody>
                       {adminUsers.length > 0 ? (
                         adminUsers.map((user) => (
-                          <TableRow key={user.id}>
+                          <TableRow key={user._id || user.uid || user.id || user.email}>
                             <TableCell>{user.displayName || '-'}</TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell>
                               <Chip 
+                                key={`role-${user._id || user.uid || user.id || user.email}`}
                                 size="small" 
                                 label={user.role === 'super_admin' ? 'スーパー管理者' : '管理者'} 
                                 color={user.role === 'super_admin' ? 'secondary' : 'primary'}
                               />
                             </TableCell>
                             <TableCell>
-                              <IconButton size="small" color="primary" title="編集">
+                              <IconButton key={`edit-${user._id || user.uid || user.id || user.email}`} size="small" color="primary" title="編集">
                                 <EditIcon />
                               </IconButton>
-                              <IconButton size="small" color="error" title="削除">
+                              <IconButton key={`delete-${user._id || user.uid || user.id || user.email}`} size="small" color="error" title="削除">
                                 <DeleteIcon />
                               </IconButton>
                             </TableCell>
@@ -719,10 +734,10 @@ const Settings = () => {
                           <TableRow key={log._id}>
                             <TableCell>{new Date(log.date).toLocaleDateString()}</TableCell>
                             <TableCell>
-                              {log.status === 'completed' && <Chip size="small" label="完了" color="success" />}
-                              {log.status === 'scheduled' && <Chip size="small" label="予定" color="info" />}
-                              {log.status === 'running' && <Chip size="small" label="実行中" color="warning" />}
-                              {log.status === 'failed' && <Chip size="small" label="失敗" color="error" />}
+                              {log.status === 'completed' && <Chip key={`completed-${log._id}`} size="small" label="完了" color="success" />}
+                              {log.status === 'scheduled' && <Chip key={`scheduled-${log._id}`} size="small" label="予定" color="info" />}
+                              {log.status === 'running' && <Chip key={`running-${log._id}`} size="small" label="実行中" color="warning" />}
+                              {log.status === 'failed' && <Chip key={`failed-${log._id}`} size="small" label="失敗" color="error" />}
                             </TableCell>
                             <TableCell>{new Date(log.startTime).toLocaleString()}</TableCell>
                             <TableCell>{log.totalUsers}</TableCell>
@@ -758,7 +773,7 @@ const Settings = () => {
             <Typography variant="h6" gutterBottom color="primary">
               システムメンテナンス
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
               <Button 
                 variant="contained" 
                 color="primary"
@@ -797,6 +812,33 @@ const Settings = () => {
                 AIチャット履歴全削除
               </Button>
             </Stack>
+            
+            {/* デバッグ用の直接APIエンドポイント表示（開発環境のみ） */}
+            <Box sx={{ p: 2, border: '1px dashed #999', mb: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                デバッグ情報（開発用）
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                日柱生成API: {ADMIN.RUN_DAY_PILLAR_GENERATION}
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small"
+                color="secondary"
+                onClick={async () => {
+                  try {
+                    const response = await AdminService.runDayPillarGeneration(5);
+                    console.log('API直接実行結果:', response);
+                    showNotification(NotificationType.SUCCESS, '直接API呼び出し成功');
+                  } catch (error) {
+                    console.error('API直接実行エラー:', error);
+                    showNotification(NotificationType.ERROR, '直接API呼び出し失敗');
+                  }
+                }}
+              >
+                日柱APIテスト実行 (5日分)
+              </Button>
+            </Box>
           </CardContent>
         </Card>
         
@@ -844,11 +886,11 @@ const Settings = () => {
                           <TableRow key={log._id}>
                             <TableCell>{new Date(log.startTime).toLocaleString()}</TableCell>
                             <TableCell>
-                              {log.status === 'completed' && <Chip size="small" label="完了" color="success" />}
-                              {log.status === 'scheduled' && <Chip size="small" label="予定" color="info" />}
-                              {log.status === 'running' && <Chip size="small" label="実行中" color="warning" />}
-                              {log.status === 'completed_with_errors' && <Chip size="small" label="警告あり" color="warning" />}
-                              {log.status === 'failed' && <Chip size="small" label="失敗" color="error" />}
+                              {log.status === 'completed' && <Chip key={`completed-${log._id}`} size="small" label="完了" color="success" />}
+                              {log.status === 'scheduled' && <Chip key={`scheduled-${log._id}`} size="small" label="予定" color="info" />}
+                              {log.status === 'running' && <Chip key={`running-${log._id}`} size="small" label="実行中" color="warning" />}
+                              {log.status === 'completed_with_errors' && <Chip key={`completed_with_errors-${log._id}`} size="small" label="警告あり" color="warning" />}
+                              {log.status === 'failed' && <Chip key={`failed-${log._id}`} size="small" label="失敗" color="error" />}
                             </TableCell>
                             <TableCell>{log.params?.days || '-'}</TableCell>
                             <TableCell>
@@ -988,7 +1030,7 @@ const Settings = () => {
             </Box>
             
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="total-users">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -1000,7 +1042,7 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="active-users">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -1012,7 +1054,7 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="new-users">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -1049,7 +1091,7 @@ const Settings = () => {
             </Box>
             
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="total-requests">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -1061,7 +1103,7 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="avg-response-time">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>
@@ -1073,7 +1115,7 @@ const Settings = () => {
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={4} key="avg-usage-per-user">
                 <Card variant="outlined">
                   <CardContent>
                     <Typography color="textSecondary" gutterBottom>

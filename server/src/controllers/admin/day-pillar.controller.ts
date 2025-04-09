@@ -159,30 +159,50 @@ export const runDayPillarGeneration = async (req: AuthRequest, res: Response) =>
     }
     
     // バッチ処理ログの作成
+    console.log(`日柱生成開始 - 生成日数: ${daysNumber}日`);
     const batchLog = new BatchJobLog({
       jobType: 'day-pillar-generator',
-      status: 'scheduled',
+      status: 'started', // 'scheduled'から'started'に変更（モデルで定義された有効な値）
       startTime: new Date(),
       params: { days: daysNumber },
       scheduledBy: req.user.uid // Firebase UIDを使用
     });
     
     await batchLog.save();
+    console.log(`バッチログ作成完了: ${batchLog._id}`);
+    
     
     // 実際の日柱生成処理を開始（バックグラウンドで実行）
     // 非同期で実行するが結果は待たない
+    // より確実にエラーを捕捉するためにtry-catchでラップ
     setTimeout(async () => {
+      console.log(`日柱生成バッチ開始: ${daysNumber}日分`);
+      
+      // 環境変数チェック
+      if (!process.env.MONGODB_URI) {
+        console.error('MONGODB_URI環境変数が設定されていません');
+        throw new Error('MONGODB_URI environment variable is not set');
+      }
+      
       try {
-        // 日柱生成バッチ処理を実行
-        const result = await generateDayPillars(daysNumber);
-        console.log('日柱生成バッチ実行結果:', result);
-        
-        // 成功時にログを更新
-        await BatchJobLog.findByIdAndUpdate(batchLog._id, {
-          status: result.success ? 'completed' : 'completed_with_errors',
-          endTime: new Date(),
-          result
-        });
+        try {
+          // 日柱生成バッチ処理を実行
+          console.log(`generateDayPillars関数を呼び出します...(日数: ${daysNumber})`);
+          // 明示的に数値型として渡す
+          const result = await generateDayPillars(Number(daysNumber));
+          console.log('日柱生成バッチ実行結果:', result);
+          
+          console.log('日柱生成バッチ実行が完了しました');
+          // 成功時にログを更新
+          await BatchJobLog.findByIdAndUpdate(batchLog._id, {
+            status: result.success ? 'completed' : 'completed_with_errors',
+            endTime: new Date(),
+            result
+          });
+        } catch (genError) {
+          console.error('generateDayPillars内部エラー:', genError);
+          throw genError;
+        }
       } catch (batchError) {
         console.error('日柱生成バッチ実行エラー:', batchError);
         
@@ -207,6 +227,15 @@ export const runDayPillarGeneration = async (req: AuthRequest, res: Response) =>
     });
   } catch (error) {
     console.error('日柱生成実行エラー:', error);
-    return res.status(500).json({ message: '日柱生成ジョブの開始に失敗しました' });
+    
+    // 詳細なエラーメッセージを返す
+    const errorMessage = error instanceof Error 
+      ? `日柱生成ジョブの開始に失敗しました: ${error.message}` 
+      : '日柱生成ジョブの開始に失敗しました';
+    
+    return res.status(500).json({ 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? String(error) : undefined
+    });
   }
 };

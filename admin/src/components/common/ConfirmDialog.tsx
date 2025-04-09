@@ -55,9 +55,15 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     >
       <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText id="confirm-dialog-description">
-          {message}
-        </DialogContentText>
+        {typeof message === 'string' ? (
+          <DialogContentText id="confirm-dialog-description">
+            {message}
+          </DialogContentText>
+        ) : (
+          <div id="confirm-dialog-description">
+            {message}
+          </div>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} color="inherit">
