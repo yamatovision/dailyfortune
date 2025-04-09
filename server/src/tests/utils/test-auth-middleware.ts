@@ -104,31 +104,11 @@ export const getFirebaseAuthToken = async (email: string, password: string): Pro
  * 実際のFirebase認証を使用してリクエストヘッダーに認証情報を追加する関数
  */
 export const withRealAuth = async (headers: Record<string, string> = {}): Promise<Record<string, string>> => {
-  try {
-    // 環境変数から認証情報を取得
-    const email = 'shiraishi.tatsuya@mikoto.co.jp';
-    const password = 'aikakumei';
-    
-    try {
-      // トークンを取得
-      const token = await getFirebaseAuthToken(email, password);
-      console.log('認証トークンを取得しました！');
-      return {
-        ...headers,
-        'Authorization': `Bearer ${token}`
-      };
-    } catch (error: any) {
-      console.log('認証トークン取得に失敗しました。モックトークンを使用します:', error?.message || '不明なエラー');
-      // 認証失敗時はモックトークンを使用
-      return {
-        ...headers,
-        'Authorization': 'Bearer mockedRole=SuperAdmin'
-      };
-    }
-  } catch (error: any) {
-    console.error('認証ヘッダー生成エラー:', error?.message || '不明なエラー');
-    return headers;
-  }
+  // 実際の認証情報を直接使用
+  return {
+    ...headers,
+    'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjcxMTE1MjM1YTZjNjE0NTRlZmRlZGM0NWE3N2U0MzUxMzY3ZWViZTAiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiVGF0c3V5YSIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImlzcyI6Imh0dHBzOi8vc2VjdXJldG9rZW4uZ29vZ2xlLmNvbS9zeXMtNzY2MTQxMTI3NjI0Mzg0ODY0MjAwNDQ1ODQiLCJhdWQiOiJzeXMtNzY2MTQxMTI3NjI0Mzg0ODY0MjAwNDQ1ODQiLCJhdXRoX3RpbWUiOjE3NDQxOTAyMzUsInVzZXJfaWQiOiJCczJNYWNMdEsxWjFmVm5hdTJkWVBwc1dScGEyIiwic3ViIjoiQnMyTWFjTHRLMVoxZlZuYXUyZFlQcHNXUnBhMiIsImlhdCI6MTc0NDE5MDIzNSwiZXhwIjoxNzQ0MTkzODM1LCJlbWFpbCI6InNoaXJhaXNoaS50YXRzdXlhQG1pa290by5jby5qcCIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6eyJlbWFpbCI6WyJzaGlyYWlzaGkudGF0c3V5YUBtaWtvdG8uY28uanAiXX0sInNpZ25faW5fcHJvdmlkZXIiOiJwYXNzd29yZCJ9fQ.LD3tnRr_zvt9vUtg_RfMLrtAu7wMA8AlEn5lS21mSSyF1U4ZwRQ-VrAA_rSPjDwgUXnKtZPBEpz_t_qhk55zNCZLsVwHg7PZbaykyls7eHh-Em8Dl0WJsS5De2Lgm2sPR3HTD0J6qNCf5a4C66iiVv7It8FvpL-LAzBt_jh9zXSKBPax-OsmwBxhKGlPQGq5xidmIX3lg1jOmJVonbmSwg9GpxyGR3zkMPVqAqJFFvgJHfbd3_vPFLQ0QcGwCrMRYfPaRM8k9huuLsJb8yiR4Zk6mPRhNuYvkIbKRfFDs6mQARzMgCLJVuBYkVRvzngZG3BGJ43Eh0marNzEfR_R4A'
+  };
 };
 
 /**

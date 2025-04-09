@@ -18,6 +18,7 @@ import publicEndpointsRoutes from './routes/public-endpoints.routes';
 import usersRoutes from './routes/users.routes';
 import teamRoutes from './routes/team.routes';
 import fortuneRoutes from './routes/fortune.routes';
+import chatRoutes from './routes/chat.routes';
 
 // セキュリティミドルウェアのインポート
 import {
@@ -78,6 +79,9 @@ app.use(`${API_BASE_PATH}/teams`, teamRoutes);
 
 // 運勢ルーターを設定
 app.use(`${API_BASE_PATH}/fortune`, fortuneRoutes);
+
+// チャットルーターを設定
+app.use(`${API_BASE_PATH}/chat`, chatRoutes);
 
 // 公開エンドポイントルーターを設定
 app.use(`${API_BASE_PATH}/public`, publicEndpointsRoutes);

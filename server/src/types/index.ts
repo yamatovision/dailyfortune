@@ -222,18 +222,30 @@ export interface ISajuProfile {
     year: {
       heavenlyStem: string;
       earthlyBranch: string;
+      heavenlyStemTenGod?: string;
+      earthlyBranchTenGod?: string;
+      hiddenStems?: string[];
     };
     month: {
       heavenlyStem: string;
       earthlyBranch: string;
+      heavenlyStemTenGod?: string;
+      earthlyBranchTenGod?: string;
+      hiddenStems?: string[];
     };
     day: {
       heavenlyStem: string;
       earthlyBranch: string;
+      heavenlyStemTenGod?: string;
+      earthlyBranchTenGod?: string;
+      hiddenStems?: string[];
     };
     hour: {
       heavenlyStem: string;
       earthlyBranch: string;
+      heavenlyStemTenGod?: string;
+      earthlyBranchTenGod?: string;
+      hiddenStems?: string[];
     };
   };
   mainElement: Element;
@@ -322,11 +334,17 @@ export interface IChat {
   id: string;
   userId: string;
   mode: ChatMode;
-  relatedUserId?: string; // チームメイトモード時の対象ユーザーID
+  relatedInfo?: {
+    memberId?: string; // チームメイトモード時の対象ユーザーID
+    teamGoalId?: string; // 目標相談時のチーム目標ID
+  };
   messages: IChatMessage[];
+  tokenCount: number; // メッセージのトークン数合計
   contextData: Record<string, any>;
+  aiModel: 'sonnet' | 'haiku'; // 使用しているAIモデル
   createdAt: Date;
   updatedAt: Date;
+  lastMessageAt: Date; // 最終メッセージ時間
 }
 
 // チャットメッセージ
@@ -400,13 +418,73 @@ export interface AddTeamMemberRequest {
 export interface ChatMessageRequest {
   message: string;
   mode: ChatMode;
-  relatedUserId?: string; // チームメイトモード時の対象ユーザーID
+  contextInfo?: {
+    memberId?: string; // チームメイトモード時の対象ユーザーID
+    teamGoalId?: string; // チーム目標相談時の目標ID
+  };
+}
+
+// チャットメッセージレスポンス
+export interface ChatMessageResponse {
+  success: boolean;
+  response?: {
+    message: string;
+    timestamp: string;
+  };
+  chatHistory?: {
+    id: string;
+    messages: IChatMessage[];
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// チャット履歴取得レスポンス
+export interface ChatHistoryResponse {
+  success: boolean;
+  chatHistories: {
+    id: string;
+    chatType: ChatMode;
+    messages: IChatMessage[];
+    createdAt: string;
+    lastMessageAt: string;
+  }[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 // チャットモード設定リクエスト
 export interface ChatModeRequest {
   mode: ChatMode;
-  relatedUserId?: string;
+  contextInfo?: {
+    memberId?: string;
+    teamGoalId?: string;
+  };
+}
+
+// チャットモード設定レスポンス
+export interface ChatModeResponse {
+  success: boolean;
+  mode: ChatMode;
+  contextInfo?: {
+    memberId?: string;
+    teamGoalId?: string;
+  };
+  welcomeMessage?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 // 管理者ダッシュボードレスポンス
