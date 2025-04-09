@@ -13,8 +13,9 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import FortuneIcon from '@mui/icons-material/AutoAwesome'
 import ChatIcon from '@mui/icons-material/Chat'
 import GroupIcon from '@mui/icons-material/Group'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
-import { Link as RouterLink, useLocation } from 'react-router-dom'
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
 
 type NavigationMenuProps = {
   onNavigate?: () => void;
@@ -22,9 +23,23 @@ type NavigationMenuProps = {
 }
 
 const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps) => {
-  const { isAdmin, isSuperAdmin, userProfile } = useAuth()
+  const { isAdmin, isSuperAdmin, userProfile, activeTeamId } = useAuth()
   const location = useLocation()
   const theme = useTheme()
+  const navigate = useNavigate()
+
+  // ユーザーが所属しているチームへの直接リンクを作成
+  const userTeamId = userProfile?.teamId || '';
+  
+  // 使用するチームID (通常ユーザーは自分のチーム、管理者はアクティブチームか自分のチーム)
+  const targetTeamId = (isAdmin || isSuperAdmin) ? 
+                        (activeTeamId || userTeamId) : 
+                        userTeamId;
+  
+  // ダイレクトリンク - 全ユーザー共通で相性分析ページへ直接アクセス
+  const directTeamPath = targetTeamId ? 
+                        `/team/${targetTeamId}/aisyou` : 
+                        '/myteam'; // チームIDがない場合はリダイレクト用ルートへ
 
   // 基本メニュー項目
   const baseMenuItems = [
@@ -33,27 +48,28 @@ const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps)
     { text: '設定', icon: <AccountCircleIcon />, path: '/profile' },
   ]
 
-  // チームメニュー項目（有効化）
+  // チームメニュー項目 - 全ユーザー共通で相性ページへ直接
   const teamMenuItem = { 
     text: 'チーム', 
-    icon: <GroupIcon />, 
-    path: '/team', // チームページへのパス
-    disabled: false // 有効化
+    icon: <FavoriteIcon />, 
+    path: directTeamPath, 
+    disabled: !targetTeamId // チームIDがない場合のみ無効化
   }
   
   // 最終的なメニュー項目（権限に応じて構築）
   const menuItems = [...baseMenuItems]
   
-  // Admin/SuperAdminの場合のみチームメニューを追加
-  console.log("NavigationMenu isAdmin:", isAdmin, "isSuperAdmin:", isSuperAdmin);
-  if (isAdmin || isSuperAdmin) {
-    // ホームとAI相談の間に挿入（後の実装のために一旦表示だけする）
+  // 一般ユーザーの場合はチームメンバーシップがあればチームに相性ページへのリンクを追加
+  // 管理者の場合はチーム管理ページへのリンクを追加
+  console.log("NavigationMenu isAdmin:", isAdmin, "isSuperAdmin:", isSuperAdmin, "userTeamId:", userTeamId);
+  if (userTeamId || isAdmin || isSuperAdmin) {
+    // ホームとAI相談の間に挿入
     menuItems.splice(1, 0, teamMenuItem)
   }
 
-  // 管理者メニュー項目 - チーム管理ページに直接遷移する
+  // 管理者メニュー項目 - チームリスト選択ページに遷移する
   const adminMenuItems = [
-    { text: '管理', icon: <AdminPanelSettingsIcon />, path: '/team' }, // adminから/teamに変更
+    { text: '管理', icon: <AdminPanelSettingsIcon />, path: '/team' },
   ]
 
   // 現在のパスがメニュー項目と一致するかチェック

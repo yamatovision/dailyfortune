@@ -132,7 +132,7 @@ const RelationshipChip = styled(Chip)(
  */
 const AisyouPage: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>();
-  const { currentUser: user } = useAuth();
+  const { currentUser: user, isAdmin, isSuperAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState<any>(null);
@@ -143,6 +143,9 @@ const AisyouPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogLoading, setDialogLoading] = useState(false);
 
+  // コンテキストからアクティブチーム設定関数を取得
+  const { setActiveTeamId } = useAuth();
+  
   // 初期データの読み込み
   useEffect(() => {
     const fetchData = async () => {
@@ -150,6 +153,11 @@ const AisyouPage: React.FC = () => {
         setError('チームIDが指定されていません');
         setLoading(false);
         return;
+      }
+      
+      // 現在表示しているチームをアクティブチームとして設定 (管理者用)
+      if (isAdmin || isSuperAdmin) {
+        setActiveTeamId(teamId);
       }
 
       try {
@@ -241,16 +249,18 @@ const AisyouPage: React.FC = () => {
         )}
         
         <Box display="flex" alignItems="center" mb={3}>
-          <Button 
-            component={Link} 
-            to={`/team/${teamId}`} 
-            startIcon={<ArrowBackIcon />}
-            sx={{ mr: 2 }}
-          >
-            戻る
-          </Button>
+          {isAdmin && (
+            <Button 
+              component={Link} 
+              to={`/team/${teamId}`} 
+              startIcon={<ArrowBackIcon />}
+              sx={{ mr: 2 }}
+            >
+              チーム管理
+            </Button>
+          )}
           <Typography variant="h4" component="h1">
-            チーム相性ページ
+            チーム相性分析
           </Typography>
         </Box>
         

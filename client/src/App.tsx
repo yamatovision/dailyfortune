@@ -64,7 +64,7 @@ const theme = createTheme({
 })
 
 function App() {
-  const { loading } = useAuth()
+  const { loading, userProfile } = useAuth()
 
   if (loading) {
     // 読み込み中表示
@@ -111,6 +111,15 @@ function App() {
           <Route path="/team/:teamId/aisyou" element={
             <ProtectedRoute>
               <AisyouPage />
+            </ProtectedRoute>
+          } />
+          {/* 自分のチームの相性ページへのリダイレクト用ルート */}
+          <Route path="/myteam" element={
+            <ProtectedRoute>
+              {userProfile?.teamId ? 
+                <Navigate to={`/team/${userProfile.teamId}/aisyou`} replace /> : 
+                <Navigate to="/team" replace />
+              }
             </ProtectedRoute>
           } />
           

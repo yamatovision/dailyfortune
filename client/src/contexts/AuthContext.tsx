@@ -28,6 +28,8 @@ type AuthContextType = {
   refreshUserProfile: () => Promise<IUser | null>
   isAdmin: boolean
   isSuperAdmin: boolean
+  activeTeamId: string | null
+  setActiveTeamId: (teamId: string) => void
 }
 
 // コンテキスト作成
@@ -43,6 +45,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null)
   const [userProfile, setUserProfile] = useState<IUser | null>(null)
   const [loading, setLoading] = useState(true)
+  // ローカルストレージから管理者の選択中のアクティブチームを初期化
+  const [activeTeamId, setActiveTeamId] = useState<string | null>(() => {
+    return localStorage.getItem('activeTeamId')
+  })
 
   // ユーザー認証状態の監視
   useEffect(() => {
@@ -291,6 +297,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isSuperAdmin
   })
 
+  // アクティブチームIDが変更されたらローカルストレージに保存
+  const handleSetActiveTeamId = (teamId: string) => {
+    localStorage.setItem('activeTeamId', teamId);
+    setActiveTeamId(teamId);
+  }
+
   const value = {
     currentUser,
     userProfile,
@@ -303,7 +315,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     updateUserProfile,
     refreshUserProfile,
     isAdmin,
-    isSuperAdmin
+    isSuperAdmin,
+    activeTeamId,
+    setActiveTeamId: handleSetActiveTeamId
   }
 
   return (

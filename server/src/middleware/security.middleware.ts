@@ -25,23 +25,23 @@ export const securityHeaders = helmet({
 
 /**
  * APIレート制限ミドルウェア
- * 短時間に大量のリクエストを防止
+ * 短時間に大量のリクエストを防止しつつ、通常の利用には十分な余裕を持たせる
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分間
-  max: 100, // 15分間に最大100リクエスト
+  max: 300, // 15分間に最大300リクエスト
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'リクエスト数が制限を超えました。しばらく待ってから再試行してください。' }
 });
 
 /**
- * 認証エンドポイント用のレート制限（より厳しい制限）
- * ブルートフォース攻撃を防止
+ * 認証エンドポイント用のレート制限
+ * ブルートフォース攻撃を防止しつつ、通常の利用には十分な余裕を持たせる
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分間
-  max: 20, // 15分間に最大20リクエスト
+  max: 200, // 15分間に最大200リクエスト
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: '認証リクエスト数が制限を超えました。しばらく待ってから再試行してください。' }

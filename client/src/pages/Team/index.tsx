@@ -9,6 +9,7 @@ import TeamList from '../../components/team/TeamList';
 import TeamMembersList from '../../components/team/TeamMembersList';
 import TeamGoalForm from '../../components/team/TeamGoalForm';
 import { ITeam } from '../../../../shared/index';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * チーム管理ページ
@@ -55,10 +56,17 @@ const Team: React.FC = () => {
     fetchTeamData();
   }, [teamId]);
 
+  // コンテキストからアクティブチーム設定関数を取得
+  const { setActiveTeamId, isAdmin, isSuperAdmin } = useAuth();
+
   // チーム選択時の処理
   const handleTeamSelect = (team: ITeam) => {
     console.log('チーム選択:', team.id, team.name);
     setCurrentTeam(team);
+    
+    // 選択されたチームをアクティブチームとして保存
+    setActiveTeamId(team.id);
+    
     const teamPath = `/team/${team.id}`;
     console.log('遷移先:', teamPath);
     navigate(teamPath);
@@ -163,8 +171,9 @@ const Team: React.FC = () => {
           color="secondary"
           component={Link}
           to={`/team/${currentTeam.id}/aisyou`}
+          sx={{ fontWeight: 'bold' }}
         >
-          相性ページへ
+          相性分析ページへ
         </Button>
       </Paper>
       
