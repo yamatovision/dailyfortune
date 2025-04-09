@@ -2,6 +2,15 @@
 
 DailyFortuneは、四柱推命に基づいた日々の運勢とチームメンバーとの相性を可視化する経営者向けの人材管理ツールです。
 
+## データモデル管理について
+
+このプロジェクトのデータモデル定義は `/docs/data_models.md` で一元管理されています。
+
+AI開発者の皆さんへ：
+- モデルに関する変更が必要な場合は、必ず最初に `data_models.md` を確認・更新してください
+- 変更内容と日付を変更履歴セクションに記録してください
+- その後、実装（`shared/index.ts` および `server/src/types/index.ts` など）を更新してください
+
 ## デプロイURL
 
 - 一般ユーザー向け: [https://dailyfortune.web.app](https://dailyfortune.web.app)

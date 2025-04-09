@@ -1,6 +1,13 @@
 # DailyFortune データモデル定義
 
-> **注意**: 2025/04/08 にSajuProfileモデルはUserモデルに完全に統合されました。四柱推命プロフィール関連のすべてのデータは、現在Userモデル内に直接保存されています。これにより、データアクセスが簡素化され、パフォーマンスが向上しています。
+> **最終更新**: 2025/04/09
+
+## 変更履歴
+- 2025/04/09: Team モデルから members フィールドを削除 (User.teamId に一元化)
+- 2025/04/08: SajuProfile モデルを User モデルに完全に統合
+
+## AIチーム開発への注意事項
+このドキュメントは単一の真実源です。モデルを変更する場合は、必ずこのドキュメントを更新してください。
 
 ## 基本モデル
 
@@ -149,10 +156,15 @@ interface Team {
   name: string;
   adminId: ObjectId; // 管理者（Admin）への参照
   organizationId: ObjectId; // 組織への参照
+  description?: string;
+  iconInitial?: string;
+  iconColor?: 'primary' | 'water' | 'wood' | 'fire' | 'earth' | 'metal';
   createdAt: Date;
   updatedAt: Date;
 }
 ```
+
+> **注意**: 2025/04/09 のリファクタリングにより、チームメンバーシップ管理は User.teamId のみを使用するように変更されました。Team.members フィールドは削除され、すべてのメンバーシップ操作は User モデルの teamId フィールドを通じて行われます。
 
 ### TeamGoal（チーム目標）モデル
 ```typescript

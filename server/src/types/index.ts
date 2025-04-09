@@ -267,7 +267,10 @@ export interface ITeam {
   id: string;
   name: string;
   adminId: string; // チーム管理者のユーザーID
-  goal?: string;
+  organizationId: string; // 組織への参照
+  description?: string;
+  iconInitial?: string;
+  iconColor?: 'primary' | 'water' | 'wood' | 'fire' | 'earth' | 'metal';
   createdAt: Date;
   updatedAt: Date;
 }
