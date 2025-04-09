@@ -90,10 +90,10 @@ export const getTeamById = async (
     throw new NotFoundError('ユーザーが見つかりません');
   }
 
-  const teamIdStr = teamId.toString();
   const userIdStr = userId.toString();
   
-  const isMember = user.teamId && user.teamId.toString() === teamIdStr;
+  // 標準化された関数を使用してメンバーシップを確認
+  const isMember = await isTeamMember(teamId, userId);
   const isAdmin = team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
 
   if (!isMember && !isAdmin) {
@@ -184,13 +184,21 @@ export const isTeamAdmin = async (teamId: string | mongoose.Types.ObjectId, user
   return team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
 };
 
+/**
+ * ユーザーが指定されたチームのメンバーかどうかを確認する
+ * チームメンバーシップの標準化された確認方法
+ * 
+ * @param teamId チームID
+ * @param userId ユーザーID
+ * @returns メンバーの場合はtrue、そうでない場合はfalse
+ */
 export const isTeamMember = async (teamId: string | mongoose.Types.ObjectId, userId: string | mongoose.Types.ObjectId): Promise<boolean> => {
+  const teamIdStr = teamId.toString();
   const user = await User.findById(userId);
+
   if (!user || !user.teamId) {
     return false;
   }
-  
-  const userTeamId = user.teamId.toString();
-  const teamIdStr = teamId.toString();
-  return userTeamId === teamIdStr;
+
+  return user.teamId.toString() === teamIdStr;
 };

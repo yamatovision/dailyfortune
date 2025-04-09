@@ -16,6 +16,12 @@ interface IUserDocument extends mongoose.Document {
   teamId?: mongoose.Types.ObjectId;
 }
 
+/**
+ * チームメンバー一覧を取得する
+ * @param teamId チームID
+ * @param userId リクエスト元ユーザーID（権限チェック用）
+ * @returns チームメンバー一覧
+ */
 export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, userId: string | mongoose.Types.ObjectId): Promise<any[]> => {
   // チームの存在確認
   const team = await Team.findById(teamId);
@@ -34,6 +40,7 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
   
   const isAdmin = await isTeamAdmin(teamId, userId);
   
+  // User.teamIdを使用して一貫したメンバーシップ確認を行う
   const isMember = requestUser.teamId && requestUser.teamId.toString() === teamIdStr;
   
   if (!isAdmin && !isMember) {
@@ -47,7 +54,7 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
   if (adminUser && (!adminUser.teamId || adminUser.teamId.toString() !== teamIdStr)) {
     console.log(`チーム管理者(${adminId})がチームメンバーではないため、自動的に追加します`);
     
-    // 管理者をチームメンバーとして追加
+    // 管理者をチームメンバーとして追加 (User.teamIdを使用)
     await User.findByIdAndUpdate(
       adminId,
       {
@@ -57,7 +64,7 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
     );
   }
 
-  // チームメンバー一覧取得（管理者も含まれるはず）
+  // User.teamIdをベースにしたチームメンバー一覧取得（標準化された方法）
   const members = await User.find(
     { teamId: teamId },
     {

@@ -119,8 +119,10 @@ export class FortuneController {
         return;
       }
       
-      // リクエストユーザーがチームメンバーかを確認
-      const isMember = team.members?.some(member => member.userId.toString() === userId) || false;
+      // リクエストユーザーがチームメンバーかを確認（リファクタリング後の標準化された方法）
+      const requestUser = await User.findById(userId);
+      const isMember = requestUser?.teamId && requestUser.teamId.toString() === teamId;
+      
       if (!isMember) {
         res.status(403).json({ error: 'このチームのデータにアクセスする権限がありません' });
         return;
@@ -130,8 +132,9 @@ export class FortuneController {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      // チームメンバーのユーザーID一覧を取得
-      const memberIds = team.members?.map(member => member.userId) || [];
+      // User.teamIdを使用したチームメンバーのユーザーID一覧を取得（標準化された方法）
+      const teamMembers = await User.find({ teamId: teamId });
+      const memberIds = teamMembers.map(member => member._id);
       
       // チームメンバー全員の今日の運勢を取得
       const fortunes = await DailyFortune.find({
@@ -143,11 +146,11 @@ export class FortuneController {
       }).lean();
       
       // 各メンバーの詳細情報を取得
-      const members = await User.find({ _id: { $in: memberIds } }).lean();
+      const memberDetails = await User.find({ _id: { $in: memberIds } }).lean();
       
       // 運勢ランキングデータを作成
       const ranking = fortunes.map(fortune => {
-        const member = members.find(m => m._id.toString() === fortune.userId.toString());
+        const member = memberDetails.find(m => m._id && m._id.toString() === fortune.userId.toString());
         return {
           userId: fortune.userId,
           displayName: member?.displayName || '不明なユーザー',

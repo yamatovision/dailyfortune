@@ -257,13 +257,25 @@ class CompatibilityService {
    * @returns チームメンバー間の相性情報一覧
    */
   async getTeamCompatibilities(teamId: string): Promise<ICompatibilityDocument[]> {
-    // チームメンバーのユーザーIDを取得
-    const team = await Team.findById(teamId).populate('members.userId');
-    if (!team) {
+    // チームの存在確認
+    const teamExists = await Team.exists({ _id: teamId });
+    if (!teamExists) {
       throw new Error('チームが見つかりません');
     }
+
+    // User.teamIdを使用してチームメンバーを取得（標準化された方法）
+    const members = await User.find({ teamId: teamId });
+    if (!members || members.length === 0) {
+      return [];
+    }
     
-    const memberIds = team.members?.map(member => member.userId.toString()) || [];
+    // TypeScriptのための型安全な方法でマッピング
+    const memberIds = members.map(member => {
+      if (member && member._id) {
+        return typeof member._id.toString === 'function' ? member._id.toString() : String(member._id);
+      }
+      return '';
+    }).filter(id => id !== '');
     
     // 全ての組み合わせの相性を取得または生成
     const compatibilities: ICompatibilityDocument[] = [];
