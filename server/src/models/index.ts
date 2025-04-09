@@ -9,6 +9,7 @@ export { User, type IUser, type IUserDocument } from './User';
 export { UserGoal, type IUserGoal, type IUserGoalDocument } from './UserGoal';
 export { Team, type ITeam, type ITeamDocument } from './Team';
 export { TeamGoal, type ITeamGoal, type ITeamGoalDocument } from './TeamGoal';
+export { TeamMemberCard, type ITeamMemberCard, type ITeamMemberCardDocument } from './TeamMemberCard';
 export { DayPillar, type IDayPillar, type IDayPillarDocument } from './DayPillar';
 export { DailyFortune, type IDailyFortune, type IDailyFortuneDocument } from './DailyFortune';
 export { Compatibility, type ICompatibility, type ICompatibilityDocument } from './Compatibility';

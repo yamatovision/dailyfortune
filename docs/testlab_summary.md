@@ -81,6 +81,30 @@ npm test -- --testPathPattern=src/tests/admin/real-auth-fortune-run.test.ts
 3. テストカバレッジの向上
 4. モックテストから実認証テストへの完全移行
 
+## データベース中心のテスト駆動開発（DB-TDD）
+
+DailyFortuneプロジェクトでは「データベース中心のテスト駆動開発（DB-TDD）」を採用しています。このアプローチは以下の特徴を持ちます：
+
+1. **実データ検証**: すべてのテストステップでデータベースの実際の状態を確認
+2. **TDDサイクルの拡張**: レッド→グリーン→リファクタリング→データ検証
+3. **検証スクリプト**: 各機能に対応するデータベース検証スクリプトを作成
+4. **エラー時の検証**: エラー発生時には必ずデータベースの状態を直接確認
+
+### DB検証の主要コマンド
+
+```bash
+# MongoDB接続（テスト環境）
+cd server && node scripts/check-mongodb.js
+
+# 特定コレクションの内容確認
+cd server && node scripts/check-mongodb-collections.js User
+
+# 特定ユーザーの情報確認
+cd server && node scripts/check-user-info.ts "Bs2MacLtK1Z1fVnau2dYPpsWRpa2"
+```
+
+DB-TDDアプローチを徹底することで、「動く」だけでなく「正しく動く」コードを効率的に開発できます。
+
 ## 詳細ドキュメント
 
 完全なガイドラインと詳細な使用方法については、[TestLAB詳細ドキュメント](./testlab.md)を参照してください。

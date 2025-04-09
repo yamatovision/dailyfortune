@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import teamService from '../../services/team.service';
+import MemberCardView from './MemberCardView';
 
 type TeamMembersListProps = {
   teamId: string;
@@ -27,6 +28,10 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
   const [editRole, setEditRole] = useState<string>('');
   const [editEmail, setEditEmail] = useState<string>('');
   const [editElement, setEditElement] = useState<string>('');
+  
+  // メンバーカルテモーダル用の状態
+  const [showCardModal, setShowCardModal] = useState<boolean>(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
 
   // 属性アバタークラスのマッピング
   const elementClasses: Record<string, string> = {
@@ -153,6 +158,12 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
     setEditEmail(member.email);
     setEditElement(member.elementAttribute || 'water');
     setShowEditModal(true);
+  };
+  
+  // メンバーカルテモーダルを開く
+  const openCardModal = (userId: string) => {
+    setSelectedMemberId(userId);
+    setShowCardModal(true);
   };
 
   return (
@@ -367,6 +378,25 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                     <td style={{ padding: '16px' }}>{member.email}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <button 
+                        className="btn btn-outline btn-sm card-btn"
+                        style={{ 
+                          padding: '6px 12px', 
+                          backgroundColor: 'transparent',
+                          border: '1px solid #2196f3', // 青色
+                          color: '#2196f3', 
+                          borderRadius: '8px', 
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          marginRight: '8px',
+                          fontSize: '14px'
+                        }}
+                        onClick={() => openCardModal(member.userId)}
+                      >
+                        <span style={{ fontSize: '16px', marginRight: '4px' }}>📋</span>
+                        カルテ
+                      </button>
+                      <button 
                         className="btn btn-outline btn-sm edit-member-btn"
                         style={{ 
                           padding: '6px 12px', 
@@ -561,6 +591,16 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
             </form>
           </div>
         </div>
+      )}
+      
+      {/* メンバーカルテモーダル */}
+      {showCardModal && selectedMemberId && (
+        <MemberCardView 
+          teamId={teamId} 
+          userId={selectedMemberId} 
+          onClose={() => setShowCardModal(false)} 
+          isDialog={true} 
+        />
       )}
     </div>
   );

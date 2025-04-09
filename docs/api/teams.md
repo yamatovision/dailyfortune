@@ -35,6 +35,7 @@
 | POST    | `/api/v1/teams/:teamId/members`        | チームにメンバーを追加                 |
 | PUT     | `/api/v1/teams/:teamId/members/:userId/role` | メンバーの役割を更新           |
 | DELETE  | `/api/v1/teams/:teamId/members/:userId` | メンバーをチームから削除             |
+| GET     | `/api/v1/teams/:teamId/members/:userId/card` | メンバーカルテ情報を取得     |
 
 ### チーム相性分析
 
@@ -287,6 +288,48 @@ PUT /api/v1/teams/:teamId/members/:userId/role
     "email": "hanako.suzuki@example.com",
     "role": "シニアデザイナー"
   }
+}
+```
+
+### メンバーカルテ情報取得
+
+```
+GET /api/v1/teams/:teamId/members/:userId/card
+```
+
+チームメンバーの詳細なプロファイルカルテ情報を取得します。四柱推命データに基づいた特性分析、チームへの貢献方法、コミュニケーションガイドなどが含まれます。
+
+#### レスポンス
+
+```json
+{
+  "userInfo": {
+    "userId": "user-id-1",
+    "displayName": "鈴木 花子",
+    "role": "デザイナー",
+    "mainElement": "water",
+    "avatarInitial": "鈴",
+    "elementProfile": {
+      "wood": 15,
+      "fire": 20,
+      "earth": 30,
+      "metal": 15,
+      "water": 70
+    },
+    "dayMaster": "壬子",
+    "fourPillars": {
+      "day": {
+        "heavenlyStem": "壬",
+        "earthlyBranch": "子"
+      }
+    }
+  },
+  "cardContent": "# 鈴木 花子の特性分析\n\n## 基本プロファイル\n\n五行属性: 水（壬子）\n\n水の気質は流動的で柔軟な思考を持ち、深い洞察力と直感を備えています。\n\n## 特性と才能\n\n- 創造的な問題解決能力\n- 直感的な洞察力\n- 柔軟な思考と適応力\n- 複雑な状況の理解と整理\n\n## チーム貢献分析\n\n鈴木さんの水の気質は、顧客満足度向上に特に適しています。直感的なユーザー体験設計と、顧客の潜在的ニーズを感知する能力が目標達成に大きく貢献します。\n\n### 最適な役割\n\n- 顧客体験の設計と最適化\n- ユーザーフィードバックの収集と分析\n- チーム内の創造的プロセスのファシリテーション\n- ブレインストーミングや問題解決セッションのリード\n\n### 強化すべき領域\n\n- 詳細な実装計画への注意（「土」の要素を強化）\n- 締切管理の徹底（「金」の要素を強化）\n- アイデアの選別と優先順位付け\n- 定期的な進捗報告の習慣化\n\n## コミュニケーションガイド\n\n### 効果的なアプローチ\n\n- 視覚的な資料や例を用いた説明\n- オープンエンドな質問と発想の余地\n- 大局的なビジョンの共有\n- 柔軟性のある進め方\n\n### 避けるべきアプローチ\n\n- 過度に構造化された指示\n- 細かいマイクロマネジメント\n- 創造性を制限する厳格なルール\n- 短すぎる締切の連続",
+  "teamGoal": {
+    "content": "四半期売上目標（1200万円）の達成と顧客満足度90%の維持",
+    "deadline": "2025-06-30T00:00:00.000Z"
+  },
+  "lastUpdated": "2025-04-09T05:23:16.789Z"
 }
 ```
 

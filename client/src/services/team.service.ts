@@ -209,6 +209,22 @@ class TeamService {
       throw error;
     }
   }
+  
+  /**
+   * メンバーカルテ情報を取得する
+   * @param teamId チームID
+   * @param userId ユーザーID
+   * @returns メンバーカルテ情報
+   */
+  async getMemberCard(teamId: string, userId: string): Promise<any> {
+    try {
+      const response = await apiService.get(TEAM.GET_MEMBER_CARD(teamId, userId));
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to get member card for user ${userId} in team ${teamId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export default new TeamService();

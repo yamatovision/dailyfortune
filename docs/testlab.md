@@ -1,5 +1,16 @@
 # DailyFortune TestLAB ガイドライン
 
+## テスト方法の基本原則
+
+1. **実データ優先**: まず必要となるデータを実際のデータベースに接続して格納されているかどうかを調べる
+2. **実データ準備**: 格納されているデータがなければ直接データベースにモックデータではなく実データを格納する
+3. **実認証**: 認証が必要な場合はまず実際にログインする
+4. **実テスト**: 実データと実認証を使ってエンドポイントをテストする
+
+**重要**: モックを使用せず、実際のデータと環境を使用することで、本番環境に近いテスト結果を得ることができます。
+
+---
+
 このドキュメントはDailyFortuneプロジェクトのAIを活用したテスト環境(TestLAB)の中央管理ガイドラインです。複数のAIやテスト環境での開発を効率的に行うための標準プロセスを定義します。
 
 ## 1. 環境設定標準プロセス
@@ -355,8 +366,126 @@ cd /Users/tatsuya/Desktop/システム開発/DailyFortune/server
 ./scripts/run-admin-tests.sh
 ```
 
+## 9. データベース中心のテスト駆動開発（DB-TDD）アプローチ
+
+DailyFortuneプロジェクトでは「データベース中心のテスト駆動開発（DB-TDD）」を採用しています。このアプローチは従来のTDDを拡張し、実際のデータベースとの対話を開発サイクルの中心に据えています。
+
+### 9.1 DB-TDDの基本原則
+
+1. **レッド**: まず失敗するテストを書く（データベースの期待状態を定義）
+2. **グリーン**: 最小限の実装でテストを通す（データベース操作を含む）
+3. **リファクタリング**: コードを改善する（データ整合性とパフォーマンスを維持）
+4. **データ検証**: 各ステップでデータベースの実際の状態を直接確認
+
+### 9.2 開発・デバッグサイクル
+
+以下のサイクルを繰り返すことで、堅牢で高品質なコードを効率的に開発します：
+
+```text
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│ 1. DBスキーマ   │────▶│ 2. テスト作成   │────▶│ 3. 実装        │
+│    確認・設計   │     │    (失敗確認)   │     │                 │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+        ▲                                                 │
+        │                                                 │
+        │                                                 ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│                 │     │                 │     │                 │
+│ 6. リリース     │◀────│ 5. DB直接検証   │◀────│ 4. テスト実行   │
+│    ＆ドキュメント│     │   ＆最適化     │     │                 │
+│                 │     │                 │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### 9.3 データベース検証のタイミング
+
+**常にデータベースに接続して検証すべき状況**:
+
+1. **新機能開発開始時**: 関連するコレクション・ドキュメントの現状を確認
+2. **テスト作成時**: 期待値の妥当性検証とテストデータの準備
+3. **テスト失敗時**: エラーの原因となるデータ状態を特定
+4. **実装後**: 意図通りのデータが保存/更新/削除されていることを確認
+5. **リファクタリング後**: データの整合性が維持されていることを確認
+6. **APIレスポンスとDB内容の不一致時**: 真のデータ状態を確認
+7. **エラー発生時**: スタックトレースと併せてデータ状態を確認
+
+### 9.4 実用的なDB検証コマンド
+
+MongoDB接続とデータ検証のための実用的なコマンド一覧：
+
+```bash
+# MongoDB接続（テスト環境）
+cd server && node scripts/check-mongodb.js
+
+# 特定コレクションの内容確認
+cd server && node scripts/check-mongodb-collections.js User
+
+# 特定ユーザーの情報確認
+cd server && node scripts/check-user-info.ts "Bs2MacLtK1Z1fVnau2dYPpsWRpa2"
+
+# 四柱推命プロファイル確認
+cd server && node scripts/check-saju-profiles.ts "Bs2MacLtK1Z1fVnau2dYPpsWRpa2"
+
+# チームメンバーカード確認
+cd server && node scripts/check-team-member-cards.ts "67f4fe4bfe04b371f21576f7" "Bs2MacLtK1Z1fVnau2dYPpsWRpa2"
+```
+
+### 9.5 DB検証用スクリプトの作成規約
+
+新しい機能を実装する際には、関連するデータを検証するためのスクリプトも合わせて作成することを推奨します：
+
+```typescript
+// scripts/check-feature-data.ts の基本テンプレート
+import mongoose from 'mongoose';
+import { config } from 'dotenv';
+import { FeatureModel } from '../src/models/FeatureModel';
+
+// 環境変数読み込み
+config();
+
+// 引数取得
+const featureId = process.argv[2];
+if (!featureId) {
+  console.error('使用方法: node check-feature-data.ts <featureId>');
+  process.exit(1);
+}
+
+// DB接続
+mongoose.connect(process.env.MONGODB_URI || '')
+  .then(async () => {
+    console.log('MongoDB接続成功');
+    
+    // データ取得
+    const data = await FeatureModel.findById(featureId);
+    console.log('取得データ:', JSON.stringify(data, null, 2));
+    
+    // 関連データ取得（必要に応じて）
+    const relatedData = await RelatedModel.find({ featureId });
+    console.log('関連データ:', JSON.stringify(relatedData, null, 2));
+    
+    await mongoose.disconnect();
+  })
+  .catch(err => {
+    console.error('エラー:', err);
+    process.exit(1);
+  });
+```
+
+### 9.6 DB検証結果の記録
+
+テスト・デバッグ時のデータベース検証結果を記録することで、問題解決の履歴や知見を蓄積できます：
+
+```bash
+# 検証結果を記録
+cd server && node scripts/check-feature-data.ts <id> > logs/db-verifications/feature-$(date +%Y%m%d%H%M%S).log
+```
+
+DB-TDDアプローチを徹底することで、データの整合性を保ちながら、堅牢で信頼性の高いアプリケーションを効率的に開発できます。データの流れを常に目で見て確認することで、「動く」だけでなく「正しく動く」コードを書くことができます。
+
 ---
 
 **注意**: このガイドラインは継続的に更新されます。最新バージョンを参照してください。
 
-**最終更新**: 2025-04-07
+**最終更新**: 2025-04-09

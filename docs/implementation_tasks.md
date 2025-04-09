@@ -315,32 +315,32 @@
 ### 3.2 DailyFortune フロントエンド実装
 
 #### 3.2.1 運勢データサービス (1日)
-- [ ] `client/src/services/fortune.service.ts` の作成
-  - [ ] 今日の運勢取得API通信機能実装
-  - [ ] エラーハンドリング実装
-  - [ ] キャッシュ戦略実装
-  - [ ] 運勢コンテキストプロバイダー実装
+- [x] `client/src/services/fortune.service.ts` の作成
+  - [x] 今日の運勢取得API通信機能実装
+  - [x] エラーハンドリング実装
+  - [x] キャッシュ戦略実装
+  - [x] 運勢コンテキストプロバイダー実装
 
 #### 3.2.2 運勢表示カードコンポーネント (2日)
-- [ ] `client/src/components/fortune/FortuneCard.tsx` の作成
-  - [ ] 運勢スコア表示（円グラフ）
-  - [ ] 五行に基づいた色表現実装
-  - [ ] ラッキーアイテムカード表示
-  - [ ] レスポンシブデザイン対応
+- [x] `client/src/components/fortune/FortuneCard.tsx` の作成
+  - [x] 運勢スコア表示（円グラフ）
+  - [x] 五行に基づいた色表現実装
+  - [x] ラッキーアイテムカード表示
+  - [x] レスポンシブデザイン対応
 
 #### 3.2.3 運勢詳細コンポーネント (2日)
-- [ ] `client/src/components/fortune/FortuneDetails.tsx` の作成
-  - [ ] マークダウンパーサーによる運勢説明表示
-  - [ ] 個人目標へのアドバイス表示
-  - [ ] チーム目標へのアドバイス表示
-  - [ ] 五行アニメーション実装
+- [x] `client/src/components/fortune/FortuneDetails.tsx` の作成
+  - [x] マークダウンパーサーによる運勢説明表示
+  - [x] 個人目標へのアドバイス表示
+  - [x] チーム目標へのアドバイス表示
+  - [x] 五行アニメーション実装
   
 #### 3.2.4 運勢ページ実装 (2日)
-- [ ] `client/src/pages/Fortune/index.tsx` の作成
-  - [ ] FortuneCardとFortuneDetailsの統合
-  - [ ] 運勢データロード処理実装
-  - [ ] AI相談ボタン連携
-  - [ ] ユーザー目標との連携表示
+- [x] `client/src/pages/Fortune/index.tsx` の作成
+  - [x] FortuneCardとFortuneDetailsの統合
+  - [x] 運勢データロード処理実装
+  - [x] AI相談ボタン連携
+  - [x] ユーザー目標との連携表示
 
 ## フェーズ4: 相性機能とAIチャットの実装
 

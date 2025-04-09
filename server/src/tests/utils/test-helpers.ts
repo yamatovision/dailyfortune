@@ -5,6 +5,12 @@ import { User } from '../../models/User';
 import { UserRole } from '../../middleware/auth.middleware';
 
 /**
+ * テスト用モック型定義
+ * Pは元の型、Rはモック返り値の型
+ */
+export type MockType<T> = T & jest.Mock;
+
+/**
  * テスト用ユーザータイプ
  */
 export type MockUserType = 'superadmin' | 'admin' | 'user';

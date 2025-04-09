@@ -113,6 +113,7 @@ export const TEAM = {
   GET_TEAM_COMPATIBILITY: (teamId: string) => `${API_BASE_PATH}/teams/${teamId}/compatibility`,
   GET_MEMBER_COMPATIBILITY: (teamId: string, userId1: string, userId2: string) => 
     `${API_BASE_PATH}/teams/${teamId}/compatibility/${userId1}/${userId2}`,
+  GET_MEMBER_CARD: (teamId: string, userId: string) => `${API_BASE_PATH}/teams/${teamId}/members/${userId}/card`,
 };
 
 // ========== 運勢関連 ==========
