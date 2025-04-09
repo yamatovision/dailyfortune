@@ -33,6 +33,17 @@ class FortuneService {
         this.cacheExpiration = new Date(now.getTime() + this.CACHE_DURATION_MS);
       }
       
+      // 四柱推命属性情報が取得できたかを確認
+      if (response.data && response.data.dayPillar) {
+        console.log('運勢データが正常に取得されました:', {
+          dayPillar: response.data.dayPillar,
+          score: response.data.score
+        });
+      } else {
+        console.warn('運勢データに四柱推命情報が含まれていません');
+        throw new Error('四柱推命情報が不足しています');
+      }
+      
       return response.data;
     } catch (error) {
       console.error('運勢データの取得に失敗しました', error);

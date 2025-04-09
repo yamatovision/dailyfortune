@@ -3,6 +3,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
+import RequireSajuProfile from './components/common/RequireSajuProfile'
 
 // ページコンポーネント
 import Layout from './components/layout/Layout'
@@ -90,7 +91,9 @@ function App() {
           } />
           <Route path="/fortune" element={
             <ProtectedRoute>
-              <Fortune />
+              <RequireSajuProfile>
+                <Fortune />
+              </RequireSajuProfile>
             </ProtectedRoute>
           } />
           <Route path="/chat" element={
@@ -110,7 +113,9 @@ function App() {
           } />
           <Route path="/team/:teamId/aisyou" element={
             <ProtectedRoute>
-              <AisyouPage />
+              <RequireSajuProfile>
+                <AisyouPage />
+              </RequireSajuProfile>
             </ProtectedRoute>
           } />
           {/* 自分のチームの相性ページへのリダイレクト用ルート */}

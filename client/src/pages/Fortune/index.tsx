@@ -136,15 +136,42 @@ const Fortune: React.FC = () => {
           </div>
         </>
       ) : (
-        <Alert 
-          severity="warning" 
-          sx={{ 
-            mt: 2,
-            borderRadius: 3
-          }}
-        >
-          運勢データが見つかりませんでした。プロフィール設定を確認してください。
-        </Alert>
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Alert 
+            severity="warning" 
+            sx={{ 
+              mt: 2,
+              mb: 3,
+              borderRadius: 3,
+              maxWidth: 600,
+              mx: 'auto'
+            }}
+          >
+            運勢データが見つかりませんでした。四柱推命プロフィールを設定してください。
+          </Alert>
+          
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            パーソナライズされた運勢予測を受け取るには、四柱推命プロフィールの設定が必要です。
+          </Typography>
+          
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => window.location.reload()}
+            sx={{
+              borderRadius: 30,
+              px: 3,
+              py: 1,
+              background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+              boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
+              '&:hover': {
+                boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
+              }
+            }}
+          >
+            四柱推命プロフィールを設定する
+          </Button>
+        </Box>
       )}
     </Box>
   );
