@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import teamService from '../../services/team.service';
 import fortuneService from '../../services/fortune.service';
 import styled from '@emotion/styled';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 // 五行属性の色マッピング
@@ -133,6 +133,7 @@ const RelationshipChip = styled(Chip)(
 const AisyouPage: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const { currentUser: user, isAdmin, isSuperAdmin } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [team, setTeam] = useState<any>(null);
@@ -150,8 +151,8 @@ const AisyouPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!teamId) {
-        setError('チームIDが指定されていません');
-        setLoading(false);
+        // チームIDがない場合は即座にチーム一覧ページにリダイレクト
+        navigate('/team');
         return;
       }
       
@@ -173,6 +174,13 @@ const AisyouPage: React.FC = () => {
         console.log('ランキングデータ:', rankingData);
         console.log('メンバーデータ:', membersData);
 
+        // チームデータが存在しない場合（APIからnullまたは空のオブジェクトが返された場合）
+        if (!teamData || !teamData.id) {
+          // チーム一覧ページに即座にリダイレクト
+          navigate('/team');
+          return;
+        }
+
         setTeam(teamData);
         // APIレスポンス構造に合わせて修正
         setRanking(rankingData.data?.ranking || []);
@@ -180,14 +188,15 @@ const AisyouPage: React.FC = () => {
         setError(null);
       } catch (error) {
         console.error('データ取得エラー:', error);
-        setError('チーム相性データの取得に失敗しました。しばらく経ってから再度お試しください。');
+        // API取得エラーが発生した場合も即座にリダイレクト
+        navigate('/team');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [teamId]);
+  }, [teamId, navigate, isAdmin, isSuperAdmin, setActiveTeamId]);
 
   // 相性詳細ダイアログを開く
   const handleOpenCompatibility = async (member: any) => {
