@@ -15,7 +15,7 @@ import Fortune from './pages/Fortune'
 import Chat from './pages/Chat'
 import Team from './pages/Team'
 import AisyouPage from './pages/Team/Aisyou'
-import AdminDashboard from './pages/Admin'
+//管理者ダッシュボードは削除
 import Unauthorized from './pages/Unauthorized'
 
 // テーマ設定
@@ -128,12 +128,7 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* 管理者ルート */}
-          <Route path="/admin/*" element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
+          {/* 管理者ルート - 削除済み */}
 
           {/* デフォルトルート */}
           <Route path="/" element={<Navigate to="/fortune" replace />} />

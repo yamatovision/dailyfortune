@@ -34,8 +34,14 @@ class AdminService {
   /**
    * 管理者を追加
    */
-  public async addAdmin(email: string): Promise<AxiosResponse<any>> {
-    return ApiService.post(ADMIN.ADD_ADMIN, { email });
+  public async addAdmin(email: string, password?: string, displayName?: string, role?: string, plan?: string): Promise<AxiosResponse<any>> {
+    return ApiService.post(ADMIN.ADD_ADMIN, { 
+      email,
+      password,
+      displayName,
+      role,
+      plan
+    });
   }
 
   /**

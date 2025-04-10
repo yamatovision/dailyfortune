@@ -67,6 +67,8 @@ const UsersManagement = () => {
   // 新規ユーザー追加用の状態
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserDisplayName, setNewUserDisplayName] = useState('');
   const [newUserRole, setNewUserRole] = useState('User');
   const [newUserPlan, setNewUserPlan] = useState('lite');
   const [addLoading, setAddLoading] = useState(false);
@@ -552,6 +554,29 @@ const UsersManagement = () => {
               type="email"
             />
             
+            <TextField
+              fullWidth
+              label="パスワード"
+              variant="outlined"
+              value={newUserPassword}
+              onChange={(e) => setNewUserPassword(e.target.value)}
+              disabled={addLoading}
+              margin="normal"
+              required
+              type="password"
+            />
+            
+            <TextField
+              fullWidth
+              label="表示名"
+              variant="outlined"
+              value={newUserDisplayName}
+              onChange={(e) => setNewUserDisplayName(e.target.value)}
+              disabled={addLoading}
+              margin="normal"
+              required
+            />
+            
             <FormControl fullWidth sx={{ mt: 2, mb: 2 }}>
               <InputLabel id="new-role-label">権限</InputLabel>
               <Select
@@ -602,16 +627,34 @@ const UsersManagement = () => {
                 return;
               }
               
+              if (!newUserPassword) {
+                showNotification(NotificationType.ERROR, 'パスワードを入力してください');
+                return;
+              }
+              
+              if (!newUserDisplayName) {
+                showNotification(NotificationType.ERROR, '表示名を入力してください');
+                return;
+              }
+              
               setAddLoading(true);
               try {
                 // APIリクエスト
-                await AdminService.addAdmin(newUserEmail);
+                await AdminService.addAdmin(
+                  newUserEmail,
+                  newUserPassword,
+                  newUserDisplayName,
+                  newUserRole,
+                  newUserPlan
+                );
                 
                 showNotification(NotificationType.SUCCESS, 'ユーザーを追加しました');
                 setAddDialogOpen(false);
                 
                 // 入力フィールドをリセット
                 setNewUserEmail('');
+                setNewUserPassword('');
+                setNewUserDisplayName('');
                 setNewUserRole('User');
                 setNewUserPlan('lite');
                 
@@ -625,7 +668,7 @@ const UsersManagement = () => {
               }
             }}
             color="primary"
-            disabled={addLoading || !newUserEmail}
+            disabled={addLoading || !newUserEmail || !newUserPassword || !newUserDisplayName}
             variant="contained"
           >
             追加

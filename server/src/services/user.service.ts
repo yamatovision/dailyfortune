@@ -233,15 +233,17 @@ export class UserService {
       throw new NotFoundError('ユーザーが見つかりません');
     }
     
+    // Firebaseユーザー削除を試みる（存在しない場合もエラーにしない）
     try {
-      // Firebaseユーザー削除
       await auth.deleteUser(userId);
+      console.log(`Firebase ユーザー削除成功: ${userId}`);
     } catch (error) {
+      // Firebaseユーザーが見つからない場合など、エラーはログに記録するだけで処理を続行
       console.error('Firebase削除エラー:', error);
-      throw error;
+      console.log(`Firebase ユーザーは存在しないか、すでに削除されています。データベースのユーザー削除を続行します。`);
     }
     
-    // MongoDBユーザー削除
+    // MongoDBユーザー削除（Firebaseの結果に関わらず実行）
     await User.findByIdAndDelete(userId);
     
     return {
