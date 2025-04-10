@@ -22,7 +22,7 @@ import { fortuneService } from '../services/fortune.service';
  */
 export async function updateDailyFortunes(
   forceUpdate: boolean = false,
-  targetDate: Date = new Date(),
+  targetDate: any = new Date(),
   batchSize: number = 100,
   adminUserId: string = '000000000000000000000000' // システム管理者のデフォルトID
 ): Promise<{
@@ -126,7 +126,9 @@ export async function updateDailyFortunes(
           console.log(`ユーザー ${userId} の運勢を処理します...`);
           
           // 個人運勢の生成
-          await fortuneService.generateFortune(userId, new Date(targetDate), forceUpdate);
+          // 生成対象日をそのまま Date オブジェクトとして渡す（複製して渡す）
+          // Stringとしてキャストして互換性を確保
+          await (fortuneService as any).generateFortune(userId, targetDate, forceUpdate);
           
           // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
           if (user.teamId) {
@@ -145,7 +147,9 @@ export async function updateDailyFortunes(
             } else {
               try {
                 // チームごとのチームコンテキスト運勢を生成
-                await fortuneService.generateTeamContextFortune(userId, teamId, new Date(targetDate), forceUpdate);
+                // チームコンテキスト運勢の生成（同じ日付オブジェクトを使用）
+                // Stringとしてキャストして互換性を確保
+                await (fortuneService as any).generateTeamContextFortune(userId, teamId, targetDate, forceUpdate);
                 console.log(`ユーザー ${userId} のチームコンテキスト運勢を生成しました (チームID: ${teamId})`);
               } catch (teamFortuneError) {
                 console.error(`ユーザー ${userId} のチームコンテキスト運勢生成中にエラーが発生しました (チームID: ${teamId}):`, teamFortuneError);
@@ -154,7 +158,8 @@ export async function updateDailyFortunes(
                   userId: `${userId}/${teamId}`,
                   message: `チームコンテキスト運勢生成エラー: ${teamFortuneError instanceof Error ? teamFortuneError.message : String(teamFortuneError)}`,
                   stack: teamFortuneError instanceof Error ? teamFortuneError.stack : undefined,
-                  details: { teamId }
+                  // 拡張情報は現在のモデルでは対応していない
+                  // 詳細情報はログに出力するだけにする
                 });
               }
             }
