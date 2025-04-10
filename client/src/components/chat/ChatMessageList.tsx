@@ -77,8 +77,12 @@ const ChatMessageList: React.FC<ChatMessageListProps> = ({ messages }) => {
       padding: 2, 
       overflowY: 'auto', 
       height: '100%',
-      scrollBehavior: 'smooth' 
+      scrollBehavior: 'smooth',
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column'
     }} className="messages-container">
+      <Box sx={{ flexGrow: messages.length < 3 ? 1 : 0 }} /> {/* Spacer to push initial messages to bottom */}
       {messages.map((message, index) => (
         message.role === 'user' ? (
           // ユーザーメッセージ

@@ -18,11 +18,13 @@ export interface ChatMessageType {
 interface ChatContainerProps {
   initialMode?: ChatMode;
   onBack?: () => void;
+  fullscreen?: boolean;
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
   initialMode = ChatMode.PERSONAL,
-  onBack
+  onBack,
+  fullscreen = false
 }) => {
   // 状態管理
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -205,17 +207,27 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   };
 
   return (
-    <Paper 
-      elevation={0} 
+    <Box 
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
         height: '100%', 
         width: '100%',
-        maxHeight: { xs: '100vh', md: '85vh' },
+        flex: 1,
         overflow: 'hidden',
-        borderRadius: { xs: 0, md: 2 },
-        boxShadow: { xs: 'none', md: '0 3px 15px rgba(0,0,0,0.1)' }
+        background: 'transparent',
+        ...(fullscreen ? {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        } : {
+          maxHeight: { xs: '100vh', md: '85vh' },
+          borderRadius: { xs: 0, md: 2 },
+          boxShadow: { xs: 'none', md: '0 3px 15px rgba(0,0,0,0.1)' },
+          backgroundColor: 'white'
+        })
       }}
     >
       {/* モードセレクター */}
