@@ -35,6 +35,79 @@ GitHubへのコード安全なアップロード・管理を支援します。**
 - **作業消失リスク警告**: 作業履歴を失う可能性のある操作には必ず警告表示
 - **代替手段優先提示**: 破壊的操作の前に必ず安全な代替案を提示
 
+## 安全なコミットとプッシュの詳細手順
+
+機密情報を含むファイルを誤ってコミットしないため、以下の手順を必ず実施してください。
+
+### 機密情報検出と対策
+```
+# 機密情報の検出と対策手順:
+1. コミット前に機密情報の検索: 
+   grep -r -i "APIKey\|secret\|password\|token\|credential\|mongodb+srv" --include="*.js" --include="*.ts" .
+
+2. 機密情報が見つかった場合の対応:
+   a. .env ファイルへの移動: 機密情報は環境変数化
+   b. コード内のハードコード値を環境変数参照に変更: process.env.SECRET_KEY
+   c. .gitignore への追加: 機密情報を含むファイルを除外
+   d. 既にステージングされている場合: git rm --cached <ファイルパス>
+
+3. 機密文字列置換:
+   a. 直接編集する方法: エディタで機密情報を環境変数参照に置換
+   b. コマンドで置換: 
+      - 単一ファイル: sed -i 's/mongodb+srv:\/\/username:password/mongodb:\/\/localhost/g' ファイル名
+      - 複数ファイル: grep -l "機密文字列" ファイル群 | xargs sed -i 's/機密文字列/安全な文字列/g'
+```
+
+### 安全なコミット手順
+```
+# 安全なコミット手順:
+1. 変更ファイルの確認: git status
+
+2. 機密情報検索:
+   grep -r -i "APIKey\|secret\|password\|token\|credential\|mongodb+srv" --include="*.js" --include="*.ts" .
+
+3. .gitignore の確認・更新:
+   a. 機密ファイルが含まれていることを確認
+   b. 必要に応じて .gitignore に追加:
+      echo "path/to/sensitive/file.js" >> .gitignore
+
+4. 全ファイルステージング: git add .
+
+5. ステージング状態確認: git status
+
+6. 機密ファイルのアンステージ: 
+   git rm --cached パス/センシティブファイル
+
+7. 最終確認: git status
+
+8. コミット: 
+   git commit -m "機能概要と変更点を明記した詳細なメッセージ"
+
+9. プッシュ前の確認:
+   git diff --name-only HEAD~1 HEAD
+```
+
+### コミット履歴からの機密情報削除
+誤って機密情報をコミットしてしまった場合（特にリモートにプッシュ前）:
+```
+# コミット履歴からの機密情報削除:
+1. 最新コミットの修正（プッシュ前のみ）:
+   a. 機密ファイルの削除とgitignoreへの追加
+   b. git add .gitignore
+   c. git rm --cached 機密ファイル
+   d. git commit --amend --no-edit
+
+2. 過去のコミットからの削除（リポジトリ全体の書き換えが必要・危険！）:
+   a. 必ず全コードのバックアップを作成
+   b. git-filter-repoツールのインストール
+   c. リポジトリ内の特定文字列を置換:
+      git filter-repo --replace-text <<EOF
+      機密文字列==安全な代替文字列
+      EOF
+   d. 強制プッシュ（チーム全員に通知必須）:
+      git push --force
+```
+
 ## 特殊状況ガイドライン
 
 ### センシティブファイルが過去コミットに含まれる場合
