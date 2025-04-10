@@ -109,7 +109,8 @@ export class UserService {
       
       // MongoDBにユーザー情報を保存
       const newUser = new User({
-        _id: new mongoose.Types.ObjectId(userRecord.uid),
+        _id: userRecord.uid, // FirebaseのUIDをそのまま使用
+        uid: userRecord.uid, // UIDも保存
         email: data.email,
         displayName: data.displayName,
         role: userRole,
