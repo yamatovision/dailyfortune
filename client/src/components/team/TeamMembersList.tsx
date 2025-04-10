@@ -161,7 +161,15 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
   };
   
   // メンバーカルテモーダルを開く
-  const openCardModal = (userId: string) => {
+  const openCardModal = (userId: string, member: any) => {
+    // 五行属性があるかチェック
+    if (!member.elementAttribute) {
+      // 五行属性がない場合、エラーメッセージを表示
+      alert('このメンバーは四柱推命プロフィールを登録していないため、カルテを生成することができません。');
+      return;
+    }
+    
+    // 五行属性がある場合は通常通りモーダルを表示
     setSelectedMemberId(userId);
     setShowCardModal(true);
   };
@@ -391,7 +399,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                           marginRight: '8px',
                           fontSize: '14px'
                         }}
-                        onClick={() => openCardModal(member.userId)}
+                        onClick={() => openCardModal(member.userId, member)}
                       >
                         <span style={{ fontSize: '16px', marginRight: '4px' }}>📋</span>
                         カルテ
