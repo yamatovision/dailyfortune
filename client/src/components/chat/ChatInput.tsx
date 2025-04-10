@@ -7,9 +7,15 @@ import { styled } from '@mui/material/styles';
 const InputContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  padding: theme.spacing(2),
-  borderTop: `1px solid ${theme.palette.divider}`,
-  backgroundColor: theme.palette.background.paper,
+  padding: theme.spacing(1.5, 2),
+  borderTop: '1px solid #e6e0eb',
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(10px)',
+  WebkitBackdropFilter: 'blur(10px)',
+  boxShadow: '0 -2px 10px rgba(0,0,0,0.05)',
+  position: 'sticky',
+  bottom: 0,
+  zIndex: 10
 }));
 
 // 音声認識インターフェース
@@ -118,9 +124,35 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled = false }
           color={isRecording ? "error" : "primary"}
           onClick={toggleRecording}
           disabled={disabled || !recognitionRef.current}
-          sx={{ mr: 1 }}
+          sx={{ 
+            mr: 1,
+            width: '44px',
+            height: '44px',
+            background: isRecording 
+              ? 'linear-gradient(135deg, #d81b60, #c2185b)' 
+              : 'linear-gradient(135deg, #9575cd, #7e57c2)',
+            color: 'white',
+            boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+            animation: isRecording ? 'pulse 1.5s infinite' : 'none',
+            '@keyframes pulse': {
+              '0%': {
+                boxShadow: '0 0 0 0 rgba(156, 39, 176, 0.4)'
+              },
+              '70%': {
+                boxShadow: '0 0 0 10px rgba(156, 39, 176, 0)'
+              },
+              '100%': {
+                boxShadow: '0 0 0 0 rgba(156, 39, 176, 0)'
+              }
+            },
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 5px 12px rgba(0,0,0,0.2)',
+            },
+            transition: 'all 0.3s ease'
+          }}
         >
-          {isRecording ? <MicOff /> : <Mic />}
+          {isRecording ? <MicOff fontSize="small" /> : <Mic fontSize="small" />}
         </IconButton>
       </Tooltip>
       
@@ -139,7 +171,17 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled = false }
         size="small"
         sx={{
           '& .MuiOutlinedInput-root': {
-            borderRadius: 4,
+            borderRadius: 24,
+            padding: '14px 20px',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '1rem',
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+            border: '1px solid #e6e0eb',
+            maxHeight: '120px',
+            transition: 'all 0.3s ease',
+            '&.Mui-focused': {
+              boxShadow: '0 0 0 2px rgba(156, 39, 176, 0.1)'
+            }
           }
         }}
       />
@@ -151,9 +193,22 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled = false }
             color="primary"
             onClick={handleSendMessage}
             disabled={!message.trim() || disabled}
-            sx={{ ml: 1 }}
+            sx={{ 
+              ml: 1,
+              width: '44px',
+              height: '44px',
+              background: (!message.trim() || disabled) ? '#e0e0e0' : 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+              color: 'white',
+              boxShadow: (!message.trim() || disabled) ? 'none' : '0 3px 8px rgba(156, 39, 176, 0.3)',
+              '&:hover': {
+                background: (!message.trim() || disabled) ? '#e0e0e0' : 'linear-gradient(135deg, #aa2bc5, #8a27b0)',
+                transform: (!message.trim() || disabled) ? 'none' : 'translateY(-2px)',
+                boxShadow: (!message.trim() || disabled) ? 'none' : '0 5px 12px rgba(156, 39, 176, 0.4)',
+              },
+              transition: 'all 0.3s ease'
+            }}
           >
-            <Send />
+            <Send fontSize="small" />
           </IconButton>
         </span>
       </Tooltip>

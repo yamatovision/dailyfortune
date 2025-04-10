@@ -206,14 +206,16 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
   return (
     <Paper 
-      elevation={2} 
+      elevation={0} 
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
         height: '100%', 
-        maxHeight: '80vh',
+        width: '100%',
+        maxHeight: { xs: '100vh', md: '85vh' },
         overflow: 'hidden',
-        borderRadius: 2
+        borderRadius: { xs: 0, md: 2 },
+        boxShadow: { xs: 'none', md: '0 3px 15px rgba(0,0,0,0.1)' }
       }}
     >
       {/* モードセレクター */}

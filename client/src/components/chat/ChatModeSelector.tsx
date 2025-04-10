@@ -17,8 +17,8 @@ const ModeContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   padding: theme.spacing(1, 2),
-  backgroundColor: theme.palette.primary.light,
-  borderBottom: `1px solid ${theme.palette.divider}`,
+  background: 'linear-gradient(to right, #e1bee7, #f3e5f5)',
+  borderBottom: '1px solid rgba(156, 39, 176, 0.1)',
   overflowX: 'auto',
   whiteSpace: 'nowrap',
   '&::-webkit-scrollbar': {

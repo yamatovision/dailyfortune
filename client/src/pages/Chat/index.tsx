@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Typography, Box, Paper, useTheme, useMediaQuery } from '@mui/material';
+import { Box, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChatContainer from '../../components/chat/ChatContainer';
 import { ChatMode } from '../../../../shared';
@@ -24,37 +24,35 @@ const ChatPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 3, height: '100%' }}>
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* ページタイトル（モバイルでは非表示） */}
-        {!isMobile && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              mb: 2,
-              bgcolor: 'background.paper',
-              borderRadius: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <Typography variant="h5" component="h1" align="center" fontWeight={500}>
-              AI相談
-            </Typography>
-          </Paper>
-        )}
-        
-        {/* チャットコンテナ */}
-        <Box sx={{ flexGrow: 1, display: 'flex', overflow: 'hidden' }}>
-          <ChatContainer
-            initialMode={initialMode}
-            onBack={handleBack}
-          />
-        </Box>
+    <Box 
+      sx={{ 
+        height: '100%', 
+        width: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        pt: 0, // ヘッダーの下のパディングを削除
+        // モバイルではフルスクリーンライク
+        px: { xs: 0, md: 2 },
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      {/* チャットコンテナ */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        overflow: 'hidden',
+        width: '100%',
+        // デスクトップでは最大幅を設定
+        maxWidth: { md: '600px' },
+        mx: 'auto'  // 中央揃え
+      }}>
+        <ChatContainer
+          initialMode={initialMode}
+          onBack={handleBack}
+        />
       </Box>
-    </Container>
+    </Box>
   );
 };
 
