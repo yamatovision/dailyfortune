@@ -46,6 +46,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         // モードを設定して初期メッセージを取得
         const response = await chatService.setMode(mode);
         
+        // 初期メッセージ - AIからのウェルカムメッセージのみを表示
         setMessages([{
           role: 'assistant',
           content: response.welcomeMessage,
@@ -91,6 +92,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
       const response = await chatService.setMode(newMode, contextInfo);
       
+      // AIからのウェルカムメッセージのみを表示
       setMessages([{
         role: 'assistant',
         content: response.welcomeMessage,
@@ -116,6 +118,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
       const response = await chatService.setMode(ChatMode.TEAM_MEMBER, { memberId });
       
+      // AIからのウェルカムメッセージのみを表示
       setMessages([{
         role: 'assistant',
         content: response.welcomeMessage,
@@ -138,14 +141,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     if (!message.trim()) return;
     
     try {
-      // ユーザーメッセージをUIに表示
-      const userMessage: ChatMessageType = {
-        role: 'user',
-        content: message,
-        timestamp: new Date().toISOString()
-      };
-      
-      setMessages(prev => [...prev, userMessage]);
+      // ユーザーのメッセージをUIに表示しない（直接APIに送信するのみ）
       setIsLoading(true);
       setError(null);
       
@@ -156,7 +152,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
       const response = await chatService.sendMessage(message, mode, contextInfo);
       
-      // AIメッセージをUIに表示
+      // AIメッセージのみをUIに表示
       const aiMessage: ChatMessageType = {
         role: 'assistant',
         content: response.aiMessage,
@@ -191,6 +187,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           : undefined
       );
       
+      // AIからのウェルカムメッセージのみを表示
       setMessages([{
         role: 'assistant',
         content: response.welcomeMessage,
