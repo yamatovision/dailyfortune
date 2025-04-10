@@ -99,39 +99,94 @@ export async function updateDailyFortunes(
     let page = 0;
     
     while (processedUsers < totalUsers) {
-      // ユーザーのバッチ取得
+      // ユーザーのバッチ取得（より堅牢な方法）
       const users = await User.find({ isActive: true })
+        .sort({ _id: 1 }) // IDでソートして一貫したページングを確保
         .skip(page * batchSize)
         .limit(batchSize);
       
       if (users.length === 0) break;
       
-      // 各ユーザーの運勢を更新
-      for (const user of users) {
+      // 各ユーザーの運勢を更新（並列処理）
+      const processingPromises = users.map(async (user) => {
         try {
           // ユーザーオブジェクトから正しいIDを取得
           // TypeScript対応のためのnullチェックとキャスト
-          if (!user._id) continue;
+          if (!user._id) {
+            console.error('ユーザーIDが見つかりません', user);
+            return { success: false, userId: 'unknown', error: 'ユーザーIDが見つかりません' };
+          }
           
-          // User モデルでは _id が Firebase UID または MongoDB ObjectID を格納している
-          // user.toObject() でプレーンオブジェクトにして扱うことで型エラーを回避
-          const userObj = user.toObject();
-          const userId = String(user._id);
+          // User モデルでは _id が Firebase UID または MongoDB ObjectID を格納している可能性がある
+          // 一貫した文字列形式に変換
+          const userId = typeof user._id === 'object' && user._id !== null 
+            ? String(user._id) 
+            : user._id;
           
-          await fortuneService.generateFortune(userId, new Date(targetDate), forceUpdate); // forceUpdateパラメータを渡す
-          successCount++;
+          console.log(`ユーザー ${userId} の運勢を処理します...`);
+          
+          // 個人運勢の生成
+          await fortuneService.generateFortune(userId, new Date(targetDate), forceUpdate);
+          
+          // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
+          if (user.teamId) {
+            const teamId = typeof user.teamId === 'object' && user.teamId !== null 
+              ? String(user.teamId) 
+              : user.teamId;
+            
+            // チームIDの有効性を検証
+            if (!mongoose.Types.ObjectId.isValid(teamId)) {
+              console.warn(`ユーザー ${userId} の無効なチームID: ${teamId}`);
+              updateErrors.push({
+                userId: `${userId}/${teamId}`,
+                message: `無効なチームID: ${teamId}`,
+                stack: undefined
+              });
+            } else {
+              try {
+                // チームごとのチームコンテキスト運勢を生成
+                await fortuneService.generateTeamContextFortune(userId, teamId, new Date(targetDate), forceUpdate);
+                console.log(`ユーザー ${userId} のチームコンテキスト運勢を生成しました (チームID: ${teamId})`);
+              } catch (teamFortuneError) {
+                console.error(`ユーザー ${userId} のチームコンテキスト運勢生成中にエラーが発生しました (チームID: ${teamId}):`, teamFortuneError);
+                // チームコンテキスト運勢の生成エラーは個別に記録するが、個人運勢生成の成功カウントには影響させない
+                updateErrors.push({
+                  userId: `${userId}/${teamId}`,
+                  message: `チームコンテキスト運勢生成エラー: ${teamFortuneError instanceof Error ? teamFortuneError.message : String(teamFortuneError)}`,
+                  stack: teamFortuneError instanceof Error ? teamFortuneError.stack : undefined,
+                  details: { teamId }
+                });
+              }
+            }
+          }
+          
+          return { success: true, userId };
         } catch (error) {
           // TypeScript対応のためのnullチェックとキャスト
           const userId = user._id ? String(user._id) : 'unknown';
           console.error(`ユーザー ${userId} の運勢生成中にエラーが発生しました:`, error);
-          failedCount++;
+          
           updateErrors.push({
             userId,
             message: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
           });
+          
+          return { success: false, userId, error };
         }
-      }
+      });
+      
+      // すべての処理を待機
+      const results = await Promise.all(processingPromises);
+      
+      // 結果を集計
+      results.forEach(result => {
+        if (result.success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      });
       
       processedUsers += users.length;
       page++;
