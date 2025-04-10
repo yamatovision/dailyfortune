@@ -16,7 +16,8 @@ export class ChatService {
     contextInfo?: {
       memberId?: string;
       teamGoalId?: string;
-    }
+    },
+    useStreaming: boolean = true
   ): Promise<{
     aiMessage: string;
     timestamp: string;
@@ -29,26 +30,118 @@ export class ChatService {
       }>;
     };
   }> {
-    try {
-      const response = await api.post(CHAT.SEND_MESSAGE, {
-        message,
-        mode,
-        contextInfo
-      });
+    // ストリーミングなしの場合、従来の方法でリクエスト
+    if (!useStreaming) {
+      try {
+        const response = await api.post(CHAT.SEND_MESSAGE, {
+          message,
+          mode,
+          contextInfo
+        });
 
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'メッセージの送信に失敗しました');
+        if (!response.data.success) {
+          throw new Error(response.data.error?.message || 'メッセージの送信に失敗しました');
+        }
+
+        return {
+          aiMessage: response.data.response.message,
+          timestamp: response.data.response.timestamp,
+          chatHistory: response.data.chatHistory
+        };
+      } catch (error: any) {
+        console.error('Send message error:', error);
+        throw new Error(error.response?.data?.error?.message || error.message || 'チャットサービスエラー');
       }
+    } else {
+      // ストリーミングモードの場合、SSEを使用
+      // EventSourceのPromiseラッパー作成
+      return new Promise((resolve, reject) => {
+        const timestamp = new Date().toISOString();
+        let completeMessage = '';
+        // チャットの初期状態 (未使用変数)
+        // let sessionId = '';
+        // const messages: any[] = [];
 
-      return {
-        aiMessage: response.data.response.message,
-        timestamp: response.data.response.timestamp,
-        chatHistory: response.data.chatHistory
-      };
-    } catch (error: any) {
-      console.error('Send message error:', error);
-      throw new Error(error.response?.data?.error?.message || error.message || 'チャットサービスエラー');
+        // SSE用のURLを作成
+        const baseURL = '/api/v1';
+        const url = `${baseURL}${CHAT.SEND_MESSAGE}?stream=true`;
+
+        // EventSourceの作成
+        const eventSource = new EventSource(url);
+
+        // イベントリスナーの設定
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            // イベントタイプによる処理分岐
+            if (data.event === 'chunk') {
+              completeMessage += data.text;
+              // 受信したチャンクをハンドラに渡す（コールバック形式）
+              if (this.streamChunkCallback) {
+                this.streamChunkCallback(data.text);
+              }
+            }
+            else if (data.event === 'end') {
+              // ストリーミング終了時の処理
+              eventSource.close();
+              resolve({
+                aiMessage: completeMessage,
+                timestamp,
+                chatHistory: {
+                  id: data.sessionId || '',
+                  messages: []
+                }
+              });
+            }
+            else if (data.event === 'error') {
+              eventSource.close();
+              reject(new Error(data.message || 'ストリーミング中にエラーが発生しました'));
+            }
+          } catch (error) {
+            console.error('SSE message parsing error:', error);
+            eventSource.close();
+            reject(error);
+          }
+        };
+
+        // エラーハンドリング
+        eventSource.onerror = (error) => {
+          console.error('SSE error:', error);
+          eventSource.close();
+          reject(new Error('EventSource接続エラー'));
+        };
+
+        // リクエストボディの送信（POSTデータをURLに追加）
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        // 認証ヘッダーを設定
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
+        xhr.send(JSON.stringify({
+          message,
+          mode,
+          contextInfo,
+          stream: true
+        }));
+      });
     }
+  }
+  
+  // ストリーミングチャンク受信時のコールバック
+  private streamChunkCallback: ((chunk: string) => void) | null = null;
+  
+  // ストリーミングチャンクのコールバック登録
+  setStreamChunkCallback(callback: (chunk: string) => void) {
+    this.streamChunkCallback = callback;
+  }
+  
+  // ストリーミングチャンクのコールバック解除
+  clearStreamChunkCallback() {
+    this.streamChunkCallback = null;
   }
 
   /**

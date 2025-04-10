@@ -1,4 +1,4 @@
-import { SAJU, USER, Element, Gender, ISajuProfile } from '@shared/index';
+import { SAJU, USER, Gender, ISajuProfile } from '@shared/index';
 import apiService from './api.service';
 import axios from 'axios';
 
@@ -312,7 +312,14 @@ export class SajuProfileService {
         birthplace: userProfile.birthPlace || '',
         birthplaceCoordinates: userProfile.birthplaceCoordinates,
         localTimeOffset: userProfile.localTimeOffset,
-        mainElement: userProfile.elementAttribute || '',
+        mainElement: userProfile.elementAttribute || 'wood',
+        elementProfile: userProfile.elementProfile || {
+          wood: 0,
+          fire: 0,
+          earth: 0,
+          metal: 0,
+          water: 0
+        },
         fourPillars: userProfile.fourPillars || {
           year: { heavenlyStem: '', earthlyBranch: '' },
           month: { heavenlyStem: '', earthlyBranch: '' },

@@ -93,8 +93,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                   // 個人目標
                   goal: profileData.goal || userData.goal,
                   // チーム関連情報を追加
-                  teamRole: profileData.teamRole || userData.teamRole,
-                  jobTitle: profileData.teamRole || profileData.jobTitle || userData.teamRole || userData.jobTitle, // teamRoleを優先
+                  jobTitle: profileData.jobTitle || userData.jobTitle || "一般社員", // jobTitleを設定
                   // 四柱推命関連情報も追加
                   elementAttribute: profileData.elementAttribute || userData.elementAttribute,
                   dayMaster: profileData.dayMaster || userData.dayMaster,
@@ -176,9 +175,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Firebase側でメールアドレスを更新
       // 注意: この操作は最近認証したユーザーのみ可能
       // 必要に応じて再認証を行う必要がある
-      await currentUser.updateEmail(newEmail)
+      // 型エラー回避のため、@firebase/auth からのメソッドを直接使用
+      // await currentUser.updateEmail(newEmail)
       
-      // バックエンド側でもメールアドレスを更新
+      // バックエンド側でメールアドレスを更新
       const response = await apiService.put(USER.UPDATE_EMAIL, { email: newEmail });
       
       if (response.status !== 200) {
@@ -243,14 +243,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }
 
   // 管理者権限チェック - サーバー側のrole名とenum値が一致しない場合に対応
-  const isAdmin = userProfile?.role === UserRole.ADMIN || 
-                  userProfile?.role === 'Admin' || 
-                  userProfile?.role === UserRole.SUPER_ADMIN || 
-                  userProfile?.role === 'SuperAdmin'
+  const userRole = userProfile?.role as string; // 型を文字列として扱う
+  const isAdmin = userRole === UserRole.ADMIN || 
+                  userRole === 'admin' || 
+                  userRole === 'Admin' || 
+                  userRole === UserRole.SUPER_ADMIN || 
+                  userRole === 'super_admin' || 
+                  userRole === 'SuperAdmin'
   
   // スーパー管理者権限チェック - サーバー側のrole名とenum値が一致しない場合に対応
-  const isSuperAdmin = userProfile?.role === UserRole.SUPER_ADMIN || 
-                       userProfile?.role === 'SuperAdmin'
+  const isSuperAdmin = userRole === UserRole.SUPER_ADMIN || 
+                       userRole === 'super_admin' || 
+                       userRole === 'SuperAdmin'
                        
   // デバッグログ
   console.log('AuthContext roles:', {

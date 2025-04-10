@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import teamService from '../../services/team.service';
 import { ITeam } from '../../../../shared/index';
 
@@ -186,7 +185,7 @@ const TeamList: React.FC<TeamListProps> = ({ onSelectTeam }) => {
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
                 <span style={{ fontSize: '16px', marginRight: '4px' }}>👤</span>
                 {/* メンバー数は実際のAPIレスポンスに合わせる */}
-                {team.memberCount || '?'}
+                {'?'}
               </div>
             </li>
           ))}

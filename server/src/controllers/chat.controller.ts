@@ -24,6 +24,8 @@ export class ChatController {
     try {
       const { message, mode, contextInfo } = req.body as ChatMessageRequest;
       const userId = req.user?.id;
+      // ストリーミングフラグを取得
+      const useStreaming = req.query.stream === 'true' || req.body.stream === true;
 
       if (!userId) {
         res.status(401).json({
@@ -58,6 +60,43 @@ export class ChatController {
         return;
       }
 
+      // ストリーミングモードの場合
+      if (useStreaming) {
+        // SSEヘッダーを設定
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        });
+
+        try {
+          // ストリーミングレスポンスを開始
+          const streamGenerator = chatService.streamMessage(userId, message, mode, contextInfo);
+          
+          // 最初のイベントとしてセッション開始を通知
+          const sessionId = Date.now().toString();
+          res.write(`data: {"event":"start","sessionId":"${sessionId}"}\n\n`);
+          
+          // ストリーミングでチャンクを返す
+          for await (const chunk of streamGenerator) {
+            // テキストチャンクをJSONとしてラップして送信
+            res.write(`data: {"event":"chunk","text":${JSON.stringify(chunk)}}\n\n`);
+          }
+          
+          // ストリーミングの終了を通知
+          res.write(`data: {"event":"end","sessionId":"${sessionId}"}\n\n`);
+          res.end();
+          
+        } catch (error) {
+          console.error('Streaming error:', error);
+          // エラーが発生した場合もSSEフォーマットでクライアントに通知
+          res.write(`data: {"event":"error","message":"ストリーミング処理中にエラーが発生しました"}\n\n`);
+          res.end();
+        }
+        return;
+      }
+
+      // 非ストリーミングモード（従来の動作）
       const { aiResponse, chatHistory } = await chatService.processMessage(
         userId,
         message,

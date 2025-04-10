@@ -2,7 +2,6 @@
  * Claude AI APIとの連携サービス
  */
 import fetch from 'cross-fetch';
-import { callClaudeAI } from '../utils/claude-ai';
 
 // チャット用のシステムプロンプト
 const CHAT_SYSTEM_PROMPT = `
@@ -220,6 +219,91 @@ async function callClaudeAPI(prompt: string, systemPrompt: string, maxTokens: nu
     
   } catch (error) {
     console.error('Claude API call error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Claude APIをストリーミングモードで呼び出す
+ */
+export async function* streamClaudeAPI(prompt: string, systemPrompt: string, maxTokens: number): AsyncGenerator<string, void, unknown> {
+  const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY;
+  const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-3-7-sonnet-20250219';
+
+  if (!CLAUDE_API_KEY) {
+    throw new Error('Claude API Key is not configured. Please set ANTHROPIC_API_KEY in your environment variables.');
+  }
+
+  try {
+    const url = 'https://api.anthropic.com/v1/messages';
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'Accept': 'text/event-stream'
+    };
+    
+    const body = {
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      system: systemPrompt,
+      stream: true
+    };
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Claude API error: ${response.status} ${JSON.stringify(errorData)}`);
+    }
+    
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    
+    let buffer = '';
+    let completeResponse = '';
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'content_block_delta' && data.delta.type === 'text_delta') {
+              completeResponse += data.delta.text;
+              yield data.delta.text;
+            }
+          } catch (e) {
+            console.error('Error parsing SSE message:', e);
+          }
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Claude API streaming error:', error);
     throw error;
   }
 }

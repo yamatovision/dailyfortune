@@ -74,6 +74,201 @@ export class ChatService {
   }
 
   /**
+   * 新しいメッセージを処理し、AI応答をストリーミングで返す
+   */
+  public async *streamMessage(
+    userId: string,
+    message: string,
+    mode: ChatMode,
+    contextInfo?: {
+      memberId?: string;
+      teamGoalId?: string;
+    }
+  ): AsyncGenerator<string, { chatHistory: IChatHistoryDocument }, unknown> {
+    try {
+      // ユーザー情報の取得（エリートかライトプランかを判断するため）
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('ユーザーが見つかりません');
+      }
+
+      // AIモデルの選択（エリートプランならSonnet、ライトプランならHaiku）
+      const aiModel = user.plan === 'elite' ? 'sonnet' : 'haiku';
+
+      // 関連情報の検証
+      await this.validateContextInfo(mode, contextInfo);
+
+      // アクティブなチャット履歴を取得または作成
+      let chatHistory = await this.getOrCreateChatSession(userId, mode, contextInfo, aiModel) as IChatHistoryDocument;
+
+      // ユーザーメッセージを追加
+      this.addUserMessage(chatHistory, message);
+
+      // チャットコンテキストの構築
+      const context = await buildChatContext(user, mode, contextInfo);
+
+      // メッセージと役割をマッピング
+      const messages = chatHistory.messages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.content
+      }));
+
+      // トークン上限を調整
+      const maxTokens = aiModel === 'haiku' ? 1500 : 4000;
+
+      // コンテキスト情報からプロンプトを構築
+      // ストリーム版のClaudeAPI関数を使用
+      const { streamClaudeAPI } = await import('../claude-ai');
+      const contextPrompt = await this.createContextPrompt(context);
+      const formattedMessages = this.formatChatHistory(messages as { role: 'user' | 'assistant', content: string }[]);
+      const finalPrompt = `${contextPrompt}\n\n${formattedMessages}`;
+
+      // システムプロンプト取得
+      const CHAT_SYSTEM_PROMPT = `
+あなたは四柱推命に基づいた運勢予測と人間関係のアドバイスを提供する「デイリーフォーチュン」のAIアシスタントです。
+ユーザーとの会話において、以下の原則を守ってください：
+
+1. 四柱推命の専門知識を活用して、質問に対して具体的で実用的なアドバイスを提供する
+2. 提供されたコンテキスト情報（ユーザーの四柱情報、日柱情報、目標情報など）を活用する
+3. 話題の中心をユーザーの運勢、チームメンバーとの相性、チーム目標達成に関連する内容に保つ
+4. 常に前向きで建設的なアドバイスを提供する
+5. 専門用語を使う場合は簡潔な説明を付ける
+6. 具体的な例を挙げて説明する
+7. チャットモードに応じた適切な回答を提供する：
+   - 個人運勢モード: その日の運勢と個人目標達成のためのアドバイス
+   - チームメンバー相性モード: 特定のチームメンバーとの相性と効果的な協力方法
+   - チーム目標モード: チーム全体の目標達成に向けたアドバイス
+
+ユーザーからの質問や情報に基づいて、四柱推命の知恵を応用した実用的なアドバイスを提供してください。
+`;
+
+      // ストリーミングAPIを呼び出し
+      let completeResponse = '';
+      try {
+        const streamGenerator = streamClaudeAPI(finalPrompt, CHAT_SYSTEM_PROMPT, maxTokens);
+
+        for await (const chunk of streamGenerator) {
+          completeResponse += chunk;
+          yield chunk;
+        }
+      } catch (error) {
+        console.error('Streaming error:', error);
+        throw error;
+      }
+
+      // AIレスポンスをチャット履歴に追加
+      this.addAIMessage(chatHistory, completeResponse);
+
+      // チャット履歴を保存
+      await chatHistory.save();
+
+      return { chatHistory };
+    } catch (error) {
+      console.error('Chat streaming service error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * コンテキスト情報からプロンプトを作成
+   */
+  private async createContextPrompt(context: Record<string, any>): Promise<string> {
+    try {
+      // コンテキスト情報から適切なテンプレートを選択
+      let template = '';
+      
+      const CONTEXT_TEMPLATES = {
+        PERSONAL: `
+【個人運勢相談モード】
+ユーザー: {user.displayName}（{user.elementAttribute}の持ち主）
+日柱情報: {dayPillar.heavenlyStem}{dayPillar.earthlyBranch}
+運勢スコア: {fortuneScore}/100
+個人目標: {userGoals}
+
+このコンテキスト情報を参考に、ユーザーの質問に対して、その日の運勢と個人目標達成のためのアドバイスを提供してください。
+`,
+
+        TEAM_MEMBER: `
+【チームメンバー相性相談モード】
+相談者: {user.displayName}（{user.elementAttribute}の持ち主）
+対象メンバー: {targetMember.displayName}（{targetMember.elementAttribute}の持ち主）
+相性スコア: {compatibility.score}/100
+関係性: {compatibility.relationship}
+
+このコンテキスト情報を参考に、ユーザーの質問に対して、特定のチームメンバーとの相性と効果的な協力方法についてアドバイスを提供してください。
+`,
+
+        TEAM_GOAL: `
+【チーム目標相談モード】
+相談者: {user.displayName}（{user.elementAttribute}の持ち主）
+チーム: {team.name}（{team.size}名）
+目標: {teamGoal.content}
+期限: {teamGoal.deadline || '未設定'}
+
+このコンテキスト情報を参考に、ユーザーの質問に対して、チーム全体の目標達成に向けたアドバイスを提供してください。
+`
+      };
+      
+      if (context.targetMember) {
+        // チームメンバー相性モード
+        template = CONTEXT_TEMPLATES.TEAM_MEMBER;
+      } else if (context.teamGoal) {
+        // チーム目標モード
+        template = CONTEXT_TEMPLATES.TEAM_GOAL;
+      } else {
+        // 個人運勢モード（デフォルト）
+        template = CONTEXT_TEMPLATES.PERSONAL;
+      }
+      
+      // テンプレートの変数をコンテキスト情報で置換
+      let prompt = template;
+      
+      // 複雑なオブジェクトパスを処理するヘルパー関数
+      const getNestedValue = (obj: any, path: string) => {
+        return path.split('.').reduce((prev, curr) => {
+          return prev && prev[curr] !== undefined ? prev[curr] : undefined;
+        }, obj);
+      };
+      
+      // プレースホルダーを探して置換
+      const placeholders = template.match(/\{([^}]+)\}/g) || [];
+      
+      for (const placeholder of placeholders) {
+        const path = placeholder.slice(1, -1); // {user.name} -> user.name
+        const value = getNestedValue(context, path);
+        
+        if (value !== undefined) {
+          // 配列の場合は箇条書きに変換
+          if (Array.isArray(value)) {
+            const formattedValue = value.map(item => `- ${JSON.stringify(item)}`).join('\n');
+            prompt = prompt.replace(placeholder, formattedValue);
+          } else {
+            prompt = prompt.replace(placeholder, String(value));
+          }
+        } else {
+          // 値が見つからない場合は空文字に置換
+          prompt = prompt.replace(placeholder, '未設定');
+        }
+      }
+      
+      return prompt;
+    } catch (error) {
+      console.error('Create context prompt error:', error);
+      return '四柱推命による運勢相談を行います。';
+    }
+  }
+
+  /**
+   * チャット履歴をテキスト形式に整形
+   */
+  private formatChatHistory(messages: { role: 'user' | 'assistant', content: string }[]): string {
+    return messages.map(msg => {
+      const prefix = msg.role === 'user' ? 'ユーザー: ' : 'AI: ';
+      return `${prefix}${msg.content}`;
+    }).join('\n\n');
+  }
+
+  /**
    * チャットモードを切り替え、ウェルカムメッセージを返す
    */
   public async changeMode(

@@ -15,7 +15,6 @@ import {
   Snackbar,
   Alert,
   Autocomplete,
-  Chip,
   CircularProgress
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -144,7 +143,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
   };
   
   // 都市選択時の処理
-  const handleCityChange = (event: React.SyntheticEvent, value: string | null) => {
+  const handleCityChange = (_: React.SyntheticEvent, value: string | null) => {
     if (value) {
       setBirthPlace(value);
       fetchCityCoordinates(value);
@@ -194,7 +193,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
       setShowDebugInfo(true);
     }
     
-    setErrors(newErrors);
+    setErrors({ ...newErrors, goal: '' });
     
     // デバッグ情報
     const timeString = birthTime ? format(birthTime, 'HH:mm') : 'なし';
@@ -303,7 +302,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
       
       // 送信データの実際のJSONデータとしての形式をチェック
       try {
-        const jsonCheck = JSON.stringify(profileData);
+        JSON.stringify(profileData);
         console.log('JSON検証: 有効なJSONオブジェクトです');
       } catch (jsonError) {
         console.error('JSON検証エラー: 無効なJSONデータです', jsonError);

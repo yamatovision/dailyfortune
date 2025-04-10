@@ -1,5 +1,5 @@
-import { SajuEngine, SajuResult } from '../../../sajuengine_package/src';
-import { DateTimeProcessor } from '../../../sajuengine_package/src/DateTimeProcessor';
+import { SajuEngine, SajuResult } from '../../sajuengine_package/src';
+import { DateTimeProcessor } from '../../sajuengine_package/src/DateTimeProcessor';
 import { ValidationError } from '../utils';
 
 // 地理座標インターフェース（SajuProfile削除に伴いローカル定義）

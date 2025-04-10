@@ -85,8 +85,8 @@ const Fortune: React.FC = () => {
     setError(null);
     
     try {
-      // 更新前の状態を保存しておく（リカバリー用）
-      const previousFortune = fortune;
+      // 更新前の状態を保存しておく（リカバリー用 - 現在は未使用）
+      // const previousFortune = fortune;
       
       // APIを呼び出して運勢を更新
       const updatedFortune = await fortuneService.refreshDailyFortune();

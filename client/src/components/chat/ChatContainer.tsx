@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Paper, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { ChatMode } from '../../../../shared';
 import { chatService } from '../../services/chat.service';
 import ChatModeSelector from './ChatModeSelector';
@@ -150,16 +150,36 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         ? { memberId: selectedMemberId }
         : undefined;
       
-      const response = await chatService.sendMessage(message, mode, contextInfo);
-      
-      // AIメッセージのみをUIに表示
+      // ストリーミング用の初期メッセージを作成
+      const timestamp = new Date().toISOString();
       const aiMessage: ChatMessageType = {
         role: 'assistant',
-        content: response.aiMessage,
-        timestamp: response.timestamp
+        content: '',  // 空のコンテンツで初期化
+        timestamp
       };
       
+      // メッセージリストに空のメッセージを追加
       setMessages(prev => [...prev, aiMessage]);
+      
+      // ストリーミングチャンク受信時のコールバックを設定
+      chatService.setStreamChunkCallback((chunk) => {
+        // 最新のメッセージを更新
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastMessage = newMessages[newMessages.length - 1];
+          if (lastMessage.role === 'assistant') {
+            // 既存のメッセージに新しいチャンクを追加
+            lastMessage.content += chunk;
+          }
+          return newMessages;
+        });
+      });
+      
+      // ストリーミングでメッセージを送信
+      const response = await chatService.sendMessage(message, mode, contextInfo, true);
+      
+      // ストリーミングが完了したら、コールバックをクリア
+      chatService.clearStreamChunkCallback();
       
       if (!chatId) {
         setChatId(response.chatHistory.id);
@@ -167,6 +187,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     } catch (error: any) {
       console.error('Send message error:', error);
       setError(error.message || 'メッセージの送信に失敗しました。');
+      // エラー時もコールバックをクリア
+      chatService.clearStreamChunkCallback();
     } finally {
       setIsLoading(false);
     }
@@ -265,7 +287,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         onSendMessage={handleSendMessage} 
         disabled={isLoading || showMemberSelector}
       />
-    </Paper>
+    </Box>
   );
 };
 

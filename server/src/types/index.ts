@@ -1,16 +1,24 @@
 /**
- * ===== バックエンド用型定義・APIパス =====
+ * ===== 統合型定義・APIパスガイドライン =====
  * 
- * 【重要】このファイルは shared/index.ts からコピーされた型定義です。
- * デプロイ時の問題を回避するため、バックエンドではこのファイルを使用します。
+ * 【重要】このファイルはフロントエンド（client）からは直接インポートして使用します。
+ * バックエンド（server）では、このファイルをリファレンスとして、
+ * server/src/types/index.ts に必要な型定義をコピーして使用してください。
+ * これはデプロイ時の問題を回避するためのアプローチです。
  * 
- * 型定義の変更手順:
- * 1. まず shared/index.ts に変更を加える
- * 2. 次に、このファイルに同じ変更を手動でコピーする
- * 3. バックエンドのコードでは @shared/index ではなく ./types/index を参照する
+ * 【絶対に守るべき原則】
+ * 1. フロントエンドとバックエンドで異なる型を作らない
+ * 2. 同じデータ構造に対して複数の型を作らない
+ * 3. 新しいプロパティは必ずオプショナルとして追加
+ * 4. データの形はこのファイルで一元的に定義し、バックエンドはこれをコピーして使用
+ * 5. APIパスは必ずこのファイルで一元管理する
+ * 6. コード内でAPIパスをハードコードしない
+ * 7. パスパラメータを含むエンドポイントは関数として提供する
  * 
- * 【警告】このファイルを直接編集しないでください。
- * shared/index.ts からの一貫性が失われる可能性があります。
+ * 【変更手順】
+ * 1. このファイルに型定義やAPIパスを追加/更新
+ * 2. バックエンド用に server/src/types/index.ts にも同じ変更を手動で反映
+ * 3. 両ファイルの一貫性を確保することで「単一の真実源」の概念を維持
  * 
  * 【Expressルーティング実装のルール】
  * 1. ベースパスの二重定義を避けるため、index.tsとroutes/*.tsでは以下の役割分担をする：
@@ -27,9 +35,20 @@
  *   - auth.routes.ts: `router.get(AUTH.PROFILE.replace('/api/v1', ''), authenticate, authController.getProfile)`
  *   - 結果: 混乱とバグの原因
  * 
+ * 4. FE側ではこのファイルのAPIパス定数を直接使用する:
+ *   - ✅ 正解: `fetch(AUTH.PROFILE)`
+ *   - ❌ 不正解: `fetch('/api/v1/auth/profile')`
+ * 
+ * 【命名規則】
+ * - データモデル: [Model]Type または I[Model]
+ * - リクエスト: [Model]Request
+ * - レスポンス: [Model]Response
+ * 
  * 【変更履歴】
- * - 2025/04/06: 初回作成 - shared/index.ts からコピー (Tatsuya)
+ * - 2025/04/05: 初期モデル・APIパス定義 (Claude)
+ * - 2025/04/06: バックエンド用のリファレンス方式に変更 (Tatsuya)
  * - 2025/04/07: Expressルーティング実装ルールを追加 (Claude)
+ * - 2025/04/08: SajuProfileの削除とUserモデルへの統合 (Claude)
  */
 
 // API基本パス
@@ -46,13 +65,8 @@ export const AUTH = {
   VERIFY_EMAIL: `${API_BASE_PATH}/auth/verify-email`,
 };
 
-// ========== 四柱推命プロフィール関連 ==========
-export const SAJU_PROFILE = {
-  CREATE: `${API_BASE_PATH}/saju-profiles`,
-  GET_MY_PROFILE: `${API_BASE_PATH}/saju-profiles/me`,
-  GET_USER_PROFILE: (userId: string) => `${API_BASE_PATH}/saju-profiles/${userId}`,
-  UPDATE: `${API_BASE_PATH}/saju-profiles`,
-  GET_BY_ELEMENT: (element: string) => `${API_BASE_PATH}/saju-profiles/element/${element}`,
+// ========== 四柱推命関連 (ユーザーモデルに統合) ==========
+export const SAJU = {
   GET_AVAILABLE_CITIES: `${API_BASE_PATH}/public/saju/available-cities`,
   GET_CITY_COORDINATES: (cityName: string) => `${API_BASE_PATH}/public/saju/city-coordinates/${encodeURIComponent(cityName)}`,
   CALCULATE_LOCAL_TIME_OFFSET: `${API_BASE_PATH}/public/saju/local-time-offset`,
@@ -71,11 +85,12 @@ export const USER = {
   UPDATE_USER: (userId: string) => `${API_BASE_PATH}/users/${userId}`,
   LIST_USERS: `${API_BASE_PATH}/users`,
   GET_PROFILE: `${API_BASE_PATH}/users/profile`,
-  UPDATE_PROFILE: `${API_BASE_PATH}/users/profile`,
+  UPDATE_PROFILE: `${API_BASE_PATH}/users/profile`, // 統合エンドポイント（PUT）
+  PATCH_PROFILE: `${API_BASE_PATH}/users/profile`, // 部分更新エンドポイント（PATCH）
   UPDATE_EMAIL: `${API_BASE_PATH}/users/email`,
-  SET_BIRTH_INFO: `${API_BASE_PATH}/users/birth-info`,
-  CALCULATE_SAJU: `${API_BASE_PATH}/users/calculate-saju`, // 四柱推命計算エンドポイント
-  GET_SAJU_PROFILE: `${API_BASE_PATH}/users/saju-profile`,
+  SET_BIRTH_INFO: `${API_BASE_PATH}/users/birth-info`, // レガシーエンドポイント（互換性のため維持）
+  CALCULATE_SAJU: `${API_BASE_PATH}/users/calculate-saju`, // レガシーエンドポイント（互換性のため維持）
+  GET_SAJU_PROFILE: `${API_BASE_PATH}/users/profile`, // サポート注: 四柱推命データはユーザープロフィールに含まれます
   SET_GOALS: `${API_BASE_PATH}/users/goals`,
   GET_GOALS: `${API_BASE_PATH}/users/goals`,
   DELETE_GOAL: (goalId: string) => `${API_BASE_PATH}/users/goals/${goalId}`,
@@ -98,6 +113,7 @@ export const TEAM = {
   GET_TEAM_COMPATIBILITY: (teamId: string) => `${API_BASE_PATH}/teams/${teamId}/compatibility`,
   GET_MEMBER_COMPATIBILITY: (teamId: string, userId1: string, userId2: string) => 
     `${API_BASE_PATH}/teams/${teamId}/compatibility/${userId1}/${userId2}`,
+  GET_MEMBER_CARD: (teamId: string, userId: string) => `${API_BASE_PATH}/teams/${teamId}/members/${userId}/card`,
 };
 
 // ========== 運勢関連 ==========
@@ -204,22 +220,17 @@ export interface IUser {
   teamId?: string;
   jobTitle?: string; // 役割（エンジニア、営業など）
   goal?: string; // 個人目標
+  
+  // 四柱推命関連フィールド（旧SajuProfileから統合）
   birthDate?: Date;
-  birthTime?: number; // 0-23時
+  birthTime?: string; // HH:MM形式
   birthPlace?: string;
   gender?: Gender;
-  sajuProfile?: ISajuProfile;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// 四柱推命プロフィール
-export interface ISajuProfile {
-  userId: string;
-  birthplace: string;
-  birthplaceCoordinates?: IGeoCoordinates; // 出生地の座標情報
+  birthplaceCoordinates?: IGeoCoordinates;
   localTimeOffset?: number; // 地方時オフセット（分単位）
-  fourPillars: {
+  elementAttribute?: Element; // 五行属性
+  dayMaster?: string; // 日主
+  fourPillars?: {
     year: {
       heavenlyStem: string;
       earthlyBranch: string;
@@ -249,10 +260,49 @@ export interface ISajuProfile {
       hiddenStems?: string[];
     };
   };
+  elementProfile?: {
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
+  };
+  personalityDescription?: string;
+  careerAptitude?: string;
+  
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 後方互換性のための型定義
+// (注意: 実際のデータはIUserに統合済み、これはAPIの後方互換性のためだけに存在)
+export interface ISajuProfile {
+  userId: string;
+  birthplace: string;
+  birthplaceCoordinates?: IGeoCoordinates;
+  localTimeOffset?: number;
+  fourPillars: {
+    year: {
+      heavenlyStem: string;
+      earthlyBranch: string;
+    };
+    month: {
+      heavenlyStem: string;
+      earthlyBranch: string;
+    };
+    day: {
+      heavenlyStem: string;
+      earthlyBranch: string;
+    };
+    hour: {
+      heavenlyStem: string;
+      earthlyBranch: string;
+    };
+  };
   mainElement: Element;
   secondaryElement?: Element;
   elementProfile: {
-    wood: number; // 0-100の五行バランス
+    wood: number;
     fire: number;
     earth: number;
     metal: number;
@@ -335,17 +385,11 @@ export interface IChat {
   id: string;
   userId: string;
   mode: ChatMode;
-  relatedInfo?: {
-    memberId?: string; // チームメイトモード時の対象ユーザーID
-    teamGoalId?: string; // 目標相談時のチーム目標ID
-  };
+  relatedUserId?: string; // チームメイトモード時の対象ユーザーID
   messages: IChatMessage[];
-  tokenCount: number; // メッセージのトークン数合計
   contextData: Record<string, any>;
-  aiModel: 'sonnet' | 'haiku'; // 使用しているAIモデル
   createdAt: Date;
   updatedAt: Date;
-  lastMessageAt: Date; // 最終メッセージ時間
 }
 
 // チャットメッセージ
@@ -389,9 +433,11 @@ export interface RegisterRequest {
 // 出生情報設定リクエスト
 export interface BirthInfoRequest {
   birthDate: Date;
-  birthTime: number; // 0-23時
+  birthTime: string; // HH:MM形式
   birthPlace: string;
   gender: Gender;
+  birthplaceCoordinates?: IGeoCoordinates;
+  localTimeOffset?: number;
 }
 
 // 目標設定リクエスト
@@ -419,73 +465,15 @@ export interface AddTeamMemberRequest {
 export interface ChatMessageRequest {
   message: string;
   mode: ChatMode;
-  contextInfo?: {
-    memberId?: string; // チームメイトモード時の対象ユーザーID
-    teamGoalId?: string; // チーム目標相談時の目標ID
-  };
-}
-
-// チャットメッセージレスポンス
-export interface ChatMessageResponse {
-  success: boolean;
-  response?: {
-    message: string;
-    timestamp: string;
-  };
-  chatHistory?: {
-    id: string;
-    messages: IChatMessage[];
-  };
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-
-// チャット履歴取得レスポンス
-export interface ChatHistoryResponse {
-  success: boolean;
-  chatHistories: {
-    id: string;
-    chatType: ChatMode;
-    messages: IChatMessage[];
-    createdAt: string;
-    lastMessageAt: string;
-  }[];
-  pagination: {
-    total: number;
-    limit: number;
-    offset: number;
-    hasMore: boolean;
-  };
-  error?: {
-    code: string;
-    message: string;
-  };
+  relatedUserId?: string; // チームメイトモード時の対象ユーザーID
+  contextInfo?: Record<string, any>; // 追加コンテキスト情報
 }
 
 // チャットモード設定リクエスト
 export interface ChatModeRequest {
   mode: ChatMode;
-  contextInfo?: {
-    memberId?: string;
-    teamGoalId?: string;
-  };
-}
-
-// チャットモード設定レスポンス
-export interface ChatModeResponse {
-  success: boolean;
-  mode: ChatMode;
-  contextInfo?: {
-    memberId?: string;
-    teamGoalId?: string;
-  };
-  welcomeMessage?: string;
-  error?: {
-    code: string;
-    message: string;
-  };
+  relatedUserId?: string;
+  contextInfo?: Record<string, any>; // 追加コンテキスト情報
 }
 
 // 管理者ダッシュボードレスポンス
@@ -525,4 +513,4 @@ export interface SystemStatsResponse {
       count: number;
     }[];
   };
-};
+}

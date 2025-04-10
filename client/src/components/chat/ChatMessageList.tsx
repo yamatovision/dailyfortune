@@ -27,7 +27,7 @@ const AIMessageContainer = styled(MessageContainer)({
   marginRight: 'auto'
 });
 
-const MessageBubble = styled(Paper)(({ theme }) => ({
+const MessageBubble = styled(Paper)(() => ({
   padding: '14px 18px',
   maxWidth: '85%',
   borderRadius: 16,

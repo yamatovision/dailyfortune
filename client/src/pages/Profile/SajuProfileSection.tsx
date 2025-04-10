@@ -33,36 +33,31 @@ const SajuProfileSection: React.FC = () => {
             birthplace: userProfile.birthPlace || '',
             birthplaceCoordinates: userProfile.birthplaceCoordinates,
             localTimeOffset: userProfile.localTimeOffset,
-            mainElement: userProfile.elementAttribute || '',
+            mainElement: userProfile.elementAttribute ? userProfile.elementAttribute : 'wood' as any,
             fourPillars: {
               year: { 
                 heavenlyStem: userProfile.fourPillars?.year?.heavenlyStem || '',
-                earthlyBranch: userProfile.fourPillars?.year?.earthlyBranch || '',
-                heavenlyStemTenGod: userProfile.fourPillars?.year?.heavenlyStemTenGod || '',
-                earthlyBranchTenGod: userProfile.fourPillars?.year?.earthlyBranchTenGod || '',
-                hiddenStems: userProfile.fourPillars?.year?.hiddenStems || []
+                earthlyBranch: userProfile.fourPillars?.year?.earthlyBranch || ''
               },
               month: { 
                 heavenlyStem: userProfile.fourPillars?.month?.heavenlyStem || '',
-                earthlyBranch: userProfile.fourPillars?.month?.earthlyBranch || '',
-                heavenlyStemTenGod: userProfile.fourPillars?.month?.heavenlyStemTenGod || '',
-                earthlyBranchTenGod: userProfile.fourPillars?.month?.earthlyBranchTenGod || '',
-                hiddenStems: userProfile.fourPillars?.month?.hiddenStems || []
+                earthlyBranch: userProfile.fourPillars?.month?.earthlyBranch || ''
               },
               day: { 
                 heavenlyStem: userProfile.fourPillars?.day?.heavenlyStem || '',
-                earthlyBranch: userProfile.fourPillars?.day?.earthlyBranch || '',
-                heavenlyStemTenGod: userProfile.fourPillars?.day?.heavenlyStemTenGod || '',
-                earthlyBranchTenGod: userProfile.fourPillars?.day?.earthlyBranchTenGod || '',
-                hiddenStems: userProfile.fourPillars?.day?.hiddenStems || []
+                earthlyBranch: userProfile.fourPillars?.day?.earthlyBranch || ''
               },
               hour: { 
                 heavenlyStem: userProfile.fourPillars?.hour?.heavenlyStem || '',
-                earthlyBranch: userProfile.fourPillars?.hour?.earthlyBranch || '',
-                heavenlyStemTenGod: userProfile.fourPillars?.hour?.heavenlyStemTenGod || '',
-                earthlyBranchTenGod: userProfile.fourPillars?.hour?.earthlyBranchTenGod || '',
-                hiddenStems: userProfile.fourPillars?.hour?.hiddenStems || []
+                earthlyBranch: userProfile.fourPillars?.hour?.earthlyBranch || ''
               }
+            },
+            elementProfile: {
+              wood: userProfile.elementProfile?.wood || 0,
+              fire: userProfile.elementProfile?.fire || 0,
+              earth: userProfile.elementProfile?.earth || 0,
+              metal: userProfile.elementProfile?.metal || 0,
+              water: userProfile.elementProfile?.water || 0
             },
             personalityDescription: userProfile.personalityDescription || '',
             careerAptitude: userProfile.careerAptitude || '',

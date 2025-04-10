@@ -466,12 +466,14 @@ export interface ChatMessageRequest {
   message: string;
   mode: ChatMode;
   relatedUserId?: string; // チームメイトモード時の対象ユーザーID
+  contextInfo?: Record<string, any>; // 追加コンテキスト情報
 }
 
 // チャットモード設定リクエスト
 export interface ChatModeRequest {
   mode: ChatMode;
   relatedUserId?: string;
+  contextInfo?: Record<string, any>; // 追加コンテキスト情報
 }
 
 // 管理者ダッシュボードレスポンス

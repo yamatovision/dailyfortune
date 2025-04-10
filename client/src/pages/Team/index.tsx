@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Box, Typography, Tabs, Tab, CircularProgress, Button, Paper, Divider } from '@mui/material';
+import { Box, Typography, Tabs, Tab, CircularProgress, Button, Paper } from '@mui/material';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import GroupWorkIcon from '@mui/icons-material/GroupWork';
@@ -57,7 +57,7 @@ const Team: React.FC = () => {
   }, [teamId]);
 
   // コンテキストからアクティブチーム設定関数を取得
-  const { setActiveTeamId, isAdmin, isSuperAdmin } = useAuth();
+  const { setActiveTeamId } = useAuth();
 
   // チーム選択時の処理
   const handleTeamSelect = (team: ITeam) => {
@@ -74,7 +74,7 @@ const Team: React.FC = () => {
   };
 
   // タブの切り替え
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 

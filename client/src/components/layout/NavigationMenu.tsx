@@ -10,23 +10,32 @@ import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import HomeIcon from '@mui/icons-material/Home'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
-import FortuneIcon from '@mui/icons-material/AutoAwesome'
 import ChatIcon from '@mui/icons-material/Chat'
-import GroupIcon from '@mui/icons-material/Group'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
 
 type NavigationMenuProps = {
   onNavigate?: () => void;
   layout?: 'sidebar' | 'bottom';
 }
 
+// メニュー項目の型定義
+// すべてのメニュー項目のための統一された型
+interface MenuItem {
+  text: string;
+  icon: JSX.Element;
+  path: string;
+  disabled?: boolean;
+  disabledCheck?: boolean;
+}
+
+
 const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps) => {
   const { isAdmin, isSuperAdmin, userProfile, activeTeamId } = useAuth()
   const location = useLocation()
   const theme = useTheme()
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
 
   // ユーザーが所属しているチームへの直接リンクを作成
   const userTeamId = userProfile?.teamId || '';
@@ -42,22 +51,23 @@ const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps)
                         '/myteam'; // チームIDがない場合はリダイレクト用ルートへ
 
   // 基本メニュー項目
-  const baseMenuItems = [
+  const baseMenuItems: MenuItem[] = [
     { text: 'ホーム', icon: <HomeIcon />, path: '/' },
     { text: 'AI相談', icon: <ChatIcon />, path: '/chat' },
     { text: '設定', icon: <AccountCircleIcon />, path: '/profile' },
   ]
 
   // チームメニュー項目 - 全ユーザー共通で相性ページへ直接
-  const teamMenuItem = { 
+  const teamMenuItem: MenuItem = { 
     text: 'チーム', 
     icon: <FavoriteIcon />, 
     path: directTeamPath, 
-    disabled: !targetTeamId // チームIDがない場合のみ無効化
+    disabled: !targetTeamId, // チームIDがない場合のみ無効化
+    disabledCheck: !targetTeamId // TypeScriptエラー回避用
   }
   
   // 最終的なメニュー項目（権限に応じて構築）
-  const menuItems = [...baseMenuItems]
+  const menuItems: MenuItem[] = [...baseMenuItems]
   
   // 一般ユーザーの場合はチームメンバーシップがあればチームに相性ページへのリンクを追加
   // 管理者の場合はチーム管理ページへのリンクを追加
@@ -68,7 +78,7 @@ const NavigationMenu = ({ onNavigate, layout = 'sidebar' }: NavigationMenuProps)
   }
 
   // 管理者メニュー項目 - チームリスト選択ページに遷移する
-  const adminMenuItems = [
+  const adminMenuItems: MenuItem[] = [
     { text: '管理', icon: <AdminPanelSettingsIcon />, path: '/team' },
   ]
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Grid, Icon, Paper } from '@mui/material';
-import { ISajuProfile, Element } from '@shared/index';
+import { ISajuProfile } from '@shared/index';
 import sajuProfileService from '../../services/saju-profile.service';
 
 interface SajuProfileCardProps {
@@ -14,7 +14,7 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
     return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  const elementIcon = sajuProfileService.getElementIcon(profile.mainElement);
+  // const elementIcon = sajuProfileService.getElementIcon(profile.mainElement);
   const elementColor = sajuProfileService.getElementColor(profile.mainElement);
   const elementBg = sajuProfileService.getElementBackground(profile.mainElement);
   const elementJp = sajuProfileService.translateElementToJapanese(profile.mainElement);
@@ -49,11 +49,28 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
   const mainElement = profile.mainElement || 'earth';
   console.log('使用する主要属性:', mainElement);
   
+  // 型を拡張して互換性を確保
+  interface ExtendedPillar {
+    heavenlyStem: string;
+    earthlyBranch: string;
+    heavenlyStemTenGod?: string;
+    earthlyBranchTenGod?: string;
+    hiddenStems?: string[];
+  }
+
+  interface ExtendedFourPillars {
+    year: ExtendedPillar;
+    month: ExtendedPillar;
+    day: ExtendedPillar;
+    hour: ExtendedPillar;
+  }
+  
   // fourPillarsのサポート
-  let pillars;
+  let pillars: ExtendedFourPillars;
   if (profile.fourPillars) {
     console.log('fourPillarsを使用:', profile.fourPillars);
-    pillars = profile.fourPillars;
+    // 既存データを拡張型にキャスト
+    pillars = profile.fourPillars as unknown as ExtendedFourPillars;
   } else {
     console.warn('四柱データなし、デフォルト値を使用');
     pillars = {
@@ -64,32 +81,11 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
     };
   }
   
-  // 時柱のデータがtime または hourのどちらかに格納されている可能性がある
-  if (!pillars.hour && pillars.time) {
-    console.log('時柱データをtimeからhourにマッピング');
-    pillars.hour = pillars.time;
-  }
-  
-  // hour/time/他の名前で格納されている場合の対応
+  // 時柱のデータの整合性チェック
   if (!pillars.hour) {
-    console.warn('時柱データが存在しない、代替策を検索中...');
-    // 既知の可能性のある名前をチェック
-    const possibleHourKeys = ['hour', 'time', 'hourPillar', 'timePillar'];
-    for (const key of possibleHourKeys) {
-      if (pillars[key]) {
-        console.log(`時柱データを${key}から取得`);
-        pillars.hour = pillars[key];
-        break;
-      }
-    }
-    
-    // それでも見つからない場合はデフォルト
-    if (!pillars.hour) {
-      console.warn('時柱データが見つからない、デフォルト値を使用');
-      pillars.hour = { heavenlyStem: '?', earthlyBranch: '?' };
-    }
+    console.warn('時柱データが存在しない、デフォルト値を使用');
+    pillars.hour = { heavenlyStem: '?', earthlyBranch: '?' };
   }
-  
   console.log('最終的に使用する四柱データ:', pillars);
   console.groupEnd();
   
@@ -199,17 +195,10 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
               <Box>
                 <Typography variant="body2" sx={{ mb: 0.5 }}>
                   <strong>天干:</strong> {pillars.year.heavenlyStem}
-                  {pillars.year.heavenlyStemTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.year.heavenlyStemTenGod})</span>}
-                </Typography>
+                                </Typography>
                 <Typography variant="body2" sx={{ mb: 0.5 }}>
                   <strong>地支:</strong> {pillars.year.earthlyBranch}
-                  {pillars.year.earthlyBranchTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.year.earthlyBranchTenGod})</span>}
-                </Typography>
-                {pillars.year.hiddenStems && pillars.year.hiddenStems.length > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.85em', color: 'gray' }}>
-                    <strong>蔵干:</strong> {pillars.year.hiddenStems.join(', ')}
-                  </Typography>
-                )}
+                                </Typography>
               </Box>
             </Paper>
           </Grid>

@@ -3,10 +3,6 @@ import {
   Box, 
   Typography, 
   Paper, 
-  Divider, 
-  List, 
-  ListItem, 
-  ListItemText, 
   CircularProgress,
   Chip,
   Button,
@@ -14,10 +10,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
-  Card,
-  CardHeader,
-  CardContent
+  IconButton
 } from '@mui/material';
 import { Close as CloseIcon, WaterDrop, Whatshot, Park, Public, Diamond } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
@@ -195,7 +188,7 @@ const MemberCardView: React.FC<MemberCardViewProps> = ({ teamId, userId, onClose
             <Typography variant="h6">{userInfo.displayName}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip 
-                icon={elementIcon} 
+                icon={elementIcon as any} 
                 label={element.toUpperCase()} 
                 size="small" 
                 sx={{ 

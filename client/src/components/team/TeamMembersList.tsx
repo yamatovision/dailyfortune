@@ -79,7 +79,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
 
     try {
       setLoading(true);
-      const result = await teamService.addTeamMember(teamId, {
+      await teamService.addTeamMember(teamId, {
         email,
         role,
         password: password || undefined,
@@ -347,7 +347,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ teamId }) => {
                 </tr>
               </thead>
               <tbody>
-                {members.map((member, index) => (
+                {members.map((member) => (
                   <tr key={member.userId} style={{ borderBottom: '1px solid var(--divider)' }}>
                     <td style={{ padding: '16px', display: 'flex', alignItems: 'center' }}>
                       <div 
