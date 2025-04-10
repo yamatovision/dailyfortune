@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import SajuProfileForm from './SajuProfileForm';
 import { useAuth } from '../../contexts/AuthContext';
+import fortuneService from '../../services/fortune.service';
 
 interface SajuProfileModalProps {
   open: boolean;
@@ -31,6 +32,16 @@ const SajuProfileModal: React.FC<SajuProfileModalProps> = ({ open, onClose, onCo
       
       // 最新のプロフィール情報で認証コンテキストを更新
       await refreshUserProfile();
+      
+      // デイリーフォーチュンを強制的に更新
+      try {
+        console.log('四柱推命プロフィール更新により運勢情報を更新しています...');
+        await fortuneService.refreshDailyFortune();
+        console.log('運勢情報の更新に成功しました');
+      } catch (fortuneError) {
+        // フォーチュン更新に失敗してもプロフィール更新は成功とみなす
+        console.warn('運勢情報の更新に失敗しましたが、プロフィール更新は成功しました:', fortuneError);
+      }
       
       // 成功コールバックを呼び出し
       onComplete();

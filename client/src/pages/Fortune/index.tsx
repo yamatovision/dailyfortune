@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Alert, Paper } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper, Button, Tooltip, IconButton, Snackbar } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import FortuneCard from '../../components/fortune/FortuneCard';
 import LuckyItems from '../../components/fortune/LuckyItems';
 import FortuneDetails from '../../components/fortune/FortuneDetails';
@@ -13,6 +14,12 @@ const Fortune: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'info' as 'info' | 'success' | 'warning' | 'error'
+  });
 
   useEffect(() => {
     const fetchFortune = async () => {
@@ -65,24 +72,128 @@ const Fortune: React.FC = () => {
     }
   }, [fortune, loading]);
 
+  // 運勢情報を手動で更新
+  const handleRefreshFortune = async () => {
+    if (refreshing) return; // 更新中の場合は何もしない
+    
+    setRefreshing(true);
+    setError(null);
+    
+    try {
+      // 更新前の状態を保存しておく（リカバリー用）
+      const previousFortune = fortune;
+      
+      // APIを呼び出して運勢を更新
+      const updatedFortune = await fortuneService.refreshDailyFortune();
+      
+      // 更新成功
+      setFortune(updatedFortune);
+      
+      // 日付をフォーマット
+      const date = updatedFortune.date instanceof Date 
+        ? updatedFortune.date 
+        : new Date(updatedFortune.date);
+      
+      setCurrentDate(fortuneService.formatDate(date));
+      
+      // 更新成功通知
+      setNotification({
+        open: true,
+        message: '今日の運勢情報を更新しました',
+        severity: 'success'
+      });
+      
+      // アニメーションの再トリガー
+      setTimeout(() => {
+        const sections = document.querySelectorAll('.animate-on-load');
+        sections.forEach((section, index) => {
+          section.classList.remove('animated-section');
+          setTimeout(() => {
+            section.classList.add('animated-section');
+          }, 50 + index * 100);
+        });
+      }, 300);
+      
+    } catch (err: any) {
+      console.error('運勢情報の更新に失敗しました', err);
+      
+      // エラーメッセージの詳細化
+      let errorMessage = '運勢情報の更新に失敗しました。';
+      
+      // エラー種別に応じたメッセージ
+      if (err.response && err.response.status === 404) {
+        errorMessage += '四柱推命情報が不足しているか、運勢データが見つかりません。プロフィール設定を確認してください。';
+        setError(errorMessage);
+      } else if (err.response && err.response.status === 401) {
+        errorMessage += '認証エラーが発生しました。再ログインしてください。';
+        setError(errorMessage);
+      } else {
+        errorMessage += 'しばらくしてからもう一度お試しください。';
+        setError(errorMessage);
+      }
+      
+      // 更新失敗通知
+      setNotification({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
+  // 通知を閉じる
+  const handleCloseNotification = () => {
+    setNotification((prev) => ({ ...prev, open: false }));
+  };
+
   return (
     <Box sx={{ p: 2, pb: 10, minHeight: '100vh', bgcolor: 'var(--bg-paper, #f5f5f5)' }}>
-      {/* 日付表示 */}
-      {currentDate && (
-        <Typography 
-          variant="body1" 
-          align="center" 
-          className="date-display"
-          sx={{ 
-            mb: 1, 
-            mt: 1, 
-            color: 'primary.dark',
-            fontWeight: 400
-          }}
+      {/* 通知 */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={5000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+          sx={{ width: '100%' }}
         >
-          <span style={{ fontWeight: 500 }}>{currentDate}</span>の運勢
-        </Typography>
-      )}
+          {notification.message}
+        </Alert>
+      </Snackbar>
+      
+      {/* 日付表示とリフレッシュボタン */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 1, mb: 1 }}>
+        {currentDate && (
+          <Typography 
+            variant="body1" 
+            align="center" 
+            className="date-display"
+            sx={{ 
+              color: 'primary.dark',
+              fontWeight: 400
+            }}
+          >
+            <span style={{ fontWeight: 500 }}>{currentDate}</span>の運勢
+          </Typography>
+        )}
+        
+        <Tooltip title="運勢情報を更新" placement="top">
+          <IconButton 
+            onClick={handleRefreshFortune}
+            disabled={refreshing || loading}
+            size="small"
+            sx={{ ml: 1 }}
+            color="primary"
+          >
+            {refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+          </IconButton>
+        </Tooltip>
+      </Box>
       
       {loading ? (
         <Box sx={{ 

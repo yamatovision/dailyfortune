@@ -12,7 +12,8 @@ class ApiService {
   private isDebugMode = true; // 環境変数で制御可能
 
   constructor() {
-    this.baseURL = ''; // 相対パスを使用
+    // 相対パスを使用 - '/api/v1'で始まるパスはViteプロキシにより8080ポートへ転送される
+    this.baseURL = ''; 
 
     this.api = axios.create({
       baseURL: this.baseURL,
@@ -123,7 +124,13 @@ class ApiService {
     const method = config.method?.toUpperCase() || 'GET';
     const url = typeof config.url === 'string' ? config.url : 'unknown';
     
+    // 実際のリクエストURLをより詳細に表示（デバッグ用）
+    const fullUrl = url.startsWith('http') 
+      ? url 
+      : window.location.origin + (url.startsWith('/') ? url : '/' + url);
+    
     console.group(`🌐 API Request: ${method} ${url} [TraceID: ${traceId}]`);
+    console.log('Full URL:', fullUrl);
     console.log('Headers:', config.headers);
     console.log('Params:', config.params);
     console.log('Data:', config.data);
@@ -131,9 +138,11 @@ class ApiService {
     
     // 開発者ツール用に特別なメッセージ
     console.log('%c🔍 NETWORK DEBUG: 以下のリクエストをネットワークタブで追跡してください', 'color: blue; font-weight: bold');
-    console.log(`${method} ${this.baseURL}${url}`);
+    console.log(`${method} ${fullUrl}`);
     console.table({
       'TraceID': traceId,
+      'Actual URL': fullUrl,
+      'Path with Proxy': url.startsWith('/api') ? '✅ Will use proxy' : '⚠️ May not use proxy',
       'Header Authorization': config.headers?.['Authorization'] ? 'Bearer ...[token]' : 'None',
       'Content-Type': config.headers?.['Content-Type'],
       'Request Body': config.data ? JSON.stringify(config.data).substring(0, 100) + '...' : 'None'

@@ -44,6 +44,7 @@ import { getAuth } from 'firebase/auth';
 import axios from 'axios';
 import { SAJU, USER } from '@shared/index';
 import sajuProfileService from '../../services/saju-profile.service';
+import fortuneService from '../../services/fortune.service';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -335,12 +336,28 @@ const Profile = () => {
         }));
       }
       
-      // 正常終了通知
-      setNotification({
-        open: true,
-        message: 'プロフィール情報を更新しました',
-        severity: 'success'
-      });
+      // 四柱推命情報が更新された場合、運勢情報も更新
+      try {
+        console.log('四柱推命プロフィール更新により運勢情報を更新しています...');
+        await fortuneService.refreshDailyFortune();
+        console.log('運勢情報の更新に成功しました');
+        
+        // 正常終了通知
+        setNotification({
+          open: true,
+          message: 'プロフィール情報と今日の運勢が更新されました',
+          severity: 'success'
+        });
+      } catch (fortuneError) {
+        console.warn('運勢情報の更新に失敗しましたが、プロフィール更新は成功しました:', fortuneError);
+        
+        // 運勢更新失敗時の通知
+        setNotification({
+          open: true,
+          message: 'プロフィール情報を更新しました（運勢データの更新に失敗しました）',
+          severity: 'success'
+        });
+      }
       
       console.log('すべての更新が完了しました');
       console.groupEnd();

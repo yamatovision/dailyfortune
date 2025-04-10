@@ -9,8 +9,8 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth'
 import { app } from '../config/firebase'
-import { IUser, UserRole, USER } from '@shared/index'
-import axios from 'axios'
+import { IUser, UserRole, USER, AUTH } from '@shared/index'
+import apiService from '../services/api.service'
 
 const auth = getAuth(app)
 
@@ -58,16 +58,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (user) {
         // ユーザーの詳細情報（権限など）をAPIから取得
         try {
-          const idToken = await user.getIdToken()
-          // 完全なAPIパスを指定する
-          const response = await fetch(`/api/v1/auth/profile`, {
-            headers: {
-              Authorization: `Bearer ${idToken}`
-            }
-          })
+          // ApiServiceを使用してプロフィールを取得
+          const response = await apiService.get<IUser>(AUTH.PROFILE);
           
-          if (response.ok) {
-            const userData = await response.json()
+          if (response.status === 200) {
+            const userData = response.data
             console.log('AuthContext: ユーザープロフィール取得成功', userData);
             
             // 生年月日情報のデバッグログ
@@ -80,14 +75,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             
             // ユーザープロフィール取得後にもう一度詳細情報を取得
             try {
-              const profileResponse = await fetch(`/api/v1/users/profile`, {
-                headers: {
-                  Authorization: `Bearer ${idToken}`
-                }
-              });
+              const profileResponse = await apiService.get<IUser>(USER.GET_PROFILE);
               
-              if (profileResponse.ok) {
-                const profileData = await profileResponse.json();
+              if (profileResponse.status === 200) {
+                const profileData = profileResponse.data;
                 console.log('AuthContext: 詳細プロフィール取得成功', profileData);
                 
                 // birthDateなどの情報があれば、元のuserDataに追加
@@ -160,15 +151,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const result = await createUserWithEmailAndPassword(auth, email, password)
     
     // バックエンドAPIにユーザー情報を登録
-    const idToken = await result.user.getIdToken()
-    await fetch(`/api/v1/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-      },
-      body: JSON.stringify({ displayName })
-    })
+    await apiService.post(AUTH.REGISTER, { displayName });
     
     return result.user
   }
@@ -196,17 +179,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await currentUser.updateEmail(newEmail)
       
       // バックエンド側でもメールアドレスを更新
-      const idToken = await currentUser.getIdToken(true)
-      const response = await fetch(`/api/v1/users/email`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email: newEmail })
-      })
+      const response = await apiService.put(USER.UPDATE_EMAIL, { email: newEmail });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('バックエンドでのメールアドレス更新に失敗しました')
       }
     } catch (error: any) {
@@ -226,17 +201,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     try {
-      // バックエンド側でプロフィールを更新
-      const idToken = await currentUser.getIdToken(true)
-      const response = await axios({
-        method: 'PATCH', // PATCH方式で部分更新
-        url: USER.PATCH_PROFILE,
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-          'Content-Type': 'application/json'
-        },
-        data: profileData
-      });
+      // バックエンド側でプロフィールを更新（apiServiceを使用）
+      const response = await apiService.patch(USER.PATCH_PROFILE, profileData);
       
       if (response.status !== 200) {
         throw new Error('プロフィール更新に失敗しました');
@@ -260,14 +226,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     
     try {
-      const idToken = await currentUser.getIdToken(true);
-      const response = await axios({
-        method: 'GET',
-        url: USER.GET_PROFILE,
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
+      // apiServiceを使用してプロフィールを取得
+      const response = await apiService.get(USER.GET_PROFILE);
       
       if (response.status !== 200) {
         throw new Error('プロフィール取得に失敗しました');

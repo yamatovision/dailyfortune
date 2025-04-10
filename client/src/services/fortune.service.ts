@@ -53,10 +53,33 @@ class FortuneService {
 
   /**
    * キャッシュを無効化して最新の運勢データを取得する
+   * サーバーサイドでの運勢生成を強制的に行う
    */
   async refreshDailyFortune(): Promise<IFortune> {
+    // キャッシュを確実に無効化
     this.cachedFortune = null;
     this.cacheExpiration = null;
+    
+    // 四柱推命情報更新後の運勢更新は、サーバーサイドで生成
+    try {
+      // 運勢更新APIを呼び出して最新データを生成（存在する場合は上書き）
+      // '/update-fortune'エンドポイントを使用（UPDATE_ALL_FORTUNESは未実装のため）
+      const response = await apiService.post('/api/v1/fortune/update-fortune', {
+        forceUpdate: true
+      });
+      
+      if (response.status === 201 || response.status === 200) {
+        console.log('サーバーサイドで運勢が更新されました:', response.data);
+        this.cachedFortune = response.data;
+        this.cacheExpiration = new Date(new Date().getTime() + this.CACHE_DURATION_MS);
+        return response.data;
+      }
+    } catch (error) {
+      console.warn('サーバーサイドでの運勢更新に失敗しました。代わりに通常のフェッチを行います:', error);
+      // エラーが発生した場合は通常の取得を試行
+    }
+    
+    // 通常の運勢取得
     return this.getDailyFortune();
   }
 
