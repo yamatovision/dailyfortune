@@ -1,125 +1,127 @@
 /**
- * 韓国式四柱推命計算の共通型定義
+ * 韓国式四柱推命計算用の型定義
  */
 
-/**
- * 天干（十干）
- */
-export const STEMS = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+// 天干（10種類）
+export type StemName = "甲" | "乙" | "丙" | "丁" | "戊" | "己" | "庚" | "辛" | "壬" | "癸" | string;
+
+// 地支（12種類）
+export type BranchName = "子" | "丑" | "寅" | "卯" | "辰" | "巳" | "午" | "未" | "申" | "酉" | "戌" | "亥" | string;
+
+// 干支（60種類）
+export type StemBranchName = `${StemName}${BranchName}` | string;
+
+// 後方互換性のための定義
+export type STEM_BRANCHES = StemBranchName;
+
+// 旧型定義の互換性維持
+export interface LunarDate {
+  year: number;
+  month: number;
+  day: number;
+  isLeapMonth: boolean;
+}
+
+export interface CalendarDay {
+  year: number;
+  month: number;
+  day: number;
+}
+
+// 十神関係
+export type TenGodRelation = 
+  "比肩" | "劫財" | "偏印" | "正印" | "偏官" | "正官" | "偏財" | "正財" | "食神" | "傷官" |
+  "なし" | "不明"; // エラー時のフォールバック値
 
 /**
- * 地支（十二支）
- */
-export const BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
-
-/**
- * 干支の60組合せ
- */
-export const STEM_BRANCHES = [
-  "甲子", "乙丑", "丙寅", "丁卯", "戊辰", "己巳", "庚午", "辛未", "壬申", "癸酉",
-  "甲戌", "乙亥", "丙子", "丁丑", "戊寅", "己卯", "庚辰", "辛巳", "壬午", "癸未",
-  "甲申", "乙酉", "丙戌", "丁亥", "戊子", "己丑", "庚寅", "辛卯", "壬辰", "癸巳",
-  "甲午", "乙未", "丙申", "丁酉", "戊戌", "己亥", "庚子", "辛丑", "壬寅", "癸卯",
-  "甲辰", "乙巳", "丙午", "丁未", "戊申", "己酉", "庚戌", "辛亥", "壬子", "癸丑",
-  "甲寅", "乙卯", "丙辰", "丁巳", "戊午", "己未", "庚申", "辛酉", "壬戌", "癸亥"
-];
-
-/**
- * 十二運星
- */
-export const TWELVE_FORTUNES = [
-  "長生", "沐浴", "冠帯", "臨官", "帝旺", "衰", 
-  "病", "死", "墓", "絶", "胎", "養"
-];
-
-/**
- * 十二神殺
- */
-export const TWELVE_SPIRIT_KILLERS = [
-  "年殺", "月殺", "日殺", "劫殺", "望神殺", "天殺", 
-  "地殺", "六害殺", "長生殺", "反安殺", "火開殺", "逆馬殺"
-];
-
-/**
- * 隠された天干の十神関係情報
+ * 蔵干の十神関係
  */
 export interface HiddenStemTenGod {
-  stem: string; // 蔵干
-  tenGod: string; // 十神関係
+  stem: StemName;  // 蔵干
+  tenGod: TenGodRelation | string; // 十神関係
+  weight?: number; // 重み（影響度）
 }
 
 /**
- * 四柱の柱
+ * 四柱の柱情報
  */
 export interface Pillar {
-  stem: string; // 天干
-  branch: string; // 地支
-  fullStemBranch: string; // 天干地支の組み合わせ
-  hiddenStems?: string[]; // 蔵干（地支に内包される天干）
-  fortune?: string; // 十二運星
-  spiritKiller?: string; // 十二神殺
-  branchTenGod?: string; // 地支の十神関係
+  stem: StemName;          // 天干
+  branch: BranchName;      // 地支
+  fullStemBranch: string;  // 天干地支の組み合わせ
+  hiddenStems?: string[];  // 蔵干（地支に内包される天干）
+  fortune?: string;        // 十二運星
+  spiritKiller?: string;   // 十二神殺
+  branchTenGod?: string;   // 地支の十神関係
   hiddenStemsTenGods?: HiddenStemTenGod[]; // 蔵干の十神関係情報
+  enhancedElement?: string; // 干合・支合による強化された五行
+  originalStem?: StemName; // 干合変化前の元の天干
 }
 
 /**
- * 四柱情報
+ * 四柱（年月日時の4つの柱）
  */
 export interface FourPillars {
-  yearPillar: Pillar; // 年柱
-  monthPillar: Pillar; // 月柱
-  dayPillar: Pillar; // 日柱
-  hourPillar: Pillar; // 時柱
+  yearPillar: Pillar;   // 年柱
+  monthPillar: Pillar;  // 月柱
+  dayPillar: Pillar;    // 日柱
+  hourPillar: Pillar;   // 時柱
 }
-
-/**
- * 性別の型
- */
-export type Gender = 'M' | 'F';
-
-/**
- * 十神関係の型
- */
-export type TenGodRelation = string;
 
 /**
  * 計算オプション
  */
 export interface SajuOptions {
-  gender?: Gender; // 性別（M=男性, F=女性）
-  location?: string | { // 場所（都市名または座標）
-    longitude: number; // 経度
-    latitude: number; // 緯度
+  useLocalTime?: boolean;   // 地方時（経度に基づく時差）を使用するか
+  useDST?: boolean;         // 夏時間（サマータイム）を考慮するか
+  useHistoricalDST?: boolean; // 歴史的サマータイム（日本1948-1951年）を考慮するか
+  useStandardTimeZone?: boolean; // 標準タイムゾーンを使用するか（政治的/行政的）
+  useInternationalMode?: boolean; // 国際対応モードを使用するか
+  gender?: 'M' | 'F';       // 性別 (M=男性, F=女性)
+  location?: string | {     // 出生地（都市名または座標）
+    longitude: number;
+    latitude: number;
+    timeZone?: string;      // オプションでタイムゾーン指定
+  } | ExtendedLocation;     // 拡張ロケーション情報
+  referenceStandardMeridian?: number; // 標準経度（デフォルト：東経135度）
+  adjustmentVersion?: number; // 調整バージョン（互換性確保用）
+  useSecondsPrecision?: boolean; // 秒単位の精度を使用するか
+}
+
+// 天干の順番（甲から始まる）
+export const STEMS: StemName[] = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+
+// 地支の順番（子から始まる）
+export const BRANCHES: BranchName[] = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+/**
+ * 国際対応拡張：タイムゾーン調整情報
+ */
+export interface TimezoneAdjustmentInfo {
+  politicalTimeZone?: string;        // 政治的タイムゾーン (e.g. "Asia/Tokyo")
+  isDST?: boolean;                   // サマータイム適用状態
+  timeZoneOffsetMinutes?: number;    // タイムゾーンオフセット（分）
+  timeZoneOffsetSeconds?: number;    // タイムゾーンオフセット（秒）
+  localTimeAdjustmentSeconds?: number; // 秒単位の地方時調整
+  adjustmentDetails?: {              // 調整詳細
+    politicalTimeZoneAdjustment: number; // 政治的タイムゾーンによる調整（分）
+    longitudeBasedAdjustment: number;    // 経度ベースの調整（分）
+    dstAdjustment: number;               // サマータイム調整（分）
+    regionalAdjustment: number;          // 地域特有の調整（分）
+    totalAdjustmentMinutes: number;      // 合計調整（分）
+    totalAdjustmentSeconds: number;      // 合計調整（秒）
   };
-  useLocalTime?: boolean; // 地方時を使用するか
-  useKoreanMethod?: boolean; // 韓国式計算法を使用するか
-  sampleDate?: Date; // サンプルデータの日付（テスト用）
-  useDST?: boolean; // 夏時間を考慮するか（デフォルトはtrue）
-  useLunarMonth?: boolean; // 旧暦月を使用するか
-  useSolarTerms?: boolean; // 節気を使用するか
-  ignoreSpecialCases?: boolean; // 特殊ケースを無視するか
 }
 
 /**
- * 旧暦日付情報
+ * 国際対応拡張：拡張ロケーション情報
  */
-export interface LunarDate {
-  lunarYear: number; // 旧暦年
-  lunarMonth: number; // 旧暦月
-  lunarDay: number; // 旧暦日
-  isLeapMonth: boolean; // 閏月かどうか
-  stemBranch?: string; // 日の干支
-}
-
-/**
- * 旧暦と干支のカレンダーデータ
- */
-export interface CalendarDay {
-  solarDate: string; // 新暦日付（YYYY-MM-DD）
-  lunarDate: string; // 旧暦日付（例: 3/4）
-  stemBranch: string; // 干支（例: 庚子）
-  lunarMonth: number; // 旧暦月
-  lunarDay: number; // 旧暦日
-  isLeapMonth: boolean; // 閏月かどうか
-  solarTerm?: string; // 節気（該当する場合のみ）
+export interface ExtendedLocation {
+  name?: string;
+  country?: string;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+  };
+  timeZone?: string;
 }

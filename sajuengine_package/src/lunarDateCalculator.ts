@@ -17,9 +17,9 @@ export function getLunarDate(date: Date): LunarDate {
   // nullの場合は空のオブジェクトを返す
   if (!lunarDate) {
     return {
-      lunarYear: date.getFullYear(),
-      lunarMonth: date.getMonth() + 1,
-      lunarDay: date.getDate(),
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
       isLeapMonth: false
     };
   }
@@ -71,13 +71,10 @@ export function generateLunarCalendar(year: number, month: number): CalendarDay[
     const lunar = getLunarDate(solarDate);
     
     result.push({
-      solarDate: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      lunarDate: `${lunar.lunarMonth}/${lunar.lunarDay}`,
-      stemBranch: lunar.stemBranch || '',
-      lunarMonth: lunar.lunarMonth,
-      lunarDay: lunar.lunarDay,
-      isLeapMonth: lunar.isLeapMonth
-    });
+      year: year,
+      month: month,
+      day: day
+    } as CalendarDay);
   }
   
   return result;

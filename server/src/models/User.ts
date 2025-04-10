@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
  * ユーザーモデルのインターフェース
  */
 export interface IUser {
+  _id?: string | mongoose.Types.ObjectId;  // MongoDBのObjectIDまたは文字列ID
   email: string;
   password: string;
   displayName: string;
@@ -16,8 +17,14 @@ export interface IUser {
   motivation?: number;              // モチベーションスコア（0-100）
   leaveRisk?: 'none' | 'low' | 'medium' | 'high';  // 離職リスク
   
-  // Firebase 関連
-  uid?: string;                     // Firebase UID (Firebase 認証と連携するため)
+  // JWT認証関連
+  refreshToken?: string;            // JWTリフレッシュトークン
+  tokenVersion?: number;            // リフレッシュトークンの無効化に使用するバージョン
+  lastLogin?: Date;                 // 最終ログイン日時
+  
+  // Firebase 関連（移行期間中に使用）
+  firebaseUid?: string;             // Firebase UID (Firebase認証からの移行用)
+  uid?: string;                     // 後方互換のためのUID（移行完了後に削除）
   
   // 基本的な誕生情報
   birthDate?: Date;                 // 生年月日
@@ -29,6 +36,17 @@ export interface IUser {
     latitude: number;
   };
   localTimeOffset?: number;         // 地方時オフセット（分単位）
+  // 国際対応拡張情報
+  timeZone?: string;                // タイムゾーン識別子（例：'Asia/Tokyo'）
+  extendedLocation?: {              // 拡張されたロケーション情報
+    name?: string;                  // 都市名
+    country?: string;               // 国名
+    coordinates: {                  // 座標（必須）
+      longitude: number;
+      latitude: number;
+    };
+    timeZone?: string;              // タイムゾーン識別子
+  };
   
   // 個人目標
   goal?: string;                    // ユーザーの設定した目標
@@ -86,7 +104,7 @@ export interface IUser {
 /**
  * Mongoose用のドキュメントインターフェース
  */
-export interface IUserDocument extends IUser, Document {
+export interface IUserDocument extends Omit<IUser, '_id'>, Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -217,6 +235,40 @@ const userSchema = new Schema<IUserDocument>(
       type: Number,
       description: '地方時オフセット（分単位）'
     },
+    // 国際対応拡張情報
+    timeZone: {
+      type: String,
+      trim: true,
+      description: 'タイムゾーン識別子（例：Asia/Tokyo）'
+    },
+    extendedLocation: {
+      name: {
+        type: String,
+        trim: true
+      },
+      country: {
+        type: String,
+        trim: true
+      },
+      coordinates: {
+        longitude: {
+          type: Number,
+          min: [-180, '経度は-180度以上である必要があります'],
+          max: [180, '経度は180度以下である必要があります'],
+          required: [true, '経度は必須です']
+        },
+        latitude: {
+          type: Number,
+          min: [-90, '緯度は-90度以上である必要があります'],
+          max: [90, '緯度は90度以下である必要があります'],
+          required: [true, '緯度は必須です']
+        }
+      },
+      timeZone: {
+        type: String,
+        trim: true
+      }
+    },
     
     // 四柱推命情報
     elementAttribute: {
@@ -271,6 +323,24 @@ const userSchema = new Schema<IUserDocument>(
     },
     careerAptitude: {
       type: String
+    },
+    
+    // JWT認証関連フィールド
+    refreshToken: {
+      type: String,
+      select: false  // セキュリティ上、通常のクエリでは取得しない
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0    // トークンの無効化に使用
+    },
+    lastLogin: {
+      type: Date
+    },
+    firebaseUid: {
+      type: String,
+      index: true,
+      sparse: true  // 移行期間中のみ使用
     },
     
     // レガシーフィールド（後で削除予定）

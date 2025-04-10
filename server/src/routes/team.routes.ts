@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/auth.middleware';
+import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 import { 
   teamController, 
   teamMemberController, 
@@ -11,20 +12,20 @@ import {
 const router = express.Router();
 
 // チーム関連のルート
-router.get('/', authenticate, teamController.getTeams);
-router.post('/', authenticate, teamController.createTeam);
-router.get('/:teamId', authenticate, teamController.getTeamById);
-router.put('/:teamId', authenticate, teamController.updateTeam);
-router.delete('/:teamId', authenticate, teamController.deleteTeam);
+router.get('/', hybridAuthenticate, teamController.getTeams);
+router.post('/', hybridAuthenticate, teamController.createTeam);
+router.get('/:teamId', hybridAuthenticate, teamController.getTeamById);
+router.put('/:teamId', hybridAuthenticate, teamController.updateTeam);
+router.delete('/:teamId', hybridAuthenticate, teamController.deleteTeam);
 
 // チームメンバー関連のルート
-router.get('/:teamId/members', authenticate, teamMemberController.getTeamMembers);
-router.post('/:teamId/members', authenticate, teamMemberController.addMember);
-router.put('/:teamId/members/:userId/role', authenticate, teamMemberController.updateMemberRole);
-router.delete('/:teamId/members/:userId', authenticate, teamMemberController.removeMember);
+router.get('/:teamId/members', hybridAuthenticate, teamMemberController.getTeamMembers);
+router.post('/:teamId/members', hybridAuthenticate, teamMemberController.addMember);
+router.put('/:teamId/members/:userId/role', hybridAuthenticate, teamMemberController.updateMemberRole);
+router.delete('/:teamId/members/:userId', hybridAuthenticate, teamMemberController.removeMember);
 
 // メンバーカルテ関連のルート
-router.get('/:teamId/members/:userId/card', authenticate, teamMemberCardController.getMemberCard);
+router.get('/:teamId/members/:userId/card', hybridAuthenticate, teamMemberCardController.getMemberCard);
 // テスト用エンドポイント - ルート直下に配置して動作を確認
 router.get('/test-card', (req, res) => {
   console.log('テストカードエンドポイントにアクセスされました');
@@ -32,12 +33,12 @@ router.get('/test-card', (req, res) => {
 });
 
 // チーム目標関連のルート
-router.get('/:teamId/goal', authenticate, teamGoalController.getTeamGoal);
-router.post('/:teamId/goal', authenticate, teamGoalController.createOrUpdateTeamGoal);
-router.put('/:teamId/goal/progress', authenticate, teamGoalController.updateTeamGoalProgress);
+router.get('/:teamId/goal', hybridAuthenticate, teamGoalController.getTeamGoal);
+router.post('/:teamId/goal', hybridAuthenticate, teamGoalController.createOrUpdateTeamGoal);
+router.put('/:teamId/goal/progress', hybridAuthenticate, teamGoalController.updateTeamGoalProgress);
 
 // チーム相性関連のルート
-router.get('/:teamId/compatibility', authenticate, compatibilityController.getTeamCompatibilities);
-router.get('/:teamId/compatibility/:userId1/:userId2', authenticate, compatibilityController.getMemberCompatibility);
+router.get('/:teamId/compatibility', hybridAuthenticate, compatibilityController.getTeamCompatibilities);
+router.get('/:teamId/compatibility/:userId1/:userId2', hybridAuthenticate, compatibilityController.getMemberCompatibility);
 
 export default router;

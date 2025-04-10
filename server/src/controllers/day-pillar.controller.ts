@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthRequest, UserRole } from '../middleware/auth.middleware';
 import { SajuEngineService } from '../services/saju-engine.service';
 import { handleError, ValidationError, AuthenticationError } from '../utils';
+import { ExtendedLocation } from '../types';
 
 /**
  * 現在の日柱情報を取得するコントローラー
@@ -95,6 +96,79 @@ export const getDayPillarRange = async (req: AuthRequest, res: Response) => {
     return res.status(200).json({
       count: dayPillars.length,
       dayPillars
+    });
+  } catch (error) {
+    return handleError(error, res);
+  }
+};
+
+/**
+ * タイムゾーン情報を取得するコントローラー
+ */
+export const getTimezoneInfo = async (req: Request, res: Response) => {
+  try {
+    const { location } = req.query;
+    
+    if (!location) {
+      throw new ValidationError('位置情報（都市名または座標）は必須です');
+    }
+    
+    // SajuEngineServiceを初期化
+    const sajuEngineService = new SajuEngineService({
+      useInternationalMode: true,
+      useDST: true,
+      useHistoricalDST: true,
+      useStandardTimeZone: true,
+      useSecondsPrecision: true
+    });
+    
+    // 位置情報のパース
+    let locationObj: any;
+    
+    if (Array.isArray(location)) {
+      locationObj = location[0];
+    } else {
+      locationObj = location;
+    }
+    
+    // 文字列の場合（都市名または座標JSON文字列）
+    if (typeof locationObj === 'string') {
+      // JSON文字列の場合はパース
+      if (locationObj.includes('{') && locationObj.includes('longitude')) {
+        try {
+          locationObj = JSON.parse(locationObj);
+        } catch (e) {
+          // パースエラーの場合は都市名として扱う
+          console.warn('JSONパースエラー、都市名として処理します:', e);
+        }
+      }
+    }
+    
+    // タイムゾーン情報を取得
+    const result = sajuEngineService.getTimezoneInfo(locationObj);
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleError(error, res);
+  }
+};
+
+/**
+ * 利用可能な都市リストを取得するコントローラー
+ */
+export const getAvailableCities = async (req: Request, res: Response) => {
+  try {
+    // SajuEngineServiceを初期化
+    const sajuEngineService = new SajuEngineService({
+      useInternationalMode: true
+    });
+    
+    // 利用可能な都市リストを取得
+    const cities = sajuEngineService.getAvailableCities();
+    
+    return res.status(200).json({
+      count: cities.length,
+      cities
     });
   } catch (error) {
     return handleError(error, res);

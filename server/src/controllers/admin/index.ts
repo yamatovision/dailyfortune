@@ -27,3 +27,12 @@ export {
   getDayPillars,
   runDayPillarGeneration
 } from './day-pillar.controller';
+
+// 認証管理コントローラー
+export {
+  getAuthStats,
+  getUserAuthState,
+  invalidateUserTokens,
+  getMigrationStats,
+  runTokenCleanup
+} from './auth-management.controller';

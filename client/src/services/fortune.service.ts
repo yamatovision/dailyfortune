@@ -126,6 +126,44 @@ class FortuneService {
       throw error;
     }
   }
+  
+  /**
+   * チームコンテキスト運勢を取得する
+   * @param teamId チームID
+   * @param date オプションの日付 (YYYY-MM-DD形式)
+   * @returns チームコンテキスト運勢データ
+   */
+  async getTeamContextFortune(teamId: string, date?: string): Promise<any> {
+    try {
+      // 日付パラメータがある場合は追加
+      const params = date ? { date } : {};
+      
+      const response = await apiService.get(FORTUNE.GET_TEAM_CONTEXT_FORTUNE(teamId), { params });
+      return response.data;
+    } catch (error) {
+      console.error(`チーム(${teamId})のコンテキスト運勢取得に失敗しました`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * 運勢ダッシュボード情報を取得する
+   * @param teamId オプションのチームID
+   * @returns 運勢ダッシュボード情報
+   */
+  async getFortuneDashboard(teamId?: string): Promise<any> {
+    // キャッシュは無効化
+    this.cachedFortune = null;
+    this.cacheExpiration = null;
+    
+    try {
+      const response = await apiService.get(FORTUNE.GET_FORTUNE_DASHBOARD(teamId));
+      return response.data;
+    } catch (error) {
+      console.error('運勢ダッシュボードの取得に失敗しました', error);
+      throw error;
+    }
+  }
 
   /**
    * 日付を「yyyy年M月d日 (E)」の形式で整形する

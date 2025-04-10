@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.middleware';
+import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 import { UserController } from '../controllers/users.controller';
 
 const router = Router();
@@ -20,7 +21,10 @@ const userController = new UserController();
  *       401:
  *         description: 認証されていません
  */
-router.get('/profile', authenticate, userController.getProfile);
+// ハイブリッド認証に移行中の段階的対応：
+// - 既存の認証(authenticate)を残す場合: router.get('/profile', authenticate, userController.getProfile);
+// - ハイブリッド認証に切り替える場合: 
+router.get('/profile', hybridAuthenticate, userController.getProfile);
 
 /**
  * @swagger
@@ -89,7 +93,7 @@ router.get('/profile', authenticate, userController.getProfile);
  *       401:
  *         description: 認証されていません
  */
-router.put('/profile', authenticate, userController.updateProfile);
+router.put('/profile', hybridAuthenticate, userController.updateProfile);
 
 /**
  * @swagger
@@ -133,7 +137,7 @@ router.put('/profile', authenticate, userController.updateProfile);
  *       401:
  *         description: 認証されていません
  */
-router.patch('/profile', authenticate, userController.updateProfile);
+router.patch('/profile', hybridAuthenticate, userController.updateProfile);
 
 /**
  * @swagger
@@ -165,7 +169,7 @@ router.patch('/profile', authenticate, userController.updateProfile);
  *       401:
  *         description: 認証されていません
  */
-router.put('/email', authenticate, userController.updateEmail);
+router.put('/email', hybridAuthenticate, userController.updateEmail);
 
 /**
  * @swagger
@@ -223,7 +227,7 @@ router.put('/email', authenticate, userController.updateEmail);
  *       401:
  *         description: 認証されていません
  */
-router.put('/birth-info', authenticate, userController.updateBirthInfo);
+router.put('/birth-info', hybridAuthenticate, userController.updateBirthInfo);
 
 /**
  * @swagger
@@ -242,6 +246,6 @@ router.put('/birth-info', authenticate, userController.updateBirthInfo);
  *       401:
  *         description: 認証されていません
  */
-router.post('/calculate-saju', authenticate, userController.calculateSaju);
+router.post('/calculate-saju', hybridAuthenticate, userController.calculateSaju);
 
 export default router;

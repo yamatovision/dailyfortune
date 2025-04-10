@@ -163,25 +163,41 @@ export class FortuneService {
     // ユーザー情報を取得 - より堅牢な検索ロジック
     let user;
     try {
+      // 検索ID文字列の正規化（トリムして空白除去）
+      const normalizedUserId = typeof userId === 'string' ? userId.trim() : userId;
+      
       // まずMongoDBのObjectIDとして検索
-      if (mongoose.Types.ObjectId.isValid(userId)) {
-        user = await User.findById(userId);
+      if (normalizedUserId && mongoose.Types.ObjectId.isValid(normalizedUserId)) {
+        try {
+          user = await User.findById(normalizedUserId);
+          console.log(`ユーザーをObjectIDで検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
+        } catch (err) {
+          console.warn(`ObjectIDによる検索で例外が発生: ${err}`);
+        }
       }
       
-      // 見つからなければFirebaseのUIDとして検索
+      // 見つからなければFirebaseのUIDまたは他のフィールドで検索
       if (!user) {
-        user = await User.findOne({ 
+        const query = { 
           $or: [
-            { uid: userId },
-            { firebaseUid: userId },
-            { _id: userId }
+            { uid: normalizedUserId },
+            { firebaseUid: normalizedUserId },
+            { email: normalizedUserId }
           ]
-        });
+        };
+        
+        // 追加の検索として、文字列形式の_idとしても検索
+        if (normalizedUserId && typeof normalizedUserId === 'string') {
+          query.$or.push({ _id: normalizedUserId } as any);  // TypeScriptエラー回避のためanyにキャスト
+        }
+        
+        user = await User.findOne(query);
+        console.log(`ユーザーを複合条件で検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
       }
       
       if (!user) {
-        console.error(`ユーザーが見つかりません: userId=${userId}`);
-        throw new Error(`ユーザーが見つかりません: ${userId}`);
+        console.error(`ユーザーが見つかりません: userId=${normalizedUserId}`);
+        throw new Error(`ユーザーが見つかりません: ${normalizedUserId}`);
       }
     } catch (error) {
       console.error(`ユーザー検索中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
@@ -941,19 +957,47 @@ export class FortuneService {
     // ユーザーIDがObjectIDかどうかを確認して適切なクエリを実行
     let user;
     
-    // FirebaseのUID形式の場合はまず _id で直接検索
-    // User モデルでは _id に Firebase UID を直接格納する場合がある
-    user = await User.findById(userId);
-    
-    // 見つからなければ uid フィールドで検索
-    if (!user) {
-      user = await User.findOne({ uid: userId });
-    }
-    
-    // それでも見つからなければエラー
-    if (!user) {
-      console.log(`ユーザーが見つかりません。検索ID: ${userId}`);
-      throw new Error('ユーザーが見つかりません');
+    try {
+      // 検索ID文字列の正規化（トリムして空白除去）
+      const normalizedUserId = typeof userId === 'string' ? userId.trim() : userId;
+      
+      // まずMongoDBのObjectIDとして検索
+      if (normalizedUserId && mongoose.Types.ObjectId.isValid(normalizedUserId)) {
+        try {
+          user = await User.findById(normalizedUserId);
+          console.log(`ユーザーをObjectIDで検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
+        } catch (err) {
+          console.warn(`ObjectIDによる検索で例外が発生: ${err}`);
+        }
+      }
+      
+      // 見つからなければFirebaseのUIDまたは他のフィールドで検索
+      if (!user) {
+        const query = { 
+          $or: [
+            { uid: normalizedUserId },
+            { firebaseUid: normalizedUserId },
+            { email: normalizedUserId }
+          ]
+        };
+        
+        // 追加の検索として、文字列形式の_idとしても検索
+        if (normalizedUserId && typeof normalizedUserId === 'string') {
+          query.$or.push({ _id: normalizedUserId } as any);  // TypeScriptエラー回避のためanyにキャスト
+        }
+        
+        user = await User.findOne(query);
+        console.log(`ユーザーを複合条件で検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
+      }
+      
+      // それでも見つからなければエラー
+      if (!user) {
+        console.log(`ユーザーが見つかりません。検索ID: ${normalizedUserId}`);
+        throw new Error(`ユーザーが見つかりません: ${normalizedUserId}`);
+      }
+    } catch (error) {
+      console.error(`ユーザー検索中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`ユーザー検索エラー: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     // ユーザーの四柱推命データの存在をチェック

@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { getAuth } from 'firebase/auth';
+import authManager, { AuthMode } from './auth/auth-manager.service';
+import tokenService from './auth/token.service';
 
 // トレースIDを生成する関数
 const generateTraceId = (): string => {
@@ -10,6 +12,13 @@ class ApiService {
   private api: AxiosInstance;
   private baseURL: string;
   private isDebugMode = true; // 環境変数で制御可能
+  // 認証トークンのリフレッシュ処理中フラグ
+  private isRefreshingToken = false;
+  // トークンリフレッシュ中のリクエストを保持するキュー
+  private tokenRefreshQueue: Array<{
+    resolve: (token: string) => void;
+    reject: (error: any) => void;
+  }> = [];
 
   constructor() {
     // 環境に応じてベースURLを設定
@@ -39,46 +48,73 @@ class ApiService {
 
     this.api.interceptors.request.use(
       async (config) => {
-        const auth = getAuth();
-        const user = auth.currentUser;
-
         // トレースIDを生成し、ヘッダーに追加（サーバー側との紐付け用）
         const traceId = generateTraceId();
         config.headers['X-Trace-ID'] = traceId;
-
-        if (user) {
-          try {
-            // 現在のトークン情報をログ
-            const currentToken = await user.getIdTokenResult();
-            if (this.isDebugMode) {
-              console.group('🔐 Firebase Token Info');
-              console.log('Token exists:', !!currentToken.token);
-              console.log('Token length:', currentToken.token.length);
-              console.log('Token expiration:', currentToken.expirationTime);
-              console.log('Claims:', currentToken.claims);
-              console.groupEnd();
+        
+        // 現在の認証モードを取得
+        const authMode = authManager.getCurrentAuthMode();
+        
+        // JWTトークンを使用する場合（JWT または ハイブリッドモード）
+        if (authMode === AuthMode.JWT || authMode === AuthMode.HYBRID) {
+          let accessToken = tokenService.getAccessToken();
+          
+          if (accessToken) {
+            // トークンの有効期限が近い場合は更新を試みる
+            await authManager.refreshJwtTokenIfNeeded();
+            // 最新のトークンを取得
+            accessToken = tokenService.getAccessToken();
+            
+            if (accessToken) {
+              config.headers['Authorization'] = `Bearer ${accessToken}`;
               
-              // トークン有効性確認
-              const tokenAge = new Date(currentToken.expirationTime).getTime() - Date.now();
-              if (tokenAge < 0) {
-                console.warn('⚠️ Token is expired! Forcing refresh...');
-                // 強制更新
-                const freshToken = await user.getIdToken(true);
-                config.headers['Authorization'] = `Bearer ${freshToken}`;
-              } else {
-                console.log(`🔐 Token valid for ${Math.floor(tokenAge / 1000 / 60)} minutes`);
-                config.headers['Authorization'] = `Bearer ${currentToken.token}`;
+              if (this.isDebugMode) {
+                console.log('🔐 JWT Authorization トークンをセットしました');
               }
-            } else {
-              // デバッグモード以外では通常のトークン設定のみ
-              const token = await user.getIdToken(true);
-              config.headers['Authorization'] = `Bearer ${token}`;
             }
-          } catch (error) {
-            console.error('トークン取得エラー:', error);
           }
-        } else if (this.isDebugMode) {
-          console.warn('⚠️ No user logged in, request will be unauthorized');
+        }
+        
+        // Firebase認証を使用する場合（Firebase または ハイブリッドモード）
+        if ((authMode === AuthMode.FIREBASE || authMode === AuthMode.HYBRID) && 
+            !config.headers['Authorization']) {
+          const auth = getAuth();
+          const user = auth.currentUser;
+          
+          if (user) {
+            try {
+              // 現在のトークン情報をログ
+              const currentToken = await user.getIdTokenResult();
+              if (this.isDebugMode) {
+                console.group('🔐 Firebase Token Info');
+                console.log('Token exists:', !!currentToken.token);
+                console.log('Token length:', currentToken.token.length);
+                console.log('Token expiration:', currentToken.expirationTime);
+                console.log('Claims:', currentToken.claims);
+                console.groupEnd();
+                
+                // トークン有効性確認
+                const tokenAge = new Date(currentToken.expirationTime).getTime() - Date.now();
+                if (tokenAge < 0) {
+                  console.warn('⚠️ Token is expired! Forcing refresh...');
+                  // 強制更新
+                  const freshToken = await user.getIdToken(true);
+                  config.headers['Authorization'] = `Bearer ${freshToken}`;
+                } else {
+                  console.log(`🔐 Token valid for ${Math.floor(tokenAge / 1000 / 60)} minutes`);
+                  config.headers['Authorization'] = `Bearer ${currentToken.token}`;
+                }
+              } else {
+                // デバッグモード以外では通常のトークン設定のみ
+                const token = await user.getIdToken(true);
+                config.headers['Authorization'] = `Bearer ${token}`;
+              }
+            } catch (error) {
+              console.error('トークン取得エラー:', error);
+            }
+          } else if (this.isDebugMode) {
+            console.warn('⚠️ No user logged in, request will be unauthorized');
+          }
         }
         
         this.logRequest(config, traceId);
@@ -110,37 +146,100 @@ class ApiService {
         const enhancedError = error as any;
         enhancedError.traceId = responseTraceId;
         
+        // 現在の認証モードを取得
+        const authMode = authManager.getCurrentAuthMode();
+        
         if (error.response) {
           const status = error.response.status;
           
-          if (status === 401) {
-            console.error(`認証エラー: 再ログインが必要です [TraceID: ${responseTraceId}]`);
+          // JWT認証の場合のトークン期限切れ対応
+          if (status === 401 && 
+             (authMode === AuthMode.JWT || authMode === AuthMode.HYBRID) && 
+              tokenService.getRefreshToken() && 
+              error.config) {
             
-            // リクエスト設定の存在確認
+            // リクエスト設定の存在確認と再試行フラグ確認
             const config = error.config;
-            if (config && !config.headers?._retry) {
+            if (!config.headers?._retry) {
+              // トークンのリフレッシュを試みる
               try {
-                // トークンの再取得を試行（認証処理のタイミングの問題かもしれない）
-                const auth = getAuth();
-                const user = auth.currentUser;
+                // 同時複数リクエストの場合はリフレッシュ処理を一回にまとめる
+                let newToken: string | null = null;
                 
-                if (user) {
-                  console.log('認証エラー発生、トークン再取得を試みます');
-                  // 強制的に新しいトークンを取得
-                  const freshToken = await user.getIdToken(true);
+                if (!this.isRefreshingToken) {
+                  this.isRefreshingToken = true;
                   
+                  try {
+                    // トークンをリフレッシュ
+                    const refreshSuccess = await authManager.refreshJwtTokenIfNeeded();
+                    
+                    if (refreshSuccess) {
+                      // リフレッシュに成功したら新しいトークンを取得
+                      newToken = tokenService.getAccessToken();
+                      
+                      // キューにたまっているリクエストを処理
+                      this.tokenRefreshQueue.forEach(({ resolve }) => {
+                        if (newToken) resolve(newToken);
+                      });
+                      this.tokenRefreshQueue = [];
+                    } else {
+                      // リフレッシュに失敗したらエラーを伝播
+                      this.tokenRefreshQueue.forEach(({ reject }) => {
+                        reject(new Error('トークンのリフレッシュに失敗しました'));
+                      });
+                      this.tokenRefreshQueue = [];
+                    }
+                  } finally {
+                    this.isRefreshingToken = false;
+                  }
+                } else {
+                  // 既にリフレッシュ処理が進行中の場合は結果を待つ
+                  newToken = await new Promise<string>((resolve, reject) => {
+                    this.tokenRefreshQueue.push({ resolve, reject });
+                  });
+                }
+                
+                // 新しいトークンでリクエストを再試行
+                if (newToken) {
                   // リクエスト設定を更新
                   config.headers = config.headers || {};
-                  config.headers.Authorization = `Bearer ${freshToken}`;
+                  config.headers.Authorization = `Bearer ${newToken}`;
                   config.headers._retry = true; // リトライフラグを設定
                   
-                  console.log('トークン再取得成功、リクエストを再試行します');
+                  console.log('トークン更新成功、リクエストを再試行します');
                   // 更新した設定で再リクエスト
                   return this.api(config);
                 }
               } catch (retryError) {
-                console.error('トークン再取得に失敗しました', retryError);
+                console.error('トークンリフレッシュに失敗しました', retryError);
               }
+            }
+          } else if (status === 401 && 
+                    (authMode === AuthMode.FIREBASE || authMode === AuthMode.HYBRID) && 
+                     getAuth().currentUser) {
+            // Firebase認証の場合のトークン更新
+            try {
+              // Firebase認証のトークンを強制的に更新
+              const auth = getAuth();
+              const user = auth.currentUser;
+              
+              if (user && error.config && !error.config.headers?._retry) {
+                console.log('Firebase認証エラー発生、トークン再取得を試みます');
+                // 強制的に新しいトークンを取得
+                const freshToken = await user.getIdToken(true);
+                
+                // リクエスト設定を更新
+                const config = error.config;
+                config.headers = config.headers || {};
+                config.headers.Authorization = `Bearer ${freshToken}`;
+                config.headers._retry = true; // リトライフラグを設定
+                
+                console.log('Firebase トークン再取得成功、リクエストを再試行します');
+                // 更新した設定で再リクエスト
+                return this.api(config);
+              }
+            } catch (retryError) {
+              console.error('Firebase トークン再取得に失敗しました', retryError);
             }
           } else if (status === 403) {
             console.error(`権限エラー: 必要な権限がありません [TraceID: ${responseTraceId}]`);

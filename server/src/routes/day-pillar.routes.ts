@@ -2,9 +2,12 @@ import { Router } from 'express';
 import { 
   getTodayDayPillar, 
   getDayPillarByDate, 
-  getDayPillarRange 
+  getDayPillarRange,
+  getTimezoneInfo,
+  getAvailableCities
 } from '../controllers/day-pillar.controller';
 import { authenticate } from '../middleware/auth.middleware';
+import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 
 const router = Router();
 
@@ -20,6 +23,41 @@ const router = Router();
  *         description: 今日の日柱情報
  */
 router.get('/today', getTodayDayPillar);
+
+/**
+ * @swagger
+ * /api/v1/day-pillars/timezone-info:
+ *   get:
+ *     summary: タイムゾーン情報を取得
+ *     description: 指定された位置情報のタイムゾーン情報を取得します
+ *     tags: [DayPillar]
+ *     parameters:
+ *       - in: query
+ *         name: location
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: 都市名、または座標情報のJSON文字列
+ *     responses:
+ *       200:
+ *         description: タイムゾーン情報
+ *       400:
+ *         description: 無効な位置情報フォーマットです
+ */
+router.get('/timezone-info', getTimezoneInfo);
+
+/**
+ * @swagger
+ * /api/v1/day-pillars/available-cities:
+ *   get:
+ *     summary: 利用可能な都市リストを取得
+ *     description: サポートされている都市のリストを取得します
+ *     tags: [DayPillar]
+ *     responses:
+ *       200:
+ *         description: 利用可能な都市リスト
+ */
+router.get('/available-cities', getAvailableCities);
 
 /**
  * @swagger
@@ -78,6 +116,6 @@ router.get('/:date', getDayPillarByDate);
  *       403:
  *         description: 管理者権限が必要です
  */
-router.get('/', authenticate, getDayPillarRange);
+router.get('/', hybridAuthenticate, getDayPillarRange);
 
 export default router;

@@ -1,9 +1,11 @@
+import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import RequireSajuProfile from './components/common/RequireSajuProfile'
+import JwtMigrationModal from './components/auth/JwtMigrationModal'
 
 // ページコンポーネント
 import Layout from './components/layout/Layout'
@@ -15,7 +17,6 @@ import Fortune from './pages/Fortune'
 import Chat from './pages/Chat'
 import Team from './pages/Team'
 import AisyouPage from './pages/Team/Aisyou'
-//管理者ダッシュボードは削除
 import Unauthorized from './pages/Unauthorized'
 
 // テーマ設定
@@ -64,6 +65,21 @@ const theme = createTheme({
   },
 })
 
+// JWT移行モーダルを管理するコンポーネント
+const JwtMigrationManager = ({ children }: { children: React.ReactNode }) => {
+  const { shouldPromptMigration, setShouldPromptMigration } = useAuth();
+  
+  return (
+    <>
+      {children}
+      <JwtMigrationModal 
+        open={shouldPromptMigration} 
+        onClose={() => setShouldPromptMigration(false)} 
+      />
+    </>
+  );
+};
+
 function App() {
   const { loading, userProfile } = useAuth()
 
@@ -75,67 +91,69 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Routes>
-        {/* 公開ルート */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+      <JwtMigrationManager>
+        <Routes>
+          {/* 公開ルート */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* 保護されたルート */}
-        <Route element={<Layout />}>
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          <Route path="/fortune" element={
-            <ProtectedRoute>
-              <RequireSajuProfile>
-                <Fortune />
-              </RequireSajuProfile>
-            </ProtectedRoute>
-          } />
-          <Route path="/chat" element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } />
-          <Route path="/team" element={
-            <ProtectedRoute>
-              <Team />
-            </ProtectedRoute>
-          } />
-          <Route path="/team/:teamId" element={
-            <ProtectedRoute>
-              <Team />
-            </ProtectedRoute>
-          } />
-          <Route path="/team/:teamId/aisyou" element={
-            <ProtectedRoute>
-              <RequireSajuProfile>
-                <AisyouPage />
-              </RequireSajuProfile>
-            </ProtectedRoute>
-          } />
-          {/* 自分のチームの相性ページへのリダイレクト用ルート */}
-          <Route path="/myteam" element={
-            <ProtectedRoute>
-              {userProfile?.teamId ? 
-                <Navigate to={`/team/${userProfile.teamId}/aisyou`} replace /> : 
-                <Navigate to="/team" replace />
-              }
-            </ProtectedRoute>
-          } />
-          
-          {/* 管理者ルート - 削除済み */}
+          {/* 保護されたルート */}
+          <Route element={<Layout />}>
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/fortune" element={
+              <ProtectedRoute>
+                <RequireSajuProfile>
+                  <Fortune />
+                </RequireSajuProfile>
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            } />
+            <Route path="/team" element={
+              <ProtectedRoute>
+                <Team />
+              </ProtectedRoute>
+            } />
+            <Route path="/team/:teamId" element={
+              <ProtectedRoute>
+                <Team />
+              </ProtectedRoute>
+            } />
+            <Route path="/team/:teamId/aisyou" element={
+              <ProtectedRoute>
+                <RequireSajuProfile>
+                  <AisyouPage />
+                </RequireSajuProfile>
+              </ProtectedRoute>
+            } />
+            {/* 自分のチームの相性ページへのリダイレクト用ルート */}
+            <Route path="/myteam" element={
+              <ProtectedRoute>
+                {userProfile?.teamId ? 
+                  <Navigate to={`/team/${userProfile.teamId}/aisyou`} replace /> : 
+                  <Navigate to="/team" replace />
+                }
+              </ProtectedRoute>
+            } />
+            
+            {/* 管理者ルート - 削除済み */}
 
-          {/* デフォルトルート */}
-          <Route path="/" element={<Navigate to="/fortune" replace />} />
-          {/* ワイルドカードルートは / へリダイレクト */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+            {/* デフォルトルート */}
+            <Route path="/" element={<Navigate to="/fortune" replace />} />
+            {/* ワイルドカードルートは / へリダイレクト */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </JwtMigrationManager>
     </ThemeProvider>
   )
 }

@@ -1,9 +1,15 @@
 /**
  * 韓国式四柱推命計算エンジンクラス
- * リファクタリング計画に基づいた統合実装
+ * リファクタリング計画に基づいた統合実装（国際対応版）
  */
-import { Pillar, FourPillars, SajuOptions } from './types';
+import { Pillar, FourPillars, SajuOptions, TimezoneAdjustmentInfo, ExtendedLocation } from './types';
 import { DateTimeProcessor, ProcessedDateTime } from './DateTimeProcessor';
+// 新しい国際対応のモジュールをインポート
+import { 
+  DateTimeProcessor as InternationalDateTimeProcessor, 
+  GeoCoordinates,
+  TimeZoneUtils 
+} from './international';
 import { calculateKoreanYearPillar } from './koreanYearPillarCalculator';
 import { calculateKoreanMonthPillar } from './koreanMonthPillarCalculator';
 import { calculateKoreanDayPillar } from './dayPillarCalculator';
@@ -20,9 +26,11 @@ import { calculateBranchTenGodRelation as calculateImprovedBranchTenGod } from '
 import { handleSpecialCases, isSpecialCase } from './specialCaseHandler';
 // 立春日時データベースをインポート
 import { getLiChunDate, isBeforeLiChunFromDB } from './lichunDatabase';
+// 干合・支合処理モジュールをインポート
+import { applyGanShiCombinations } from './ganShiCombinations';
 
 /**
- * 四柱推命計算結果の型
+ * 四柱推命計算結果の型（国際対応版）
  */
 export interface SajuResult {
   fourPillars: FourPillars;
@@ -47,14 +55,26 @@ export interface SajuResult {
     day: string[];
     hour: string[];
   };
+  // 国際対応拡張情報
+  location?: {
+    name?: string;
+    country?: string;
+    coordinates?: {
+      longitude: number;
+      latitude: number;
+    };
+    timeZone?: string;
+  };
+  timezoneInfo?: TimezoneAdjustmentInfo;
 }
 
 /**
- * 四柱推命計算エンジンクラス
+ * 四柱推命計算エンジンクラス（国際対応版）
  */
 export class SajuEngine {
-  private dateProcessor: DateTimeProcessor;
+  private dateProcessor: DateTimeProcessor | InternationalDateTimeProcessor;
   private options: SajuOptions;
+  private useInternationalMode: boolean;
 
   /**
    * 四柱推命計算エンジンを初期化
@@ -63,9 +83,25 @@ export class SajuEngine {
   constructor(options: SajuOptions = {}) {
     this.options = {
       useLocalTime: true, // デフォルトで地方時調整を有効化
+      useInternationalMode: true, // デフォルトで国際対応モードを有効化
+      useDST: true, // デフォルトで夏時間を考慮
+      useHistoricalDST: true, // デフォルトで歴史的夏時間を考慮
+      useStandardTimeZone: true, // デフォルトで標準タイムゾーンを使用
+      useSecondsPrecision: true, // デフォルトで秒単位の精度を使用
+      referenceStandardMeridian: 135, // デフォルトで東経135度を基準
       ...options
     };
-    this.dateProcessor = new DateTimeProcessor(this.options);
+    
+    // 国際対応モードに応じてDateTimeProcessorを選択
+    this.useInternationalMode = this.options.useInternationalMode !== false;
+    
+    if (this.useInternationalMode) {
+      console.log('国際対応モードでSajuEngineを初期化します');
+      this.dateProcessor = new InternationalDateTimeProcessor(this.options);
+    } else {
+      console.log('従来モードでSajuEngineを初期化します');
+      this.dateProcessor = new DateTimeProcessor(this.options);
+    }
   }
 
   /**
@@ -80,7 +116,7 @@ export class SajuEngine {
     birthDate: Date, 
     birthHour: number, 
     gender?: 'M' | 'F',
-    location?: string | { longitude: number, latitude: number }
+    location?: string | { longitude: number, latitude: number } | ExtendedLocation
   ): SajuResult {
     try {
       // 1. オプションを更新（位置情報など）
@@ -94,6 +130,111 @@ export class SajuEngine {
       // 2. 日時を前処理（地方時調整と旧暦変換）
       const processedDateTime = this.dateProcessor.processDateTime(birthDate, birthHour);
       const { adjustedDate } = processedDateTime;
+      
+      // 国際対応情報の抽出
+      let locationInfo: SajuResult['location'];
+      let timezoneInfo: TimezoneAdjustmentInfo | undefined;
+      
+      if (this.useInternationalMode) {
+        const internationalDateTime = processedDateTime as unknown as import('./international/DateTimeProcessor').ProcessedDateTime;
+        
+        // LocationInfoの構築
+        locationInfo = {};
+        
+        // 座標情報のコピー（直接使用）
+        if (internationalDateTime.coordinates) {
+          locationInfo.coordinates = internationalDateTime.coordinates;
+        } else {
+          // フォールバック：location引数から座標情報を取得
+          if (location && typeof location !== 'string') {
+            if ('coordinates' in location) {
+              locationInfo.coordinates = {
+                longitude: location.coordinates.longitude,
+                latitude: location.coordinates.latitude
+              };
+            } else if ('longitude' in location && 'latitude' in location) {
+              locationInfo.coordinates = {
+                longitude: location.longitude,
+                latitude: location.latitude
+              };
+            }
+          }
+        }
+        
+        // 都市名や国名などの追加情報
+        if (typeof location === 'string') {
+          locationInfo.name = location;
+          
+          // 都市名からタイムゾーンを推論
+          if (!internationalDateTime.politicalTimeZone) {
+            const cityTimeZone = TimeZoneUtils.getTimezoneForCity(location);
+            if (cityTimeZone) {
+              locationInfo.timeZone = cityTimeZone;
+            }
+          }
+        } else if (location && 'name' in location) {
+          locationInfo.name = location.name;
+          locationInfo.country = (location as ExtendedLocation).country;
+        }
+        
+        // タイムゾーン情報の追加
+        if (internationalDateTime.politicalTimeZone && internationalDateTime.politicalTimeZone !== 'UTC') {
+          locationInfo.timeZone = internationalDateTime.politicalTimeZone;
+        } else if (location && typeof location !== 'string' && 'timeZone' in location) {
+          locationInfo.timeZone = location.timeZone;
+        } else if (locationInfo.coordinates) {
+          // 座標からタイムゾーンを推論
+          const coords = locationInfo.coordinates;
+          const tzFromCoords = TimeZoneUtils.getTimezoneIdentifier(
+            coords.latitude, 
+            coords.longitude, 
+            birthDate
+          );
+          if (tzFromCoords && tzFromCoords !== 'UTC') {
+            locationInfo.timeZone = tzFromCoords;
+          }
+        }
+        
+        // TimezoneInfoの構築
+        timezoneInfo = {
+          politicalTimeZone: locationInfo.timeZone || internationalDateTime.politicalTimeZone || 'UTC',
+          isDST: internationalDateTime.isDST || false,
+          timeZoneOffsetMinutes: internationalDateTime.timeZoneOffsetMinutes || 0,
+          timeZoneOffsetSeconds: internationalDateTime.timeZoneOffsetSeconds || 0,
+          localTimeAdjustmentSeconds: internationalDateTime.localTimeAdjustmentSeconds || 0,
+          adjustmentDetails: internationalDateTime.adjustmentDetails || {
+            politicalTimeZoneAdjustment: 0,
+            longitudeBasedAdjustment: 0,
+            dstAdjustment: 0,
+            regionalAdjustment: 0,
+            totalAdjustmentMinutes: 0,
+            totalAdjustmentSeconds: 0
+          }
+        };
+        
+        // 歴史的サマータイムの処理（日本1948-1951）
+        if (this.options.useHistoricalDST && 
+            locationInfo.timeZone === 'Asia/Tokyo' && 
+            TimeZoneUtils.isJapaneseHistoricalDST(birthDate)) {
+          timezoneInfo.isDST = true;
+          
+          // adjustmentDetailsが未定義の場合は初期化
+          if (!timezoneInfo.adjustmentDetails) {
+            timezoneInfo.adjustmentDetails = {
+              politicalTimeZoneAdjustment: 0,
+              longitudeBasedAdjustment: 0,
+              dstAdjustment: 0,
+              regionalAdjustment: 0,
+              totalAdjustmentMinutes: 0,
+              totalAdjustmentSeconds: 0
+            };
+          }
+          
+          timezoneInfo.adjustmentDetails.dstAdjustment = -60; // 1時間マイナス
+          timezoneInfo.adjustmentDetails.totalAdjustmentMinutes += -60;
+          timezoneInfo.adjustmentDetails.totalAdjustmentSeconds += -3600;
+        }
+      }
       
       // JavaScriptのDateオブジェクトに変換（既存計算関数との互換性のため）
       const jsAdjustedDate = new Date(
@@ -190,6 +331,47 @@ export class SajuEngine {
             fullStemBranch: tempPillars.hourPillar.fullStemBranch
           });
         }
+
+        // 6.6 干合・支合の処理
+        // 四柱計算後、干合・支合の判定と変化を適用
+        let fourPillarsBeforeCombination: FourPillars = {
+          yearPillar: { ...yearPillar, originalStem: yearPillar.stem },
+          monthPillar: { ...monthPillar, originalStem: monthPillar.stem },
+          dayPillar: { ...dayPillar, originalStem: dayPillar.stem },
+          hourPillar: { ...hourPillar, originalStem: hourPillar.stem }
+        };
+        
+        // 干合・支合の処理を適用
+        const fourPillarsAfterCombination = applyGanShiCombinations(fourPillarsBeforeCombination);
+        
+        // 干合・支合処理後の結果を反映
+        Object.assign(yearPillar, {
+          stem: fourPillarsAfterCombination.yearPillar.stem,
+          originalStem: fourPillarsAfterCombination.yearPillar.originalStem,
+          enhancedElement: fourPillarsAfterCombination.yearPillar.enhancedElement,
+          fullStemBranch: fourPillarsAfterCombination.yearPillar.fullStemBranch
+        });
+        
+        Object.assign(monthPillar, {
+          stem: fourPillarsAfterCombination.monthPillar.stem,
+          originalStem: fourPillarsAfterCombination.monthPillar.originalStem,
+          enhancedElement: fourPillarsAfterCombination.monthPillar.enhancedElement,
+          fullStemBranch: fourPillarsAfterCombination.monthPillar.fullStemBranch
+        });
+        
+        Object.assign(dayPillar, {
+          stem: fourPillarsAfterCombination.dayPillar.stem,
+          originalStem: fourPillarsAfterCombination.dayPillar.originalStem,
+          enhancedElement: fourPillarsAfterCombination.dayPillar.enhancedElement,
+          fullStemBranch: fourPillarsAfterCombination.dayPillar.fullStemBranch
+        });
+        
+        Object.assign(hourPillar, {
+          stem: fourPillarsAfterCombination.hourPillar.stem,
+          originalStem: fourPillarsAfterCombination.hourPillar.originalStem,
+          enhancedElement: fourPillarsAfterCombination.hourPillar.enhancedElement,
+          fullStemBranch: fourPillarsAfterCombination.hourPillar.fullStemBranch
+        });
         
         // 7. 十二運星を計算
         twelveFortunes = calculateTwelveFortunes(
@@ -551,7 +733,7 @@ export class SajuEngine {
         elementProfile = this.calculateElementProfile(dayPillar, monthPillar);
       }
       
-      // 12. 結果を返す
+      // 12. 結果を返す（国際対応情報を含む）
       return {
         fourPillars,
         lunarDate: processedDateTime.lunarDate || undefined,
@@ -560,7 +742,10 @@ export class SajuEngine {
         processedDateTime,
         twelveFortunes,
         twelveSpiritKillers,
-        hiddenStems
+        hiddenStems,
+        // 国際対応の情報を追加
+        location: locationInfo,
+        timezoneInfo
       };
     } catch (error) {
       console.error('SajuEngine計算エラー:', error);
@@ -579,6 +764,36 @@ export class SajuEngine {
         hourPillar: defaultPillar
       };
       
+      // エラー時も国際対応情報を取得
+      const errorProcessedDateTime = this.dateProcessor.processDateTime(birthDate, birthHour);
+      let errorLocationInfo: SajuResult['location'];
+      let errorTimezoneInfo: TimezoneAdjustmentInfo | undefined;
+      
+      if (this.useInternationalMode) {
+        const internationalDateTime = errorProcessedDateTime as unknown as import('./international/DateTimeProcessor').ProcessedDateTime;
+        errorLocationInfo = {};
+        
+        if (internationalDateTime.coordinates) {
+          errorLocationInfo.coordinates = {
+            longitude: internationalDateTime.coordinates.longitude,
+            latitude: internationalDateTime.coordinates.latitude
+          };
+        }
+        
+        if (internationalDateTime.politicalTimeZone) {
+          errorLocationInfo.timeZone = internationalDateTime.politicalTimeZone;
+        }
+        
+        errorTimezoneInfo = {
+          politicalTimeZone: internationalDateTime.politicalTimeZone,
+          isDST: internationalDateTime.isDST,
+          timeZoneOffsetMinutes: internationalDateTime.timeZoneOffsetMinutes,
+          timeZoneOffsetSeconds: internationalDateTime.timeZoneOffsetSeconds,
+          localTimeAdjustmentSeconds: internationalDateTime.localTimeAdjustmentSeconds,
+          adjustmentDetails: internationalDateTime.adjustmentDetails
+        };
+      }
+      
       return {
         fourPillars,
         tenGods: {
@@ -592,7 +807,9 @@ export class SajuEngine {
           secondaryElement: '木',
           yinYang: '陽'
         },
-        processedDateTime: this.dateProcessor.processDateTime(birthDate, birthHour)
+        processedDateTime: errorProcessedDateTime,
+        location: errorLocationInfo,
+        timezoneInfo: errorTimezoneInfo
       };
     }
   }
@@ -638,10 +855,33 @@ export class SajuEngine {
    * @param newOptions 新しいオプション
    */
   updateOptions(newOptions: Partial<SajuOptions>): void {
+    // 国際対応モードの切り替えを検出
+    const oldInternationalMode = this.useInternationalMode;
+    const newInternationalMode = 
+      newOptions.useInternationalMode !== undefined ? 
+      newOptions.useInternationalMode : 
+      oldInternationalMode;
+      
+    // オプションを更新
     this.options = {
       ...this.options,
       ...newOptions
     };
-    this.dateProcessor.updateOptions(newOptions);
+    
+    // 国際対応モードが切り替わった場合はDateTimeProcessorを再初期化
+    if (oldInternationalMode !== newInternationalMode) {
+      this.useInternationalMode = newInternationalMode;
+      
+      if (this.useInternationalMode) {
+        console.log('国際対応モードに切り替えます');
+        this.dateProcessor = new InternationalDateTimeProcessor(this.options);
+      } else {
+        console.log('従来モードに切り替えます');
+        this.dateProcessor = new DateTimeProcessor(this.options);
+      }
+    } else {
+      // 通常のオプション更新
+      this.dateProcessor.updateOptions(newOptions);
+    }
   }
 }

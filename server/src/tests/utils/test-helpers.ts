@@ -120,3 +120,110 @@ export const cleanDatabase = async () => {
     }
   }
 };
+
+/**
+ * MongoDB接続を管理するユーティリティクラス
+ */
+export class MongoDBConnector {
+  private static instance: MongoDBConnector;
+  private connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'disconnecting' = 'disconnected';
+
+  constructor() {
+    if (MongoDBConnector.instance) {
+      return MongoDBConnector.instance;
+    }
+    MongoDBConnector.instance = this;
+  }
+
+  /**
+   * MongoDBに接続する
+   * @returns 接続成功時はtrue、失敗時はfalse
+   */
+  async connect(): Promise<boolean> {
+    try {
+      if (this.connectionStatus === 'connected') {
+        console.log('既にMongoDBに接続済みです');
+        return true;
+      }
+
+      this.connectionStatus = 'connecting';
+      
+      // 環境変数からMongoDB URIを取得
+      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://lisence:FhpQAu5UPwjm0L1J@motherprompt-cluster.np3xp.mongodb.net/dailyfortune';
+      
+      // Mongooseオプション
+      const mongooseOptions: mongoose.ConnectOptions = {
+        serverSelectionTimeoutMS: 10000, // サーバー選択のタイムアウト: 10秒
+        socketTimeoutMS: 45000, // ソケットタイムアウト: 45秒
+      };
+
+      if (mongoose.connection.readyState === 0) {
+        await mongoose.connect(MONGODB_URI, mongooseOptions);
+      }
+
+      this.connectionStatus = 'connected';
+      console.log('MongoDB接続成功');
+      return true;
+    } catch (error) {
+      this.connectionStatus = 'disconnected';
+      console.error('MongoDB接続エラー:', error);
+      return false;
+    }
+  }
+
+  /**
+   * MongoDBとの接続を切断する
+   */
+  async disconnect(): Promise<void> {
+    try {
+      if (this.connectionStatus === 'disconnected') {
+        console.log('既にMongoDBから切断済みです');
+        return;
+      }
+
+      this.connectionStatus = 'disconnecting';
+      
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+      
+      this.connectionStatus = 'disconnected';
+      console.log('MongoDBから切断しました');
+    } catch (error) {
+      console.error('MongoDB切断エラー:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 接続状態を確認する
+   * @returns 接続状態の文字列
+   */
+  getStatus(): string {
+    return this.connectionStatus;
+  }
+
+  /**
+   * DBコレクションのデータ件数を確認する
+   * @param collectionName 確認するコレクション名
+   * @returns コレクション内のドキュメント数
+   */
+  async countDocuments(collectionName: string): Promise<number> {
+    try {
+      if (this.connectionStatus !== 'connected') {
+        await this.connect();
+      }
+      
+      if (!mongoose.connection.db) {
+        console.error('データベース接続が確立されていません');
+        return -1;
+      }
+      
+      const count = await mongoose.connection.db.collection(collectionName).countDocuments();
+      return count;
+    } catch (error) {
+      console.error(`${collectionName}のドキュメント数取得エラー:`, error);
+      return -1;
+    }
+  }
+}

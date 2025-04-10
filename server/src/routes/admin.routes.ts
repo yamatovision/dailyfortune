@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as adminController from '../controllers/admin';
-import { authenticate, requireSuperAdmin } from '../middleware/auth.middleware';
+import { authenticate, requireSuperAdmin as originalRequireSuperAdmin } from '../middleware/auth.middleware';
+import { hybridAuthenticate, requireSuperAdmin } from '../middleware/hybrid-auth.middleware';
 import { ADMIN } from '../types/index';
 
 const router = Router();
@@ -10,7 +11,7 @@ const router = Router();
 // ユーザー一覧取得（SuperAdmin専用）
 router.get(
   '/admins',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getUsers
 );
@@ -18,7 +19,7 @@ router.get(
 // 新規ユーザー作成
 router.post(
   '/admins',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.createUser
 );
@@ -26,7 +27,7 @@ router.post(
 // ユーザー権限変更（SuperAdmin専用）
 router.put(
   '/admins/:userId/role',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.updateUserRole
 );
@@ -34,7 +35,7 @@ router.put(
 // ユーザープラン変更（SuperAdmin専用）
 router.put(
   '/admins/:userId/plan',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.updateUserPlan
 );
@@ -42,7 +43,7 @@ router.put(
 // ユーザー削除（SuperAdmin専用）
 router.delete(
   '/admins/:userId',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.deleteUser
 );
@@ -52,7 +53,7 @@ router.delete(
 // 運勢更新設定取得
 router.get(
   '/settings/fortune-update',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getFortuneUpdateSettings
 );
@@ -60,7 +61,7 @@ router.get(
 // 運勢更新設定更新（SuperAdmin専用）
 router.put(
   '/settings/fortune-update',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.updateFortuneUpdateSettings
 );
@@ -68,7 +69,7 @@ router.put(
 // 運勢更新ログ一覧取得（SuperAdmin専用）
 router.get(
   '/settings/fortune-updates/logs',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getFortuneUpdateLogs
 );
@@ -76,7 +77,7 @@ router.get(
 // 運勢更新ログ詳細取得（SuperAdmin専用）
 router.get(
   '/settings/fortune-updates/logs/:logId',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getFortuneUpdateLogDetail
 );
@@ -84,7 +85,7 @@ router.get(
 // 手動運勢更新実行（SuperAdmin専用）
 router.post(
   '/settings/fortune-updates/manual-run',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.runFortuneUpdate
 );
@@ -94,7 +95,7 @@ router.post(
 // 日柱生成ログ一覧取得（SuperAdmin専用）
 router.get(
   '/settings/day-pillars/logs',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getDayPillarLogs
 );
@@ -102,7 +103,7 @@ router.get(
 // 日柱生成ログ詳細取得（SuperAdmin専用）
 router.get(
   '/settings/day-pillars/logs/:logId',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getDayPillarLogDetail
 );
@@ -110,7 +111,7 @@ router.get(
 // 既存の日柱情報一覧取得（SuperAdmin専用）
 router.get(
   '/settings/day-pillars',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.getDayPillars
 );
@@ -118,9 +119,51 @@ router.get(
 // 手動日柱生成実行（SuperAdmin専用）
 router.post(
   '/settings/day-pillars/manual-run',
-  authenticate,
+  hybridAuthenticate,
   requireSuperAdmin,
   adminController.runDayPillarGeneration
+);
+
+// ======== 認証管理API ========
+
+// 認証システム統計取得（SuperAdmin専用）
+router.get(
+  '/settings/auth/stats',
+  hybridAuthenticate,
+  requireSuperAdmin,
+  adminController.getAuthStats
+);
+
+// 特定ユーザーの認証状態取得（SuperAdmin専用）
+router.get(
+  '/settings/auth/users/:userId',
+  hybridAuthenticate,
+  requireSuperAdmin,
+  adminController.getUserAuthState
+);
+
+// 特定ユーザーのトークン無効化（SuperAdmin専用）
+router.post(
+  '/settings/auth/users/:userId/invalidate',
+  hybridAuthenticate,
+  requireSuperAdmin,
+  adminController.invalidateUserTokens
+);
+
+// 移行統計取得（SuperAdmin専用）
+router.get(
+  '/settings/auth/migration',
+  hybridAuthenticate,
+  requireSuperAdmin,
+  adminController.getMigrationStats
+);
+
+// トークンクリーンアップ実行（SuperAdmin専用）
+router.post(
+  '/settings/auth/cleanup',
+  hybridAuthenticate,
+  requireSuperAdmin,
+  adminController.runTokenCleanup
 );
 
 export default router;

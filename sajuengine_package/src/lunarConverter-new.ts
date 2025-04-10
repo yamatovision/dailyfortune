@@ -24,11 +24,10 @@ export function getLunarDate(date: Date): LunarDate | null {
     
     // 旧暦情報を構築
     return {
-      lunarYear: lunar.getYear(),
-      lunarMonth: lunar.getMonth(),
-      lunarDay: lunar.getDay(),
-      isLeapMonth: lunar.isLeap(),
-      stemBranch: lunar.getDayInGanZhi() // 日干支（日の干支）
+      year: lunar.getYear(),
+      month: lunar.getMonth(),
+      day: lunar.getDay(),
+      isLeapMonth: lunar.isLeap()
     };
   } catch (error) {
     console.error('旧暦変換エラー:', error);

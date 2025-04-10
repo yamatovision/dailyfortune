@@ -65,6 +65,15 @@ export const AUTH = {
   VERIFY_EMAIL: `${API_BASE_PATH}/auth/verify-email`,
 };
 
+// ========== JWT認証関連 ==========
+export const JWT_AUTH = {
+  LOGIN: `${API_BASE_PATH}/jwt-auth/login`,
+  REGISTER: `${API_BASE_PATH}/jwt-auth/register`,
+  REFRESH_TOKEN: `${API_BASE_PATH}/jwt-auth/refresh-token`,
+  LOGOUT: `${API_BASE_PATH}/jwt-auth/logout`,
+  MIGRATE_TO_JWT: `${API_BASE_PATH}/jwt-auth/migrate-to-jwt`,
+};
+
 // ========== 四柱推命関連 (ユーザーモデルに統合) ==========
 export const SAJU = {
   GET_AVAILABLE_CITIES: `${API_BASE_PATH}/public/saju/available-cities`,
@@ -77,6 +86,8 @@ export const DAY_PILLAR = {
   GET_TODAY: `${API_BASE_PATH}/day-pillars/today`,
   GET_BY_DATE: (date: string) => `${API_BASE_PATH}/day-pillars/${date}`,
   GET_RANGE: `${API_BASE_PATH}/day-pillars`,
+  GET_TIMEZONE_INFO: `${API_BASE_PATH}/day-pillars/timezone-info`,
+  GET_AVAILABLE_CITIES: `${API_BASE_PATH}/day-pillars/available-cities`,
 };
 
 // ========== ユーザー関連 ==========
@@ -123,6 +134,17 @@ export const FORTUNE = {
   GET_TEAM_FORTUNE_RANKING: (teamId: string) => `${API_BASE_PATH}/fortune/team/${teamId}/ranking`,
   UPDATE_ALL_FORTUNES: `${API_BASE_PATH}/fortune/update-all`, // SuperAdmin専用
   UPDATE_FORTUNE: `${API_BASE_PATH}/fortune/update-fortune`, // 個人運勢の更新・生成
+  
+  // チームコンテキスト運勢API
+  GET_TEAM_CONTEXT_FORTUNE: (teamId: string) => 
+    `${API_BASE_PATH}/fortune/team/${teamId}/context`,
+  GENERATE_TEAM_CONTEXT_FORTUNE: (teamId: string) => 
+    `${API_BASE_PATH}/fortune/team/${teamId}/context/generate`,
+  
+  // 統合ダッシュボードAPI
+  GET_FORTUNE_DASHBOARD: (teamId?: string) => 
+    teamId ? `${API_BASE_PATH}/fortune/dashboard?teamId=${teamId}` 
+           : `${API_BASE_PATH}/fortune/dashboard`,
 };
 
 // ========== AIチャット関連 ==========
@@ -158,9 +180,61 @@ export const ADMIN = {
   GET_DAY_PILLAR_LOGS: `${API_BASE_PATH}/admin/settings/day-pillars/logs`,
   GET_DAY_PILLAR_LOG_DETAIL: (logId: string) => `${API_BASE_PATH}/admin/settings/day-pillars/logs/${logId}`,
   RUN_DAY_PILLAR_GENERATION: `${API_BASE_PATH}/admin/settings/day-pillars/manual-run`,
+  
+  // 認証管理
+  GET_AUTH_STATS: `${API_BASE_PATH}/admin/settings/auth/stats`,
+  GET_USER_AUTH_STATE: (userId: string) => `${API_BASE_PATH}/admin/settings/auth/users/${userId}`,
+  INVALIDATE_USER_TOKENS: (userId: string) => `${API_BASE_PATH}/admin/settings/auth/users/${userId}/invalidate`,
+  GET_MIGRATION_STATS: `${API_BASE_PATH}/admin/settings/auth/migration`,
+  RUN_TOKEN_CLEANUP: `${API_BASE_PATH}/admin/settings/auth/cleanup`,
 };
 
 // ========== データモデル ==========
+
+// SajuEngine計算オプション
+export interface SajuOptions {
+  useLocalTime?: boolean;          // 地方時（経度に基づく時差）を使用するか
+  useDST?: boolean;                // 夏時間（サマータイム）を考慮するか
+  useHistoricalDST?: boolean;      // 歴史的サマータイム（日本1948-1951年）を考慮するか
+  useStandardTimeZone?: boolean;   // 標準タイムゾーンを使用するか（政治的/行政的）
+  useInternationalMode?: boolean;  // 国際対応モードを使用するか
+  useSecondsPrecision?: boolean;   // 秒単位の精度を使用するか
+  gender?: Gender;                 // 性別 (M=男性, F=女性)
+  location?: string | {            // 出生地（都市名または座標）
+    longitude: number;
+    latitude: number;
+    timeZone?: string;             // オプションでタイムゾーン指定
+  } | ExtendedLocation;            // 拡張ロケーション情報
+  referenceStandardMeridian?: number; // 標準経度（デフォルト：東経135度）
+}
+
+// 拡張ロケーション情報
+export interface ExtendedLocation {
+  name?: string;
+  country?: string;
+  coordinates: {
+    longitude: number;
+    latitude: number;
+  };
+  timeZone?: string;
+}
+
+// タイムゾーン調整情報
+export interface TimezoneAdjustmentInfo {
+  politicalTimeZone?: string;        // 政治的タイムゾーン (e.g. "Asia/Tokyo")
+  isDST?: boolean;                   // サマータイム適用状態
+  timeZoneOffsetMinutes?: number;    // タイムゾーンオフセット（分）
+  timeZoneOffsetSeconds?: number;    // タイムゾーンオフセット（秒）
+  localTimeAdjustmentSeconds?: number; // 秒単位の地方時調整
+  adjustmentDetails?: {              // 調整詳細
+    politicalTimeZoneAdjustment: number; // 政治的タイムゾーンによる調整（分）
+    longitudeBasedAdjustment: number;    // 経度ベースの調整（分）
+    dstAdjustment: number;               // サマータイム調整（分）
+    regionalAdjustment: number;          // 地域特有の調整（分）
+    totalAdjustmentMinutes: number;      // 合計調整（分）
+    totalAdjustmentSeconds: number;      // 合計調整（秒）
+  };
+}
 
 // 権限レベル
 export enum UserRole {
@@ -366,6 +440,50 @@ export interface IFortune {
   updatedAt: Date;
 }
 
+// チームコンテキスト運勢データ
+export interface ITeamContextFortune {
+  id: string;
+  userId: string;
+  teamId: string;
+  date: Date;
+  dayPillar: {
+    heavenlyStem: string;
+    earthlyBranch: string;
+  };
+  teamGoalId?: string; // チーム目標ID（オプション）
+  score: number; // 0-100点
+  teamContextAdvice: string; // チーム特化アドバイス
+  collaborationTips: string[]; // チーム協力のためのヒント
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 運勢ダッシュボードレスポンス
+export interface IFortuneDashboardResponse {
+  personalFortune: IFortune; // 個人の基本運勢
+  teamContextFortune?: ITeamContextFortune; // チームコンテキスト運勢（選択中のチーム）
+  teamGoal?: {
+    id: string;
+    content: string;
+    deadline?: Date;
+    progressRate: number;
+  }; // チーム目標情報
+  teamRanking?: {
+    ranking: Array<{
+      userId: string;
+      displayName: string;
+      jobTitle?: string;
+      elementAttribute?: string;
+      score: number;
+    }>;
+    userRank?: number; // 現在のユーザーの順位
+  }; // チーム運勢ランキング
+  teamsList?: Array<{
+    id: string;
+    name: string;
+  }>; // ユーザーが所属する全チームリスト（管理者用）
+}
+
 // 相性データ
 export interface ICompatibility {
   id: string;
@@ -421,6 +539,38 @@ export interface LoginResponse {
   user: IUser;
   token: string;
   refreshToken: string;
+}
+
+// JWT認証関連の型
+export interface JwtLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface JwtAuthResponse {
+  user: IUser;
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+  message: string;
+}
+
+export interface JwtRefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface JwtRefreshTokenResponse {
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+  message: string;
+}
+
+export interface JwtMigrateRequest {
+  password: string;
+  firebaseUid?: string;
 }
 
 // 登録リクエスト

@@ -1,6 +1,7 @@
-import { SAJU, USER, Gender, ISajuProfile } from '@shared/index';
+import { SAJU, USER, Gender, ISajuProfile, ExtendedLocation, TimezoneAdjustmentInfo } from '@shared/index';
 import apiService from './api.service';
 import axios from 'axios';
+import dayPillarService from './day-pillar.service';
 
 // 地理座標インターフェース
 export interface GeoCoordinates {
@@ -15,6 +16,8 @@ interface SajuProfileData {
   birthplaceCoordinates?: GeoCoordinates;
   localTimeOffset?: number;
   gender: Gender;
+  timeZone?: string;
+  extendedLocation?: ExtendedLocation;
 }
 
 // 注: 実際の型定義はshared/index.tsからimportされる ISajuProfile を使用
@@ -112,6 +115,19 @@ export class SajuProfileService {
       createdAt: new Date(),
       updatedAt: new Date()
     };
+  }
+  
+  /**
+   * タイムゾーン情報を取得
+   * @param location 場所情報（都市名または拡張ロケーション情報）
+   */
+  async getTimezoneInfo(location: string | ExtendedLocation): Promise<TimezoneAdjustmentInfo> {
+    try {
+      return await dayPillarService.getTimezoneInfo(location);
+    } catch (error) {
+      console.error('タイムゾーン情報取得エラー:', error);
+      return {};
+    }
   }
 
   async createProfile(profileData: SajuProfileData): Promise<ISajuProfile> {

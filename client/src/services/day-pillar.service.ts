@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { DAY_PILLAR } from '@shared/index';
+import { DAY_PILLAR, ExtendedLocation, TimezoneAdjustmentInfo } from '@shared/index';
 
 export interface DayPillar {
   date: string;
@@ -37,6 +37,42 @@ class DayPillarService {
       `${DAY_PILLAR.GET_RANGE}?startDate=${startDate}&endDate=${endDate}`
     );
     return response.data.dayPillars;
+  }
+  
+  /**
+   * 利用可能な都市リストを取得する
+   */
+  async getAvailableCities(): Promise<string[]> {
+    try {
+      const response = await axios.get(DAY_PILLAR.GET_AVAILABLE_CITIES);
+      return response.data.cities || [];
+    } catch (error) {
+      console.error('都市リスト取得エラー:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * タイムゾーン情報を取得する
+   * @param location 場所情報（都市名または拡張ロケーション情報）
+   */
+  async getTimezoneInfo(location: string | ExtendedLocation): Promise<TimezoneAdjustmentInfo> {
+    try {
+      let queryParam = '';
+      
+      if (typeof location === 'string') {
+        queryParam = `?location=${encodeURIComponent(location)}`;
+      } else {
+        // オブジェクトの場合はJSONに変換して送信
+        queryParam = `?location=${encodeURIComponent(JSON.stringify(location))}`;
+      }
+      
+      const response = await axios.get(`${DAY_PILLAR.GET_TIMEZONE_INFO}${queryParam}`);
+      return response.data;
+    } catch (error) {
+      console.error('タイムゾーン情報取得エラー:', error);
+      return {};
+    }
   }
 
   /**

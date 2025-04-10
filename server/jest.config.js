@@ -20,5 +20,5 @@ module.exports = {
   // テストのタイムアウト値を増やす（バッチテスト用）
   testTimeout: 30000,
   // MongoDBへの接続などが必要なフックのタイムアウト値
-  setupTimeout: 30000
+  // Jest 28以降はsetupTimeoutがサポートされていないので削除
 };

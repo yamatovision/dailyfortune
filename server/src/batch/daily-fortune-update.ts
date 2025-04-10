@@ -24,7 +24,8 @@ export async function updateDailyFortunes(
   forceUpdate: boolean = false,
   targetDate: any = new Date(),
   batchSize: number = 100,
-  adminUserId: string = '000000000000000000000000' // システム管理者のデフォルトID
+  adminUserId: string = '000000000000000000000000', // システム管理者のデフォルトID
+  maxConcurrent: number = 5 // 同時実行数の制限
 ): Promise<{
   success: boolean;
   message: string;
@@ -125,54 +126,69 @@ export async function updateDailyFortunes(
           
           console.log(`ユーザー ${userId} の運勢を処理します...`);
           
-          // 個人運勢の生成
-          // 生成対象日をそのまま Date オブジェクトとして渡す（複製して渡す）
-          // Stringとしてキャストして互換性を確保
-          await (fortuneService as any).generateFortune(userId, targetDate, forceUpdate);
-          
-          // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
-          if (user.teamId) {
-            const teamId = typeof user.teamId === 'object' && user.teamId !== null 
-              ? String(user.teamId) 
-              : user.teamId;
+          try {
+            // 個人運勢の生成
+            // 生成対象日をそのまま Date オブジェクトとして渡す（複製して渡す）
+            // Stringとしてキャストして互換性を確保
+            await (fortuneService as any).generateFortune(userId, targetDate, forceUpdate);
             
-            // チームIDの有効性を検証
-            if (!mongoose.Types.ObjectId.isValid(teamId)) {
-              console.warn(`ユーザー ${userId} の無効なチームID: ${teamId}`);
-              updateErrors.push({
-                userId: `${userId}/${teamId}`,
-                message: `無効なチームID: ${teamId}`,
-                stack: undefined
-              });
-            } else {
-              try {
-                // チームごとのチームコンテキスト運勢を生成
-                // チームコンテキスト運勢の生成（同じ日付オブジェクトを使用）
-                // Stringとしてキャストして互換性を確保
-                await (fortuneService as any).generateTeamContextFortune(userId, teamId, targetDate, forceUpdate);
-                console.log(`ユーザー ${userId} のチームコンテキスト運勢を生成しました (チームID: ${teamId})`);
-              } catch (teamFortuneError) {
-                console.error(`ユーザー ${userId} のチームコンテキスト運勢生成中にエラーが発生しました (チームID: ${teamId}):`, teamFortuneError);
-                // チームコンテキスト運勢の生成エラーは個別に記録するが、個人運勢生成の成功カウントには影響させない
+            // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
+            if (user.teamId) {
+              const teamId = typeof user.teamId === 'object' && user.teamId !== null 
+                ? String(user.teamId) 
+                : user.teamId;
+              
+              // チームIDの有効性を検証
+              if (!mongoose.Types.ObjectId.isValid(teamId)) {
+                console.warn(`ユーザー ${userId} の無効なチームID: ${teamId}`);
                 updateErrors.push({
                   userId: `${userId}/${teamId}`,
-                  message: `チームコンテキスト運勢生成エラー: ${teamFortuneError instanceof Error ? teamFortuneError.message : String(teamFortuneError)}`,
-                  stack: teamFortuneError instanceof Error ? teamFortuneError.stack : undefined,
-                  // 拡張情報は現在のモデルでは対応していない
-                  // 詳細情報はログに出力するだけにする
+                  message: `無効なチームID: ${teamId}`,
+                  stack: undefined
                 });
+              } else {
+                try {
+                  // チームの存在確認
+                  const teamExists = await mongoose.model('Team').exists({ _id: teamId });
+                  if (!teamExists) {
+                    throw new Error(`チームが存在しません (チームID: ${teamId})`);
+                  }
+                  
+                  // チームごとのチームコンテキスト運勢を生成
+                  // チームコンテキスト運勢の生成（同じ日付オブジェクトを使用）
+                  // Stringとしてキャストして互換性を確保
+                  await (fortuneService as any).generateTeamContextFortune(userId, teamId, targetDate, forceUpdate);
+                  console.log(`ユーザー ${userId} のチームコンテキスト運勢を生成しました (チームID: ${teamId})`);
+                } catch (teamFortuneError) {
+                  console.error(`ユーザー ${userId} のチームコンテキスト運勢生成中にエラーが発生しました (チームID: ${teamId}):`, teamFortuneError);
+                  // チームコンテキスト運勢の生成エラーは個別に記録するが、個人運勢生成の成功カウントには影響させない
+                  updateErrors.push({
+                    userId: `${userId}/${teamId}`,
+                    message: `チームコンテキスト運勢生成エラー: ${teamFortuneError instanceof Error ? teamFortuneError.message : String(teamFortuneError)}`,
+                    stack: teamFortuneError instanceof Error ? teamFortuneError.stack : undefined,
+                  });
+                }
               }
             }
+            
+            return { success: true, userId };
+          } catch (error) {
+            console.error(`ユーザー ${userId} の運勢生成中にエラーが発生しました:`, error);
+            updateErrors.push({
+              userId: String(userId), // String型に明示的に変換
+              message: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined
+            });
+            
+            return { success: false, userId, error };
           }
-          
-          return { success: true, userId };
         } catch (error) {
           // TypeScript対応のためのnullチェックとキャスト
           const userId = user._id ? String(user._id) : 'unknown';
           console.error(`ユーザー ${userId} の運勢生成中にエラーが発生しました:`, error);
           
           updateErrors.push({
-            userId,
+            userId: String(userId), // 明示的に文字列に変換
             message: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
           });
@@ -181,12 +197,32 @@ export async function updateDailyFortunes(
         }
       });
       
-      // すべての処理を待機
-      const results = await Promise.all(processingPromises);
+      // 並列処理数を制限して実行
+      // Promise.allだと同時に全てが実行され、大量のDBアクセスが発生するので
+      // 同時実行数を制限して実行する
+      console.log(`並列処理数を最大${maxConcurrent}に制限して実行します`);
+      
+      // 処理結果の配列
+      const results = [];
+      
+      // ユーザーを maxConcurrent ごとのグループに分割して処理
+      for (let i = 0; i < processingPromises.length; i += maxConcurrent) {
+        const chunk = processingPromises.slice(i, i + maxConcurrent);
+        console.log(`ユーザーグループを処理中: ${i+1}〜${Math.min(i+maxConcurrent, processingPromises.length)}/${processingPromises.length}`);
+        
+        // このチャンクのプロミスを並列実行
+        const chunkResults = await Promise.all(chunk);
+        results.push(...chunkResults);
+        
+        // わずかな遅延を入れて DB への負荷を分散
+        if (i + maxConcurrent < processingPromises.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
       
       // 結果を集計
       results.forEach(result => {
-        if (result.success) {
+        if (result && result.success) {
           successCount++;
         } else {
           failedCount++;

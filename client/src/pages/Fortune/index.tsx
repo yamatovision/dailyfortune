@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Alert, Paper, Button, Tooltip, IconButton, Snackbar } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Paper, Button, Tooltip, IconButton, Snackbar, Tab, Tabs } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FortuneCard from '../../components/fortune/FortuneCard';
 import LuckyItems from '../../components/fortune/LuckyItems';
 import FortuneDetails from '../../components/fortune/FortuneDetails';
+import TeamContextFortuneCard from '../../components/fortune/TeamContextFortuneCard';
+import TeamSelectorDropdown from '../../components/fortune/TeamSelectorDropdown';
+import TeamFortuneRanking from '../../components/fortune/TeamFortuneRanking';
 import AiConsultButton from '../../components/fortune/AiConsultButton';
 import fortuneService from '../../services/fortune.service';
-import { IFortune } from '../../../../shared';
+import { IFortune, ITeamContextFortune, IFortuneDashboardResponse } from '../../../../shared';
 import { useAuth } from '../../contexts/AuthContext';
 import './../../components/fortune/styles.css';
 
+interface Team {
+  id: string;
+  name: string;
+}
+
 const Fortune: React.FC = () => {
   const [fortune, setFortune] = useState<IFortune | null>(null);
+  const [teamContextFortune, setTeamContextFortune] = useState<ITeamContextFortune | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>('');
@@ -21,11 +30,18 @@ const Fortune: React.FC = () => {
     message: '',
     severity: 'info' as 'info' | 'success' | 'warning' | 'error'
   });
+  
+  // タブと選択チーム管理用の状態
+  const [tabValue, setTabValue] = useState<0 | 1>(0); // 0: 個人運勢, 1: チームコンテキスト運勢
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState<string>('');
+  const [loadingTeamFortune, setLoadingTeamFortune] = useState(false);
 
   // 認証コンテキストから userProfile を取得
   const { userProfile } = useAuth();
 
-  // userProfile の変更を監視して運勢データを取得
+  // userProfile の変更を監視して運勢データとチームリストを取得
   useEffect(() => {
     // ユーザープロファイルがロードされていない場合は何もしない
     if (!userProfile) {
@@ -33,22 +49,46 @@ const Fortune: React.FC = () => {
       return;
     }
 
-    const fetchFortune = async () => {
+    const fetchDashboard = async () => {
       try {
         setLoading(true);
-        console.log('認証済みユーザープロファイルでの運勢データ取得開始', { userId: userProfile.id });
-        const fortuneData = await fortuneService.getDailyFortune();
-        setFortune(fortuneData);
-        setError(null);
-
-        // 日付をフォーマット
-        const date = fortuneData.date instanceof Date 
-          ? fortuneData.date 
-          : new Date(fortuneData.date);
+        console.log('認証済みユーザープロファイルでの運勢ダッシュボード取得開始', { userId: userProfile.id });
         
-        setCurrentDate(fortuneService.formatDate(date));
+        // 統合ダッシュボードデータを取得
+        const dashboardData: IFortuneDashboardResponse = await fortuneService.getFortuneDashboard();
+        
+        // 個人運勢を設定
+        if (dashboardData.personalFortune) {
+          setFortune(dashboardData.personalFortune);
+          setError(null);
+
+          // 日付をフォーマット
+          const date = dashboardData.personalFortune.date instanceof Date 
+            ? dashboardData.personalFortune.date 
+            : new Date(dashboardData.personalFortune.date);
+          
+          setCurrentDate(fortuneService.formatDate(date));
+        }
+        
+        // チーム一覧を設定（管理者用、または所属チームがある場合）
+        if (dashboardData.teamsList && dashboardData.teamsList.length > 0) {
+          setTeams(dashboardData.teamsList);
+          
+          // デフォルトのチームコンテキスト運勢が含まれている場合は設定
+          if (dashboardData.teamContextFortune) {
+            setTeamContextFortune(dashboardData.teamContextFortune);
+            
+            // チーム名を検索して設定
+            const team = dashboardData.teamsList.find(t => t.id === dashboardData.teamContextFortune?.teamId);
+            if (team) {
+              setTeamName(team.name);
+              setSelectedTeamId(team.id);
+            }
+          }
+        }
+        
       } catch (err: any) {
-        console.error('運勢データの取得に失敗しました', err);
+        console.error('運勢ダッシュボードの取得に失敗しました', err);
         
         // エラーメッセージを設定
         if (err.response && err.response.status === 404) {
@@ -64,7 +104,7 @@ const Fortune: React.FC = () => {
           setTimeout(() => {
             // ローディング状態を維持したまま再試行フラグを設定
             setError(null);
-            fetchFortune();
+            fetchDashboard();
           }, 3000);
           return; // ここでreturnして下のfinallyブロックを実行しない
         } else {
@@ -72,15 +112,50 @@ const Fortune: React.FC = () => {
           setError('運勢データの取得に失敗しました。しばらくしてからもう一度お試しください。');
         }
         
-        // モックデータは使用しない
+        // 失敗時はデータをクリア
         setFortune(null);
+        setTeamContextFortune(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchFortune();
+    fetchDashboard();
   }, [userProfile]); // userProfileが変更されたときに再実行
+  
+  // チーム選択が変更されたときにチームコンテキスト運勢を取得
+  useEffect(() => {
+    if (!selectedTeamId || tabValue !== 1) return;
+    
+    const fetchTeamContextFortune = async () => {
+      try {
+        setLoadingTeamFortune(true);
+        
+        // チームコンテキスト運勢を取得
+        const teamFortuneData = await fortuneService.getTeamContextFortune(selectedTeamId);
+        setTeamContextFortune(teamFortuneData);
+        
+        // チーム名を設定
+        const team = teams.find(t => t.id === selectedTeamId);
+        if (team) {
+          setTeamName(team.name);
+        }
+      } catch (err) {
+        console.error(`チーム(${selectedTeamId})のコンテキスト運勢取得に失敗しました`, err);
+        setTeamContextFortune(null);
+        
+        setNotification({
+          open: true,
+          message: 'チームコンテキスト運勢の取得に失敗しました',
+          severity: 'error'
+        });
+      } finally {
+        setLoadingTeamFortune(false);
+      }
+    };
+    
+    fetchTeamContextFortune();
+  }, [selectedTeamId, tabValue, teams]);
 
   // コンテンツが読み込まれた後にアニメーションを有効化
   useEffect(() => {
@@ -98,6 +173,23 @@ const Fortune: React.FC = () => {
     }
   }, [fortune, loading]);
 
+  // タブ切り替え処理
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: 0 | 1) => {
+    setTabValue(newValue);
+  };
+  
+  // チーム選択変更処理
+  const handleTeamChange = (teamId: string | null) => {
+    setSelectedTeamId(teamId);
+    
+    // チーム選択時に自動的にチームタブに切り替え
+    if (teamId) {
+      setTabValue(1);
+    } else {
+      setTabValue(0);
+    }
+  };
+
   // 運勢情報を手動で更新
   const handleRefreshFortune = async () => {
     if (refreshing) return; // 更新中の場合は何もしない
@@ -106,28 +198,57 @@ const Fortune: React.FC = () => {
     setError(null);
     
     try {
-      // 更新前の状態を保存しておく（リカバリー用 - 現在は未使用）
-      // const previousFortune = fortune;
-      
-      // APIを呼び出して運勢を更新
-      const updatedFortune = await fortuneService.refreshDailyFortune();
-      
-      // 更新成功
-      setFortune(updatedFortune);
-      
-      // 日付をフォーマット
-      const date = updatedFortune.date instanceof Date 
-        ? updatedFortune.date 
-        : new Date(updatedFortune.date);
-      
-      setCurrentDate(fortuneService.formatDate(date));
-      
-      // 更新成功通知
-      setNotification({
-        open: true,
-        message: '今日の運勢情報を更新しました',
-        severity: 'success'
-      });
+      if (tabValue === 0) {
+        // 個人運勢の更新
+        const updatedFortune = await fortuneService.refreshDailyFortune();
+        
+        // 更新成功
+        setFortune(updatedFortune);
+        
+        // 日付をフォーマット
+        const date = updatedFortune.date instanceof Date 
+          ? updatedFortune.date 
+          : new Date(updatedFortune.date);
+        
+        setCurrentDate(fortuneService.formatDate(date));
+        
+        // 更新成功通知
+        setNotification({
+          open: true,
+          message: '今日の運勢情報を更新しました',
+          severity: 'success'
+        });
+      } else if (tabValue === 1 && selectedTeamId) {
+        // チームコンテキスト運勢の更新（手動生成エンドポイントを使用）
+        // 参考: エンドポイントの実装が完了していない場合があるため、このコードはコメントアウト
+        
+        try {
+          // 運勢ダッシュボードを再取得
+          const dashboardData = await fortuneService.getFortuneDashboard(selectedTeamId);
+          
+          if (dashboardData.teamContextFortune) {
+            setTeamContextFortune(dashboardData.teamContextFortune);
+            
+            // 更新成功通知
+            setNotification({
+              open: true,
+              message: 'チームコンテキスト運勢情報を更新しました',
+              severity: 'success'
+            });
+          } else {
+            throw new Error('チームコンテキスト運勢の取得に失敗しました');
+          }
+        } catch (teamErr) {
+          console.error('チームコンテキスト運勢の更新に失敗しました', teamErr);
+          
+          // エラー通知
+          setNotification({
+            open: true,
+            message: 'チームコンテキスト運勢の更新に失敗しました',
+            severity: 'error'
+          });
+        }
+      }
       
       // アニメーションの再トリガー
       setTimeout(() => {
@@ -307,6 +428,46 @@ const Fortune: React.FC = () => {
         </Tooltip>
       </Box>
       
+      {/* チーム選択ドロップダウン（チームが存在する場合のみ表示） */}
+      {teams.length > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+          <TeamSelectorDropdown
+            teams={teams}
+            selectedTeamId={selectedTeamId}
+            onChange={handleTeamChange}
+            disabled={loading || refreshing}
+          />
+        </Box>
+      )}
+      
+      {/* タブ切り替え（チームが選択されている場合のみ表示） */}
+      {selectedTeamId && (
+        <Box sx={{ width: '100%', mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
+            aria-label="運勢タブ"
+            centered
+            sx={{
+              '.MuiTabs-indicator': {
+                backgroundColor: 'primary.main',
+              }
+            }}
+          >
+            <Tab 
+              label="個人運勢" 
+              value={0}
+              disabled={loading || refreshing}
+            />
+            <Tab 
+              label="チームコンテキスト" 
+              value={1}
+              disabled={loading || refreshing || !selectedTeamId}
+            />
+          </Tabs>
+        </Box>
+      )}
+      
       {loading ? (
         <Box sx={{ 
           display: 'flex', 
@@ -408,75 +569,100 @@ const Fortune: React.FC = () => {
             </Alert>
           )}
         </>
-      ) : fortune ? (
+      ) : (
         <>
-          {/* 運勢カード（アニメーション付き） */}
-          <div className="animate-on-load">
-            <FortuneCard fortune={fortune} />
-          </div>
+          {/* タブに応じたコンテンツを表示 */}
+          {tabValue === 0 && fortune ? (
+            // 個人運勢タブ
+            <>
+              {/* 運勢カード（アニメーション付き） */}
+              <div className="animate-on-load">
+                <FortuneCard fortune={fortune} />
+              </div>
+              
+              {/* ラッキーアイテム（アニメーション付き） */}
+              <div className="animate-on-load">
+                <LuckyItems fortune={fortune} />
+              </div>
+              
+              {/* 運勢詳細（アニメーション付き） */}
+              <Paper 
+                elevation={1}
+                className="animate-on-load"
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  boxShadow: '0 3px 8px rgba(156, 39, 176, 0.1)',
+                  mb: 3
+                }}
+              >
+                <FortuneDetails fortune={fortune} />
+              </Paper>
+            </>
+          ) : tabValue === 1 && teamContextFortune && selectedTeamId ? (
+            // チームコンテキスト運勢タブ
+            <>
+              {loadingTeamFortune ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <>
+                  {/* チームコンテキスト運勢カード */}
+                  <div className="animate-on-load">
+                    <TeamContextFortuneCard fortune={teamContextFortune} teamName={teamName} />
+                  </div>
+                  
+                  {/* チーム運勢ランキング */}
+                  <div className="animate-on-load">
+                    <TeamFortuneRanking teamId={selectedTeamId} />
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            // データがない場合
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mt: 2,
+                  mb: 3,
+                  borderRadius: 3,
+                  maxWidth: 600,
+                  mx: 'auto'
+                }}
+              >
+                {tabValue === 0 ? '個人運勢データが見つかりません。' : 'チームコンテキスト運勢データが見つかりません。'}
+              </Alert>
+              
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={handleRefreshFortune}
+                disabled={refreshing}
+                sx={{
+                  borderRadius: 30,
+                  px: 3,
+                  py: 1,
+                  background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+                  boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
+                  '&:hover': {
+                    boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
+                  }
+                }}
+              >
+                {refreshing ? '更新中...' : '運勢情報を更新する'}
+              </Button>
+            </Box>
+          )}
           
-          {/* ラッキーアイテム（アニメーション付き） */}
-          <div className="animate-on-load">
-            <LuckyItems fortune={fortune} />
-          </div>
-          
-          {/* 運勢詳細（アニメーション付き） */}
-          <Paper 
-            elevation={1}
-            className="animate-on-load"
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              backgroundColor: 'rgba(255, 255, 255, 0.8)',
-              boxShadow: '0 3px 8px rgba(156, 39, 176, 0.1)',
-              mb: 3
-            }}
-          >
-            <FortuneDetails fortune={fortune} />
-          </Paper>
-          
-          {/* AIアシスタント相談ボタン（アニメーション付き） */}
+          {/* AIアシスタント相談ボタン - タブに関わらず常に表示 */}
           <div className="animate-on-load">
             <AiConsultButton />
           </div>
         </>
-      ) : (
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <Alert 
-            severity="warning" 
-            sx={{ 
-              mt: 2,
-              mb: 3,
-              borderRadius: 3,
-              maxWidth: 600,
-              mx: 'auto'
-            }}
-          >
-            運勢データが見つかりませんでした。四柱推命プロフィールを設定してください。
-          </Alert>
-          
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            パーソナライズされた運勢予測を受け取るには、四柱推命プロフィールの設定が必要です。
-          </Typography>
-          
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={() => window.location.reload()}
-            sx={{
-              borderRadius: 30,
-              px: 3,
-              py: 1,
-              background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
-              boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
-              '&:hover': {
-                boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
-              }
-            }}
-          >
-            四柱推命プロフィールを設定する
-          </Button>
-        </Box>
       )}
     </Box>
   );

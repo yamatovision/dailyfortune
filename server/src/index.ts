@@ -24,6 +24,7 @@ import { requestTracer, requestLogger, errorLogger } from './utils/logger/middle
 
 // ルーターのインポート
 import authRoutes from './routes/auth.routes';
+import jwtAuthRoutes from './routes/jwt-auth.routes';
 import adminRoutes from './routes/admin.routes';
 import dayPillarRoutes from './routes/day-pillar.routes';
 import publicEndpointsRoutes from './routes/public-endpoints.routes';
@@ -42,6 +43,10 @@ import {
   jsonErrorHandler
 } from './middleware/security.middleware';
 
+// 認証ミドルウェアのインポート
+import { hybridAuthenticate, requireAdmin, requireSuperAdmin } from './middleware/hybrid-auth.middleware';
+import { jwtEdgeCaseHandler, refreshTokenReuseDetector, networkRecoveryHandler } from './middleware/jwt-edge-case-handler.middleware';
+
 // 型定義のインポート (共有ディレクトリから)
 import { API_BASE_PATH } from './types/index';
 
@@ -59,6 +64,9 @@ app.use(express.json()); // JSON解析
 app.use(jsonErrorHandler); // JSON解析エラーハンドラー
 app.use(sanitizeMongo); // NoSQLインジェクション対策
 
+// ネットワーク回復処理
+app.use(networkRecoveryHandler);
+
 // 基本的なレート制限を適用
 app.use(apiLimiter);
 
@@ -74,6 +82,12 @@ app.get(`${API_BASE_PATH}/status`, (req: Request, res: Response) => {
 
 // 認証ルーターには厳しいレート制限を適用
 app.use(`${API_BASE_PATH}/auth`, authLimiter, authRoutes);
+
+// JWT認証ルーターを設定（リフレッシュトークン再利用検出付き）
+app.use(`${API_BASE_PATH}/jwt-auth`, authLimiter, refreshTokenReuseDetector, jwtAuthRoutes);
+
+// JWT のエッジケースハンドラーを保護されたルートに適用
+app.use(`${API_BASE_PATH}`, jwtEdgeCaseHandler);
 
 // 管理者ルーターを設定
 app.use(`${API_BASE_PATH}/admin`, adminRoutes);
