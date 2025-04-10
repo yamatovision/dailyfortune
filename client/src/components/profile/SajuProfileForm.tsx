@@ -35,6 +35,7 @@ interface SajuProfileFormProps {
     birthplaceCoordinates?: GeoCoordinates;
     localTimeOffset?: number;
     gender?: Gender;
+    goal?: string;
   };
   isLoading?: boolean;
 }
@@ -64,6 +65,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
   
   const [birthPlace, setBirthPlace] = useState(initialData?.birthPlace || '東京都');
   const [gender, setGender] = useState<string>(initialData?.gender || 'M');
+  const [goal, setGoal] = useState<string>(initialData?.goal || '');
   const [birthplaceCoordinates, setBirthplaceCoordinates] = useState<GeoCoordinates | undefined>(
     initialData?.birthplaceCoordinates
   );
@@ -81,7 +83,8 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
     birthTime: '',
     birthPlace: '',
     gender: '',
-    coordinates: ''
+    coordinates: '',
+    goal: ''
   });
 
   const [showDebugInfo, setShowDebugInfo] = useState(false);
@@ -259,7 +262,8 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
       birthPlace: birthPlace || '東京都',
       gender: gender || 'M',
       birthplaceCoordinates: birthplaceCoordinates,
-      localTimeOffset: localTimeOffset !== null ? localTimeOffset : undefined
+      localTimeOffset: localTimeOffset !== null ? localTimeOffset : undefined,
+      goal: goal
     };
     
     // デバッグログの強化
@@ -491,6 +495,25 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
                     </Box>
                   </Box>
                 ) : null}
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="個人目標"
+                  name="goal"
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  multiline
+                  rows={3}
+                  error={!!errors.goal}
+                  helperText={errors.goal || "あなたの目標を設定してください。デイリー運勢と連携して、目標達成に役立つアドバイスが提供されます。"}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      borderRadius: 2,
+                    }
+                  }}
+                />
               </Grid>
               
               <Grid item xs={12}>

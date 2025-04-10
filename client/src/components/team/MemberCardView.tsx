@@ -50,6 +50,7 @@ interface MemberCardViewProps {
 
 const MemberCardView: React.FC<MemberCardViewProps> = ({ teamId, userId, onClose, isDialog = false }) => {
   const [loading, setLoading] = useState<boolean>(true);
+  const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [cardData, setCardData] = useState<any>(null);
 
@@ -58,26 +59,75 @@ const MemberCardView: React.FC<MemberCardViewProps> = ({ teamId, userId, onClose
       try {
         setLoading(true);
         const data = await teamService.getMemberCard(teamId, userId);
-        setCardData(data);
-        setError(null);
+        
+        // カルテ生成中の場合
+        if (data.isGenerating) {
+          setGenerating(true);
+          
+          // カルテが生成されるまで5秒ごとにポーリング
+          const intervalId = setInterval(async () => {
+            try {
+              console.log('カルテ生成状況を確認中...');
+              const updatedData = await teamService.getMemberCard(teamId, userId);
+              
+              // 生成完了した場合
+              if (!updatedData.isGenerating) {
+                setCardData(updatedData);
+                setGenerating(false);
+                setLoading(false);
+                clearInterval(intervalId);
+              }
+            } catch (pollingErr) {
+              console.error('カルテポーリング中のエラー:', pollingErr);
+              // エラーが発生しても即座に停止せず、次のポーリングを待つ
+            }
+          }, 5000);
+          
+          // コンポーネントのクリーンアップ時にインターバルをクリア
+          return () => clearInterval(intervalId);
+        } else {
+          setCardData(data);
+          setGenerating(false);
+          setError(null);
+        }
       } catch (err) {
         console.error('Failed to fetch member card:', err);
         setError('メンバーカルテの取得に失敗しました');
       } finally {
-        setLoading(false);
+        if (!generating) {
+          setLoading(false);
+        }
       }
     };
 
     if (teamId && userId) {
       fetchMemberCard();
     }
+    
+    // コンポーネントのアンマウント時にクリーンアップ
+    return () => {
+      // このスコープの外でインターバルが設定されてる場合は、ここでは何もしない
+    };
   }, [teamId, userId]);
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && !generating) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
           <CircularProgress />
+        </Box>
+      );
+    }
+    
+    if (generating) {
+      return (
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={40} sx={{ mb: 2 }} />
+          <Typography variant="h6">カルテを生成中です</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            AIが四柱推命データに基づいてカルテを生成しています。
+            このプロセスには数分かかることがあります。
+          </Typography>
         </Box>
       );
     }

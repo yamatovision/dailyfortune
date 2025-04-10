@@ -1,56 +1,97 @@
-/**
- * チーム情報確認スクリプト
- */
 const mongoose = require('mongoose');
-const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config();
 
-// 環境変数のロード
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
-
-// データベース接続
-const databaseUri = process.env.DATABASE_URI || 'mongodb+srv://lisence:FhpQAu5UPwjm0L1J@motherprompt-cluster.np3xp.mongodb.net/dailyfortune';
-console.log('Connecting to MongoDB...');
-
-mongoose.connect(databaseUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('Connected to MongoDB successfully'))
-.catch(err => {
-  console.error('Failed to connect to MongoDB:', err);
-  process.exit(1);
-});
-
-// チームスキーマ
-const TeamSchema = new mongoose.Schema({}, { strict: false });
-const Team = mongoose.model('Team', TeamSchema, 'teams');
-
-// チーム情報を取得して表示する関数
-const displayTeamInfo = async () => {
+async function checkTeamInfo() {
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://lisence:FhpQAu5UPwjm0L1J@motherprompt-cluster.np3xp.mongodb.net/dailyfortune';
+  const DB_NAME = process.env.DB_NAME || 'dailyfortune';
+  
+  if (!MONGODB_URI) {
+    console.error('MONGODB_URI environment variable is not set');
+    return;
+  }
+  
+  console.log('Using MongoDB URI:', MONGODB_URI);
+  
   try {
-    // チーム一覧を取得
-    const teams = await Team.find();
-    
-    console.log(`Total teams in database: ${teams.length}`);
-    
-    // 各チームの情報を表示
-    teams.forEach((team, index) => {
-      console.log(`\nTeam ${index + 1}:`);
-      console.log(`  ID: ${team._id}`);
-      console.log(`  Name: ${team.name}`);
-      console.log(`  Admin ID: ${team.adminId}`);
-      console.log(`  Description: ${team.description || 'None'}`);
-      console.log(`  Fields: ${Object.keys(team.toObject()).join(', ')}`);
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(MONGODB_URI, {
+      dbName: DB_NAME
     });
+    console.log('Connected to MongoDB successfully');
     
-  } catch (error) {
-    console.error('Error retrieving team information:', error);
-  } finally {
-    // データベース接続を閉じる
+    // Define schemas
+    const UserSchema = new mongoose.Schema({}, { strict: false });
+    const TeamSchema = new mongoose.Schema({}, { strict: false });
+    
+    // Define models
+    const User = mongoose.models.User || mongoose.model('User', UserSchema);
+    const Team = mongoose.models.Team || mongoose.model('Team', TeamSchema);
+    
+    // チームの総数を確認
+    const teamCount = await Team.countDocuments();
+    console.log(`\nTotal teams in database: ${teamCount}`);
+
+    // すべてのチームを取得
+    const allTeams = await Team.find().lean();
+    console.log('\nAll teams:');
+    allTeams.forEach((team, index) => {
+      console.log(`  ${index + 1}. ID: ${team._id} - Name: ${team.name} - Admin: ${team.adminId}`);
+    });
+
+    // 特定のチームIDを検索
+    const teamIdToCheck = '67f4fe4bfe04b371f21576f7';
+    console.log(`\nChecking for team with ID: ${teamIdToCheck}`);
+    try {
+      const specificTeam = await Team.findById(teamIdToCheck).lean();
+      if (specificTeam) {
+        console.log('Team found:');
+        console.log('  ID:', specificTeam._id);
+        console.log('  Name:', specificTeam.name);
+        console.log('  Admin ID:', specificTeam.adminId);
+        console.log('  Created At:', specificTeam.createdAt);
+      } else {
+        console.log(`No team found with ID: ${teamIdToCheck}`);
+      }
+    } catch (error) {
+      console.log('Error searching for team:', error.message);
+    }
+
+    // ユーザー確認
+    const userEmail = "shiraishi.tatsuya@mikoto.co.jp";
+    console.log(`\nChecking user with email: ${userEmail}`);
+    const user = await User.findOne({ email: userEmail }).lean();
+    
+    if (user) {
+      console.log('User found:');
+      console.log('  ID:', user._id);
+      console.log('  Firebase UID:', user.uid);
+      console.log('  Email:', user.email);
+      console.log('  Team ID:', user.teamId || 'No team assigned');
+      
+      // ユーザーに関連付けられたチームがあれば詳細を表示
+      if (user.teamId) {
+        const userTeam = await Team.findById(user.teamId).lean();
+        if (userTeam) {
+          console.log('\nUser\'s team details:');
+          console.log('  ID:', userTeam._id);
+          console.log('  Name:', userTeam.name);
+          console.log('  Admin ID:', userTeam.adminId);
+          console.log('  Is User Admin:', userTeam.adminId === user.uid || userTeam.adminId === user._id);
+        } else {
+          console.log(`\nUser has team ID ${user.teamId} but no corresponding team found`);
+        }
+      }
+    } else {
+      console.log(`No user found with email: ${userEmail}`);
+    }
+    
+    // Disconnect
     await mongoose.disconnect();
     console.log('\nDisconnected from MongoDB');
+  } catch (error) {
+    console.error('Error:', error);
   }
-};
+}
 
-// 実行
-displayTeamInfo();
+checkTeamInfo();

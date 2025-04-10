@@ -48,11 +48,6 @@ export const getMemberCard = async (req: AuthRequest, res: Response) => {
     // 既存のカルテを検索
     let memberCard = await TeamMemberCard.findOne({ teamId, userId });
     
-    // カルテが存在しない場合、または更新が必要な場合は生成する
-    if (!memberCard) {
-      memberCard = await generateMemberCard(teamId, userId, user, teamGoal);
-    }
-    
     // ユーザー情報（四柱推命データを含む）を準備
     const userIdStr = typeof user._id === 'object' && user._id !== null ? 
                      user._id.toString() : userId.toString();
@@ -72,10 +67,34 @@ export const getMemberCard = async (req: AuthRequest, res: Response) => {
       } : { day: { heavenlyStem: '甲', earthlyBranch: '子' } }
     };
     
-    // レスポンスを返す
+    // カルテが存在しない場合、または更新が必要な場合
+    if (!memberCard) {
+      // 生成中のステータスを返す
+      console.log(`カルテが存在しないため生成開始: teamId=${teamId}, userId=${userId}`);
+      
+      // バックグラウンドでカルテ生成を開始
+      generateMemberCard(teamId, userId, user, teamGoal).catch(err => 
+        console.error('バックグラウンドでのカルテ生成エラー:', err)
+      );
+      
+      // 生成中のステータスを返す
+      return res.status(202).json({
+        userInfo,
+        isGenerating: true,
+        message: 'カルテを生成中です。しばらくお待ちください。',
+        teamGoal: teamGoal ? {
+          content: teamGoal.content,
+          deadline: teamGoal.deadline
+        } : null,
+        lastUpdated: new Date()
+      });
+    }
+    
+    // 既存のカルテがある場合は通常通り返す
     return res.status(200).json({
       userInfo,
       cardContent: memberCard.cardContent,
+      isGenerating: false,
       teamGoal: teamGoal ? {
         content: teamGoal.content,
         deadline: teamGoal.deadline

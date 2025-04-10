@@ -66,11 +66,9 @@ export class FortuneController {
         return;
       }
 
-      // 管理者権限のチェック（通常、別のミドルウェアで行うべき）
-      if (req.user?.role !== 'SuperAdmin' && req.user?.role !== 'Admin') {
-        res.status(403).json({ error: 'この操作には管理者権限が必要です' });
-        return;
-      }
+      // 管理者権限チェックは削除 - 一般ユーザーでも利用可能に
+      // 頻繁に更新されるのを防ぐための制限（1日1回まで）
+      // 1日1回制限は必要に応じて実装を検討
 
       // 日付パラメータの取得（指定がなければ今日の日付）
       const dateParam = req.body.date || req.query.date;
@@ -84,13 +82,42 @@ export class FortuneController {
         }
       }
 
+      // 強制更新フラグの取得
+      const forceUpdate = req.body.forceUpdate === true;
+
+      // 既存の運勢データがあるか確認
+      const existingFortune = await DailyFortune.findOne({
+        userId,
+        date: {
+          $gte: new Date(targetDate.setHours(0, 0, 0, 0)),
+          $lt: new Date(targetDate.setHours(23, 59, 59, 999))
+        }
+      });
+
+      // 既に運勢データがあり、強制更新フラグがない場合
+      if (existingFortune && !forceUpdate) {
+        res.status(200).json({
+          ...existingFortune.toObject(),
+          message: '今日の運勢データは既に生成されています'
+        });
+        return;
+      }
+
       // 運勢の生成
       const fortune = await fortuneService.generateFortune(userId, targetDate);
-      res.status(201).json(fortune);
+      res.status(201).json({
+        ...fortune,
+        message: existingFortune ? '運勢データを更新しました' : '新しい運勢データを生成しました'
+      });
     } catch (error: any) {
       console.error('運勢生成エラー:', error);
       if (error.message.includes('見つかりません')) {
         res.status(404).json({ error: error.message });
+      } else if (error.message.includes('四柱推命情報')) {
+        res.status(400).json({ 
+          error: error.message, 
+          code: 'MISSING_SAJU_PROFILE'
+        });
       } else {
         res.status(500).json({ error: 'サーバーエラーが発生しました' });
       }

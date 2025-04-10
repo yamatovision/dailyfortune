@@ -63,8 +63,7 @@ class FortuneService {
     // 四柱推命情報更新後の運勢更新は、サーバーサイドで生成
     try {
       // 運勢更新APIを呼び出して最新データを生成（存在する場合は上書き）
-      // '/update-fortune'エンドポイントを使用（UPDATE_ALL_FORTUNESは未実装のため）
-      const response = await apiService.post('/api/v1/fortune/update-fortune', {
+      const response = await apiService.post(FORTUNE.UPDATE_FORTUNE, {
         forceUpdate: true
       });
       
@@ -75,12 +74,27 @@ class FortuneService {
         return response.data;
       }
     } catch (error) {
-      console.warn('サーバーサイドでの運勢更新に失敗しました。代わりに通常のフェッチを行います:', error);
-      // エラーが発生した場合は通常の取得を試行
+      console.warn('サーバーサイドでの運勢更新に失敗しました:', error);
+      // エラーをそのまま上位に伝播させる
+      throw error;
     }
     
-    // 通常の運勢取得
+    // 通常の運勢取得（エラー時のフォールバックは呼び出し側で処理）
     return this.getDailyFortune();
+  }
+  
+  /**
+   * 運勢データを手動で生成する
+   * 四柱推命プロフィールが必要
+   */
+  async generateFortune(): Promise<IFortune> {
+    try {
+      const response = await apiService.post(FORTUNE.UPDATE_FORTUNE);
+      return response.data;
+    } catch (error) {
+      console.error('運勢データの生成に失敗しました', error);
+      throw error;
+    }
   }
 
   /**

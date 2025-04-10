@@ -35,19 +35,24 @@ const Fortune: React.FC = () => {
           : new Date(fortuneData.date);
         
         setCurrentDate(fortuneService.formatDate(date));
-      } catch (err) {
+      } catch (err: any) {
         console.error('運勢データの取得に失敗しました', err);
         
         // エラーメッセージを設定
-        setError('運勢データの取得に失敗しました。しばらくしてからもう一度お試しください。');
-        
-        // デモ用：エラー時はモックデータを使用
-        if (process.env.NODE_ENV !== 'production') {
-          const mockFortune = fortuneService.generateMockFortune();
-          setFortune(mockFortune);
-          setCurrentDate(fortuneService.formatDate(mockFortune.date));
-          setError(null); // エラー状態を解除
+        if (err.response && err.response.status === 404) {
+          // 運勢データがない場合は特定のエラータイプを設定（後でボタン表示の判断に使用）
+          setError('FORTUNE_NOT_FOUND');
+        } else if (err.response && err.response.status === 400 && 
+                 err.response.data && err.response.data.code === 'MISSING_SAJU_PROFILE') {
+          // 四柱推命プロフィールがない場合
+          setError('SAJU_PROFILE_REQUIRED');
+        } else {
+          // その他のエラー
+          setError('運勢データの取得に失敗しました。しばらくしてからもう一度お試しください。');
         }
+        
+        // モックデータは使用しない
+        setFortune(null);
       } finally {
         setLoading(false);
       }
@@ -123,10 +128,14 @@ const Fortune: React.FC = () => {
       // エラー種別に応じたメッセージ
       if (err.response && err.response.status === 404) {
         errorMessage += '四柱推命情報が不足しているか、運勢データが見つかりません。プロフィール設定を確認してください。';
-        setError(errorMessage);
+        setError('FORTUNE_NOT_FOUND');
       } else if (err.response && err.response.status === 401) {
         errorMessage += '認証エラーが発生しました。再ログインしてください。';
         setError(errorMessage);
+      } else if (err.response && err.response.status === 400 && 
+                err.response.data && err.response.data.code === 'MISSING_SAJU_PROFILE') {
+        errorMessage += '四柱推命プロフィールが必要です。プロフィール設定を完了してください。';
+        setError('SAJU_PROFILE_REQUIRED');
       } else {
         errorMessage += 'しばらくしてからもう一度お試しください。';
         setError(errorMessage);
@@ -140,6 +149,88 @@ const Fortune: React.FC = () => {
       });
     } finally {
       setRefreshing(false);
+    }
+  };
+  
+  // 運勢データを手動で生成
+  const handleGenerateFortune = async () => {
+    if (refreshing) return; // 更新中の場合は何もしない
+    
+    setRefreshing(true);
+    setLoading(true); // ローディング状態にして、処理中はローディング画面を表示
+    setError(null);
+    
+    try {
+      // 運勢生成APIを呼び出し
+      const newFortune = await fortuneService.generateFortune();
+      
+      // 生成成功
+      setFortune(newFortune);
+      
+      // 日付をフォーマット
+      const date = newFortune.date instanceof Date 
+        ? newFortune.date 
+        : new Date(newFortune.date);
+      
+      setCurrentDate(fortuneService.formatDate(date));
+      
+      // 成功通知
+      setNotification({
+        open: true,
+        message: '今日の運勢データを生成しました',
+        severity: 'success'
+      });
+      
+      // ローディング状態を解除
+      setLoading(false);
+      
+      // アニメーションのトリガー
+      setTimeout(() => {
+        const sections = document.querySelectorAll('.animate-on-load');
+        sections.forEach((section, index) => {
+          setTimeout(() => {
+            section.classList.add('animated-section');
+          }, 50 + index * 100);
+        });
+      }, 300);
+      
+    } catch (err: any) {
+      console.error('運勢データの生成に失敗しました', err);
+      
+      // エラーメッセージの詳細化
+      let errorMessage = '運勢データの生成に失敗しました。';
+      
+      // エラー種別に応じたメッセージ
+      if (err.response && err.response.status === 400 && 
+          err.response.data && err.response.data.code === 'MISSING_SAJU_PROFILE') {
+        errorMessage += '四柱推命プロフィールの設定が必要です。';
+        
+        // プロフィールがないので、対応するUIを表示するためにエラーステートを設定
+        // しかしローディング中は維持したままにして、UIの切り替わりを遅延させる
+        setTimeout(() => {
+          setError('SAJU_PROFILE_REQUIRED');
+          setLoading(false); // ここでローディングを終了
+        }, 500); // 少し遅延させてローディング表示を維持
+        
+      } else if (err.response && err.response.status === 401) {
+        errorMessage += '認証エラーが発生しました。再ログインしてください。';
+        setError(errorMessage);
+        setLoading(false);
+      } else {
+        errorMessage += 'しばらくしてからもう一度お試しください。';
+        setError(errorMessage);
+        setLoading(false);
+      }
+      
+      // 生成失敗通知
+      setNotification({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
+      });
+    } finally {
+      setRefreshing(false);
+      // loadingはエラーハンドリング内で管理するため、ここではクリアしない
     }
   };
   
@@ -205,15 +296,97 @@ const Fortune: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <Alert 
-          severity="error" 
-          sx={{ 
-            mt: 2,
-            borderRadius: 3
-          }}
-        >
-          {error}
-        </Alert>
+        <>
+          {error === 'FORTUNE_NOT_FOUND' ? (
+            <Box sx={{ p: 3, textAlign: 'center' }}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  mt: 2,
+                  mb: 3,
+                  borderRadius: 3,
+                  maxWidth: 600,
+                  mx: 'auto'
+                }}
+              >
+                今日の運勢データはまだ生成されていません。「運勢を生成する」ボタンをクリックして、今日の運勢を確認しましょう。
+              </Alert>
+              
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={handleGenerateFortune}
+                disabled={refreshing}
+                size="large"
+                startIcon={refreshing ? <CircularProgress size={20} color="inherit" /> : null}
+                sx={{
+                  borderRadius: 30,
+                  px: 4,
+                  py: 1.5,
+                  background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+                  boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
+                  '&:hover': {
+                    boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
+                  }
+                }}
+              >
+                {refreshing ? '生成中...' : '今日の運勢を生成する'}
+              </Button>
+              
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 3, maxWidth: 500, mx: 'auto' }}>
+                運勢データは通常、深夜に自動生成されますが、手動で生成することもできます。
+                生成には四柱推命プロフィール情報が必要です。
+              </Typography>
+            </Box>
+          ) : error === 'SAJU_PROFILE_REQUIRED' ? (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Alert 
+                severity="warning" 
+                sx={{ 
+                  mt: 2,
+                  mb: 3,
+                  borderRadius: 3,
+                  maxWidth: 600,
+                  mx: 'auto'
+                }}
+              >
+                運勢データの生成には四柱推命プロフィールの設定が必要です。
+              </Alert>
+              
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                パーソナライズされた運勢予測を受け取るには、四柱推命プロフィールの設定が必要です。
+              </Typography>
+              
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={() => window.location.href = "/profile"}
+                sx={{
+                  borderRadius: 30,
+                  px: 3,
+                  py: 1,
+                  background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+                  boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
+                  '&:hover': {
+                    boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
+                  }
+                }}
+              >
+                四柱推命プロフィールを設定する
+              </Button>
+            </Box>
+          ) : (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mt: 2,
+                borderRadius: 3
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+        </>
       ) : fortune ? (
         <>
           {/* 運勢カード（アニメーション付き） */}

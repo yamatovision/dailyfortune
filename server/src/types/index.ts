@@ -106,6 +106,7 @@ export const FORTUNE = {
   GET_USER_FORTUNE: (userId: string) => `${API_BASE_PATH}/fortune/user/${userId}`,
   GET_TEAM_FORTUNE_RANKING: (teamId: string) => `${API_BASE_PATH}/fortune/team/${teamId}/ranking`,
   UPDATE_ALL_FORTUNES: `${API_BASE_PATH}/fortune/update-all`, // SuperAdmin専用
+  UPDATE_FORTUNE: `${API_BASE_PATH}/fortune/update-fortune`, // 個人運勢の更新・生成
 };
 
 // ========== AIチャット関連 ==========
