@@ -155,7 +155,18 @@ describe('チームコンテキスト運勢バッチ処理の実データテス�
           plan: 'lite', // 必須フィールド
           isActive: true,
           elementAttribute: ['wood', 'fire', 'earth', 'metal', 'water'][i % 5],
-          jobTitle: ['エンジニア', 'デザイナー', 'マネージャー'][i % 3]
+          jobTitle: ['エンジニア', 'デザイナー', 'マネージャー'][i % 3],
+          // 位置情報データを追加（バリデーションエラー対策）
+          extendedLocation: {
+            name: '東京都中央区',
+            country: 'JP',
+            state: '東京都',
+            city: '中央区',
+            coordinates: {
+              latitude: 35.6812,
+              longitude: 139.7671
+            }
+          }
         }));
       }
       
@@ -645,7 +656,19 @@ describe('チームコンテキスト運勢バッチ処理の実データテス�
         role: 'User',
         plan: 'lite',
         isActive: true,
-        teamId: additionalTeam._id // 全員同じチームに所属
+        elementAttribute: ['wood', 'fire', 'earth', 'metal', 'water'][i % 5],
+        teamId: additionalTeam._id, // 全員同じチームに所属
+        // 位置情報データを追加（バリデーションエラー対策）
+        extendedLocation: {
+          name: '東京都中央区',
+          country: 'JP',
+          state: '東京都',
+          city: '中央区',
+          coordinates: {
+            latitude: 35.6812,
+            longitude: 139.7671
+          }
+        }
       }));
     }
     
