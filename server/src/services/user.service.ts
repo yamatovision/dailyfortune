@@ -112,6 +112,7 @@ export class UserService {
         _id: userRecord.uid, // FirebaseのUIDをそのまま使用
         uid: userRecord.uid, // UIDも保存
         email: data.email,
+        password: data.password, // パスワードも保存（ハッシュ化される）
         displayName: data.displayName,
         role: userRole,
         plan: userPlan,
