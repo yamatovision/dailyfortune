@@ -37,28 +37,46 @@ const SajuProfileSection: React.FC = () => {
             fourPillars: {
               year: { 
                 heavenlyStem: userProfile.fourPillars?.year?.heavenlyStem || '',
-                earthlyBranch: userProfile.fourPillars?.year?.earthlyBranch || ''
+                earthlyBranch: userProfile.fourPillars?.year?.earthlyBranch || '',
+                // TypeScriptエラー修正: ISajuProfileに合わせて拡張プロパティは追加しない
+                // heavenlyStemTenGod: userProfile.fourPillars?.year?.heavenlyStemTenGod || '',
+                // earthlyBranchTenGod: userProfile.fourPillars?.year?.earthlyBranchTenGod || '',
+                // hiddenStems: userProfile.fourPillars?.year?.hiddenStems || []
               },
               month: { 
                 heavenlyStem: userProfile.fourPillars?.month?.heavenlyStem || '',
                 earthlyBranch: userProfile.fourPillars?.month?.earthlyBranch || ''
+                // TypeScriptエラー修正: ISajuProfileに合わせて拡張プロパティは追加しない
+                // heavenlyStemTenGod: userProfile.fourPillars?.month?.heavenlyStemTenGod || '',
+                // earthlyBranchTenGod: userProfile.fourPillars?.month?.earthlyBranchTenGod || '',
+                // hiddenStems: userProfile.fourPillars?.month?.hiddenStems || []
               },
               day: { 
                 heavenlyStem: userProfile.fourPillars?.day?.heavenlyStem || '',
                 earthlyBranch: userProfile.fourPillars?.day?.earthlyBranch || ''
+                // TypeScriptエラー修正: ISajuProfileに合わせて拡張プロパティは追加しない
+                // heavenlyStemTenGod: userProfile.fourPillars?.day?.heavenlyStemTenGod || '',
+                // earthlyBranchTenGod: userProfile.fourPillars?.day?.earthlyBranchTenGod || '',
+                // hiddenStems: userProfile.fourPillars?.day?.hiddenStems || []
               },
               hour: { 
                 heavenlyStem: userProfile.fourPillars?.hour?.heavenlyStem || '',
                 earthlyBranch: userProfile.fourPillars?.hour?.earthlyBranch || ''
+                // TypeScriptエラー修正: ISajuProfileに合わせて拡張プロパティは追加しない
+                // heavenlyStemTenGod: userProfile.fourPillars?.hour?.heavenlyStemTenGod || '',
+                // earthlyBranchTenGod: userProfile.fourPillars?.hour?.earthlyBranchTenGod || '',
+                // hiddenStems: userProfile.fourPillars?.hour?.hiddenStems || []
               }
             },
             elementProfile: {
-              wood: userProfile.elementProfile?.wood || 0,
-              fire: userProfile.elementProfile?.fire || 0,
-              earth: userProfile.elementProfile?.earth || 0,
-              metal: userProfile.elementProfile?.metal || 0,
-              water: userProfile.elementProfile?.water || 0
+              wood: userProfile.elementProfile?.wood || 20,
+              fire: userProfile.elementProfile?.fire || 20,
+              earth: userProfile.elementProfile?.earth || 20,
+              metal: userProfile.elementProfile?.metal || 20,
+              water: userProfile.elementProfile?.water || 20
             },
+            kakukyoku: userProfile.kakukyoku,
+            yojin: userProfile.yojin,
             personalityDescription: userProfile.personalityDescription || '',
             careerAptitude: userProfile.careerAptitude || '',
             createdAt: userProfile.createdAt || new Date(),

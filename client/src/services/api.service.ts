@@ -177,8 +177,10 @@ class ApiService {
             if (!config.headers?._retry) {
               // リフレッシュトークンの不一致エラーを特定
               const isTokenMismatch = 
-                error.response?.data?.message === 'リフレッシュトークンが一致しません' ||
-                error.response?.data?.message === 'トークンバージョンが一致しません';
+                error.response?.data && (
+                  (error.response.data as any)?.message === 'リフレッシュトークンが一致しません' ||
+                  (error.response.data as any)?.message === 'トークンバージョンが一致しません'
+                );
               
               // リフレッシュトークンの不一致の場合は再試行せずに早期リターン
               if (isTokenMismatch && 
