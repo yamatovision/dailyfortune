@@ -112,20 +112,66 @@ class JwtAuthServiceImpl implements JwtAuthService {
         return false;
       }
       
-      const response = await apiService.post(JWT_AUTH.REFRESH_TOKEN, { refreshToken });
+      // デバッグ用にリフレッシュトークンの一部を表示（セキュリティのため完全なトークンは表示しない）
+      const tokenPreview = refreshToken.substring(0, 10) + '...' + refreshToken.substring(refreshToken.length - 10);
+      console.log(`リフレッシュトークン使用: ${tokenPreview} (長さ: ${refreshToken.length})`);
+      
+      // カスタムヘッダーを追加して、リクエストを直接送信
+      // 通常のAPIサービスのインターセプターをバイパスしてトークン更新の循環を防ぐ
+      const axios = (await import('axios')).default;
+      const baseURL = import.meta.env.PROD 
+        ? import.meta.env.VITE_API_URL 
+        : '';
+      
+      console.log('リフレッシュトークンリクエスト送信中...');
+      const response = await axios({
+        method: 'post',
+        url: `${baseURL}${JWT_AUTH.REFRESH_TOKEN}`,
+        data: { refreshToken },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Direct-Refresh': 'true' // カスタムヘッダーを追加して直接リフレッシュを示す
+        }
+      });
+      
+      console.log('リフレッシュレスポンス受信:', response.status);
       
       if (response.status === 200 && response.data.tokens) {
         const { accessToken, refreshToken: newRefreshToken } = response.data.tokens;
         
+        // 新しいトークンの一部をログに出力（デバッグ用）
+        const newTokenPreview = newRefreshToken.substring(0, 10) + '...' + newRefreshToken.substring(newRefreshToken.length - 10);
+        console.log(`新しいリフレッシュトークン受信: ${newTokenPreview} (長さ: ${newRefreshToken.length})`);
+        
         // 新しいトークンをローカルストレージに保存
         tokenService.setTokens(accessToken, newRefreshToken);
+        console.log('新しいトークンを保存しました');
         
         return true;
       } else {
+        console.warn('リフレッシュレスポンスにトークンが含まれていません');
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('トークンリフレッシュエラー:', error);
+      
+      // リフレッシュトークンの不一致エラーを特定して自動修復を試みる
+      if (error.response?.status === 401 && 
+          (error.response?.data?.message === 'リフレッシュトークンが一致しません' ||
+           error.response?.data?.message === 'トークンバージョンが一致しません')) {
+        
+        console.warn('リフレッシュトークンの不一致を検出、自動修復を試みます...');
+        
+        // リフレッシュトークンをクリアして次回ログイン時に再取得させる
+        tokenService.clearTokens();
+        
+        // ページを再読み込みして再認証を促す
+        // 注意: この部分はUIで適切に処理すべきですが、緊急対応として実装
+        setTimeout(() => {
+          window.location.href = '/login?expired=true';
+        }, 500);
+      }
+      
       return false;
     }
   }

@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { 
   Box, 
   Container, 
@@ -12,7 +12,7 @@ import {
   Alert
 } from '@mui/material';
 import { Email, Lock, Psychology } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
@@ -20,8 +20,25 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, currentUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // トークン期限切れ時のメッセージを表示
+  useEffect(() => {
+    // クエリパラメータを確認
+    const params = new URLSearchParams(location.search);
+    const expired = params.get('expired');
+    
+    if (expired === 'true') {
+      setError('セッションの有効期限が切れたか、トークンの不一致が発生しました。再度ログインしてください。');
+    }
+    
+    // 既にログイン済みの場合はリダイレクト
+    if (currentUser) {
+      navigate('/fortune');
+    }
+  }, [currentUser, navigate, location.search]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

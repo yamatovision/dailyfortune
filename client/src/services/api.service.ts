@@ -52,6 +52,15 @@ class ApiService {
         const traceId = generateTraceId();
         config.headers['X-Trace-ID'] = traceId;
         
+        // 直接リフレッシュリクエストの場合、リフレッシュ処理をスキップ
+        if (config.headers['X-Direct-Refresh']) {
+          if (this.isDebugMode) {
+            console.log('🔄 直接リフレッシュリクエスト - 追加処理をスキップします');
+          }
+          this.logRequest(config, traceId);
+          return config;
+        }
+        
         // 現在の認証モードを取得
         const authMode = authManager.getCurrentAuthMode();
         
@@ -60,10 +69,15 @@ class ApiService {
           let accessToken = tokenService.getAccessToken();
           
           if (accessToken) {
-            // トークンの有効期限が近い場合は更新を試みる
-            await authManager.refreshJwtTokenIfNeeded();
-            // 最新のトークンを取得
-            accessToken = tokenService.getAccessToken();
+            // JWT更新エンドポイントへのリクエストの場合は更新チェックをスキップ
+            const isTokenRefreshRequest = config.url?.includes('/jwt-auth/refresh-token');
+            
+            if (!isTokenRefreshRequest) {
+              // トークンの有効期限が近い場合は更新を試みる
+              await authManager.refreshJwtTokenIfNeeded();
+              // 最新のトークンを取得
+              accessToken = tokenService.getAccessToken();
+            }
             
             if (accessToken) {
               config.headers['Authorization'] = `Bearer ${accessToken}`;
@@ -161,6 +175,29 @@ class ApiService {
             // リクエスト設定の存在確認と再試行フラグ確認
             const config = error.config;
             if (!config.headers?._retry) {
+              // リフレッシュトークンの不一致エラーを特定
+              const isTokenMismatch = 
+                error.response?.data?.message === 'リフレッシュトークンが一致しません' ||
+                error.response?.data?.message === 'トークンバージョンが一致しません';
+              
+              // リフレッシュトークンの不一致の場合は再試行せずに早期リターン
+              if (isTokenMismatch && 
+                  config.url?.includes('/jwt-auth/refresh-token')) {
+                console.warn('⚠️ リフレッシュトークン不一致エラー: 再認証が必要です');
+                
+                // リフレッシュトークンをクリアして次回ログイン時に再取得させる
+                tokenService.clearTokens();
+                
+                // リフレッシュトークン不一致の場合はキューもクリア
+                this.tokenRefreshQueue.forEach(({ reject }) => {
+                  reject(new Error('リフレッシュトークンが一致しません - 再認証が必要です'));
+                });
+                this.tokenRefreshQueue = [];
+                this.isRefreshingToken = false;
+                
+                return Promise.reject(enhancedError);
+              }
+              
               // トークンのリフレッシュを試みる
               try {
                 // 同時複数リクエストの場合はリフレッシュ処理を一回にまとめる
