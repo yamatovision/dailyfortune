@@ -332,6 +332,208 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
           </Grid>
         </Grid>
 
+        {/* 格局（気質タイプ）情報があれば表示 */}
+        {profile.kakukyoku && (
+          <>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontSize: '1.1rem', 
+                borderBottom: '1px solid', 
+                borderColor: 'divider',
+                pb: 1,
+                mb: 2,
+                color: 'primary.main'
+              }}
+            >
+              格局（気質タイプ）
+            </Typography>
+            
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                backgroundColor: 'rgba(250, 245, 255, 0.5)'
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
+                  {profile.kakukyoku.type}
+                </Typography>
+                <Box 
+                  sx={{ 
+                    px: 1.5, 
+                    py: 0.5, 
+                    borderRadius: 4, 
+                    border: '2px solid',
+                    borderColor: profile.kakukyoku.strength === 'strong' ? 'success.main' : 
+                               profile.kakukyoku.strength === 'weak' ? 'info.main' : 'warning.main',
+                    backgroundColor: profile.kakukyoku.strength === 'strong' ? 'success.light' : 
+                                    profile.kakukyoku.strength === 'weak' ? 'info.light' : 'warning.light',
+                    color: profile.kakukyoku.strength === 'strong' ? 'success.dark' : 
+                          profile.kakukyoku.strength === 'weak' ? 'info.dark' : 'warning.dark',
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    mr: 1,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
+                    {profile.kakukyoku.strength === 'strong' ? 'trending_up' : 
+                     profile.kakukyoku.strength === 'weak' ? 'trending_down' : 'trending_flat'}
+                  </Icon>
+                  {profile.kakukyoku.strength === 'strong' ? '極身強' : 
+                  profile.kakukyoku.strength === 'weak' ? '極身弱' : '中和状態'}
+                </Box>
+                {profile.kakukyoku.category && (
+                  <Box 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      borderRadius: 4,
+                      border: '2px solid',
+                      borderColor: profile.kakukyoku.category === 'special' ? 'secondary.main' : 'primary.main',
+                      backgroundColor: profile.kakukyoku.category === 'special' ? 'secondary.light' : 'primary.light',
+                      color: profile.kakukyoku.category === 'special' ? 'secondary.dark' : 'primary.dark',
+                      fontSize: '0.875rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
+                      {profile.kakukyoku.category === 'special' ? 'stars' : 'category'}
+                    </Icon>
+                    {profile.kakukyoku.category === 'special' ? '特別格局' : '普通格局'}
+                  </Box>
+                )}
+              </Box>
+              <Typography variant="body2" paragraph>
+                {profile.kakukyoku.description || 
+                  `${profile.kakukyoku.type}は、${profile.kakukyoku.strength === 'strong' ? '身強の' : 
+                  profile.kakukyoku.strength === 'weak' ? '身弱の' : '中和の'}気質タイプです。詳細な説明は近日公開予定です。`}
+              </Typography>
+            </Paper>
+          </>
+        )}
+
+        {/* 用神（運気を高める要素）情報があれば表示 */}
+        {profile.yojin && (
+          <>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontSize: '1.1rem', 
+                borderBottom: '1px solid', 
+                borderColor: 'divider',
+                pb: 1,
+                mb: 2,
+                color: 'primary.main'
+              }}
+            >
+              用神（運気を高める要素）
+            </Typography>
+            
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 2,
+                backgroundColor: 'rgba(250, 245, 255, 0.5)'
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
+                  {profile.yojin.tenGod}
+                </Typography>
+                <Box 
+                  sx={{ 
+                    px: 1.5, 
+                    py: 0.5, 
+                    borderRadius: 4, 
+                    border: '2px solid',
+                    borderColor: `${getElementColorVar(profile.yojin.element)}80`, // 80は透明度
+                    backgroundColor: getElementBgVar(profile.yojin.element),
+                    color: getElementColorVar(profile.yojin.element),
+                    fontSize: '0.875rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
+                    {getElementIconName(profile.yojin.element)}
+                  </Icon>
+                  {sajuProfileService.translateElementToJapanese(profile.yojin.element)}
+                </Box>
+                {profile.kakukyoku && (
+                  <Box
+                    sx={{
+                      ml: 1,
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 4,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: 'background.paper',
+                      color: 'text.secondary',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Icon sx={{ fontSize: '0.875rem', mr: 0.5 }}>info</Icon>
+                    {profile.kakukyoku.strength === 'strong' ? '身強を抑制' : 
+                     profile.kakukyoku.strength === 'weak' ? '身弱を強化' : 'バランスを調整'}
+                  </Box>
+                )}
+              </Box>
+              <Typography variant="body2" paragraph>
+                {profile.yojin.description || 
+                  `あなたの用神は「${profile.yojin.tenGod}（${sajuProfileService.translateElementToJapanese(profile.yojin.element)}）」です。用神はあなたの運気を高めるために必要な五行要素です。詳細な説明は近日公開予定です。`}
+              </Typography>
+              
+              {profile.yojin.supportElements && profile.yojin.supportElements.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    サポート要素:
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                    {profile.yojin.supportElements.map((el, idx) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          px: 1.5, 
+                          py: 0.5, 
+                          borderRadius: 1,
+                          backgroundColor: getElementBgVar(el),
+                          color: getElementColorVar(el),
+                          fontSize: '0.75rem',
+                          fontWeight: 'medium',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5
+                        }}
+                      >
+                        <Icon sx={{ fontSize: '0.875rem' }}>{getElementIconName(el)}</Icon>
+                        {sajuProfileService.translateElementToJapanese(el)}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Paper>
+          </>
+        )}
+
         <Typography 
           variant="h6" 
           sx={{ 

@@ -125,3 +125,23 @@ export interface ExtendedLocation {
   };
   timeZone?: string;
 }
+
+/**
+ * 格局（気質タイプ）情報
+ */
+export interface IKakukyoku {
+  type: string;               // 例: '従旺格', '建禄格'など
+  category: 'special' | 'normal'; // 特別格局か普通格局か
+  strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
+  description?: string;       // 格局の説明
+}
+
+/**
+ * 用神情報
+ */
+export interface IYojin {
+  tenGod: TenGodRelation;     // 十神表記: 例 '比肩', '食神'
+  element: string;            // 五行表記: 例 'wood', 'fire'
+  description?: string;       // 用神の説明
+  supportElements?: string[]; // 用神をサポートする五行
+}

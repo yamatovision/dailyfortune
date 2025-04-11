@@ -32,7 +32,7 @@ const teamSchema = new Schema<ITeamDocument>(
       maxlength: [50, 'チーム名は50文字以下である必要があります']
     },
     adminId: {
-      type: Schema.Types.Mixed, // FirebaseのUIDを格納できるように変更
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, '管理者IDは必須です']
     },

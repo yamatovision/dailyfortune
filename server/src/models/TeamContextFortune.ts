@@ -4,8 +4,8 @@ import mongoose, { Document, Schema } from 'mongoose';
  * チームコンテキスト運勢モデルのインターフェース
  */
 export interface ITeamContextFortune {
-  userId: mongoose.Types.ObjectId | string;  // ユーザーID
-  teamId: mongoose.Types.ObjectId | string;  // チームID
+  userId: mongoose.Types.ObjectId;  // ユーザーID
+  teamId: mongoose.Types.ObjectId;  // チームID
   date: Date;                                // 日付
   dayPillarId: mongoose.Types.ObjectId;      // 日柱ID
   teamGoalId?: mongoose.Types.ObjectId;      // チーム目標ID（オプション）
@@ -27,12 +27,12 @@ export interface ITeamContextFortuneDocument extends ITeamContextFortune, Docume
 const teamContextFortuneSchema = new Schema<ITeamContextFortuneDocument>(
   {
     userId: {
-      type: Schema.Types.Mixed,  // ObjectIDまたは文字列を許容
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'ユーザーIDは必須です']
     },
     teamId: {
-      type: Schema.Types.Mixed,  // ObjectIDまたは文字列を許容
+      type: Schema.Types.ObjectId,
       ref: 'Team',
       required: [true, 'チームIDは必須です']
     },

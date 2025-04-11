@@ -118,11 +118,8 @@ export async function updateDailyFortunes(
             return { success: false, userId: 'unknown', error: 'ユーザーIDが見つかりません' };
           }
           
-          // User モデルでは _id が Firebase UID または MongoDB ObjectID を格納している可能性がある
-          // 一貫した文字列形式に変換
-          const userId = typeof user._id === 'object' && user._id !== null 
-            ? String(user._id) 
-            : user._id;
+          // User モデルでは _id は必ずMongoDBのObjectIDとして扱う
+          const userId = user._id;
           
           console.log(`ユーザー ${userId} の運勢を処理します...`);
           
@@ -134,9 +131,7 @@ export async function updateDailyFortunes(
             
             // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
             if (user.teamId) {
-              const teamId = typeof user.teamId === 'object' && user.teamId !== null 
-                ? String(user.teamId) 
-                : user.teamId;
+              const teamId = user.teamId;
               
               // チームIDの有効性を検証
               if (!mongoose.Types.ObjectId.isValid(teamId)) {

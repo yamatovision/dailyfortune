@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
  * ユーザーモデルのインターフェース
  */
 export interface IUser {
-  _id?: string | mongoose.Types.ObjectId;  // MongoDBのObjectIDまたは文字列ID
+  _id?: mongoose.Types.ObjectId;  // MongoDB ObjectID
   email: string;
   password: string;
   displayName: string;
@@ -91,10 +91,23 @@ export interface IUser {
     metal: number;
     water: number;
   };
+  // 格局（気質タイプ）情報
+  kakukyoku?: {                     // 格局情報
+    type: string;                   // 例: '従旺格', '建禄格'など
+    category: 'special' | 'normal'; // 特別格局か普通格局か
+    strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
+    description?: string;           // 格局の説明
+  };
+  yojin?: {                         // 用神情報
+    tenGod: string;                 // 十神表記: 例 '比肩', '食神'
+    element: string;                // 五行表記: 例 'wood', 'fire'
+    description?: string;           // 用神の説明
+    supportElements?: string[];     // 用神をサポートする五行
+  };
   personalityDescription?: string;  // 性格特性の説明
   careerAptitude?: string;          // 職業適性の説明
   
-  sajuProfileId?: mongoose.Types.ObjectId;  // レガシー参照（後で削除予定）
+  // sajuProfileIdフィールドは削除しました（MongoDB ObjectID標準化の一環として）
   plan: 'elite' | 'lite';
   isActive: boolean;
   createdAt: Date;
@@ -114,8 +127,9 @@ export interface IUserDocument extends Omit<IUser, '_id'>, Document {
 const userSchema = new Schema<IUserDocument>(
   {
     _id: {
-      type: Schema.Types.Mixed, // FirebaseのUIDを格納できるように変更
-      required: true
+      type: Schema.Types.ObjectId,
+      required: true,
+      auto: true // 自動生成
     },
     uid: {
       type: String,
@@ -254,14 +268,12 @@ const userSchema = new Schema<IUserDocument>(
         longitude: {
           type: Number,
           min: [-180, '経度は-180度以上である必要があります'],
-          max: [180, '経度は180度以下である必要があります'],
-          required: [true, '経度は必須です']
+          max: [180, '経度は180度以下である必要があります']
         },
         latitude: {
           type: Number,
           min: [-90, '緯度は-90度以上である必要があります'],
-          max: [90, '緯度は90度以下である必要があります'],
-          required: [true, '緯度は必須です']
+          max: [90, '緯度は90度以下である必要があります']
         }
       },
       timeZone: {
@@ -318,6 +330,38 @@ const userSchema = new Schema<IUserDocument>(
       metal: Number,
       water: Number
     },
+    // 格局（気質タイプ）情報
+    kakukyoku: {
+      type: {
+        type: String,
+        trim: true
+      },
+      category: {
+        type: String,
+        enum: ['special', 'normal']
+      },
+      strength: {
+        type: String,
+        enum: ['strong', 'weak', 'neutral']
+      },
+      description: {
+        type: String
+      }
+    },
+    yojin: {
+      tenGod: {
+        type: String,
+        trim: true
+      },
+      element: {
+        type: String,
+        trim: true
+      },
+      description: {
+        type: String
+      },
+      supportElements: [String]
+    },
     personalityDescription: {
       type: String
     },
@@ -343,11 +387,7 @@ const userSchema = new Schema<IUserDocument>(
       sparse: true  // 移行期間中のみ使用
     },
     
-    // レガシーフィールド（後で削除予定）
-    sajuProfileId: {
-      type: Schema.Types.ObjectId,
-      ref: 'SajuProfile'
-    },
+    // レガシーフィールドは削除しました
     plan: {
       type: String,
       enum: {
@@ -390,9 +430,23 @@ userSchema.pre('save', async function(next) {
 // パスワード比較メソッド
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   try {
-    return await bcrypt.compare(candidatePassword, this.password);
+    console.log('パスワード比較:', {
+      candidateLength: candidatePassword.length,
+      hashedLength: this.password?.length,
+      hasHash: !!this.password
+    });
+    
+    if (!this.password) {
+      console.error('パスワードハッシュが存在しません');
+      return false;
+    }
+    
+    const result = await bcrypt.compare(candidatePassword, this.password);
+    console.log('bcrypt比較結果:', result);
+    return result;
   } catch (error) {
-    return false;
+    console.error('パスワード比較エラー:', error);
+    throw error; // エラーを投げて上位で処理できるようにする
   }
 };
 

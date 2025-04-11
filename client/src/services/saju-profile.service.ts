@@ -110,6 +110,10 @@ export class SajuProfileService {
         metal: 20,
         water: 20
       },
+      // 格局情報を追加
+      kakukyoku: userProfile.kakukyoku,
+      // 用神情報を追加
+      yojin: userProfile.yojin,
       personalityDescription: userProfile.personalityDescription || '',
       careerAptitude: userProfile.careerAptitude || '',
       createdAt: new Date(),
@@ -342,6 +346,9 @@ export class SajuProfileService {
           day: { heavenlyStem: '', earthlyBranch: '' },
           hour: { heavenlyStem: '', earthlyBranch: '' }
         },
+        // 格局と用神情報を追加
+        kakukyoku: userProfile.kakukyoku,
+        yojin: userProfile.yojin,
         personalityDescription: userProfile.personalityDescription || '',
         careerAptitude: userProfile.careerAptitude || '',
         createdAt: userProfile.createdAt ? new Date(userProfile.createdAt) : new Date(),

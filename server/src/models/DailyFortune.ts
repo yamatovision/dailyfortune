@@ -4,7 +4,7 @@ import mongoose, { Document, Schema } from 'mongoose';
  * デイリー運勢モデルのインターフェース
  */
 export interface IDailyFortune {
-  userId: mongoose.Types.ObjectId | string;  // MongoDB ObjectIDまたは文字列を許容
+  userId: mongoose.Types.ObjectId;  // MongoDB ObjectID
   date: Date;
   dayPillarId: mongoose.Types.ObjectId;
   fortuneScore: number;
@@ -29,7 +29,7 @@ export interface IDailyFortuneDocument extends IDailyFortune, Document {}
 const dailyFortuneSchema = new Schema<IDailyFortuneDocument>(
   {
     userId: {
-      type: Schema.Types.Mixed,  // ObjectIDまたは文字列を許容
+      type: Schema.Types.ObjectId,  // ObjectID型
       ref: 'User',
       required: [true, 'ユーザーIDは必須です']
     },

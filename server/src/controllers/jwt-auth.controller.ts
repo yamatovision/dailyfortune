@@ -77,52 +77,86 @@ export class JwtAuthController {
     try {
       const { email, password } = req.body;
 
+      console.log('ログインリクエスト:', { email });
+
       // バリデーション
       if (!email || !password) {
+        console.log('バリデーションエラー: メールアドレスまたはパスワードがありません');
         res.status(400).json({ message: 'メールアドレスとパスワードは必須です' });
         return;
       }
 
       // ユーザー検索（パスワードを含める）
       const user = await User.findOne({ email }).select('+password');
+      
       if (!user) {
+        console.log('認証エラー: ユーザーが見つかりません -', email);
         res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
         return;
       }
 
+      console.log('ユーザー検索結果:', { 
+        id: user._id, 
+        email: user.email,
+        hasPassword: !!user.password,
+        passwordLength: user.password ? user.password.length : 0
+      });
+
       // パスワード照合
-      const isPasswordValid = await user.comparePassword(password);
-      if (!isPasswordValid) {
-        res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+      try {
+        const isPasswordValid = await user.comparePassword(password);
+        console.log('パスワード検証結果:', isPasswordValid);
+        
+        if (!isPasswordValid) {
+          console.log('認証エラー: パスワードが一致しません');
+          res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+          return;
+        }
+      } catch (pwError: any) {
+        console.error('パスワード検証中にエラーが発生しました:', pwError);
+        res.status(500).json({ message: 'パスワード検証中にエラーが発生しました', debug: process.env.NODE_ENV === 'development' ? pwError.message : undefined });
         return;
       }
 
       // アクセストークンとリフレッシュトークンの生成
-      const accessToken = JwtService.generateAccessToken(user);
-      const refreshToken = JwtService.generateRefreshToken(user);
+      try {
+        console.log('トークン生成中...');
+        const accessToken = JwtService.generateAccessToken(user);
+        const refreshToken = JwtService.generateRefreshToken(user);
+        console.log('トークン生成完了');
 
-      // リフレッシュトークンをデータベースに保存
-      user.refreshToken = refreshToken;
-      user.lastLogin = new Date();
-      await user.save();
+        // リフレッシュトークンをデータベースに保存
+        user.refreshToken = refreshToken;
+        user.lastLogin = new Date();
+        await user.save();
+        console.log('ユーザー情報更新完了');
 
-      // レスポンスを返す
-      res.status(200).json({
-        message: 'ログインに成功しました',
-        user: {
-          id: user._id,
-          email: user.email,
-          displayName: user.displayName,
-          role: user.role
-        },
-        tokens: {
-          accessToken,
-          refreshToken
-        }
-      });
-    } catch (error) {
+        // レスポンスを返す
+        console.log('ログイン成功');
+        res.status(200).json({
+          message: 'ログインに成功しました',
+          user: {
+            id: user._id,
+            email: user.email,
+            displayName: user.displayName,
+            role: user.role
+          },
+          tokens: {
+            accessToken,
+            refreshToken
+          }
+        });
+      } catch (tokenError: any) {
+        console.error('トークン生成中にエラーが発生しました:', tokenError);
+        res.status(500).json({ message: 'トークン生成中にエラーが発生しました', debug: process.env.NODE_ENV === 'development' ? tokenError.message : undefined });
+        return;
+      }
+    } catch (error: any) {
       console.error('ログインエラー:', error);
-      res.status(500).json({ message: 'ログイン中にエラーが発生しました' });
+      res.status(500).json({ 
+        message: 'ログイン中にエラーが発生しました',
+        debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 

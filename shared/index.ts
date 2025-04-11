@@ -291,7 +291,7 @@ export interface IGeoCoordinates {
 
 // ユーザーモデル
 export interface IUser {
-  id: string;
+  id: string; // クライアント向けには文字列として提供
   email: string;
   displayName: string;
   role: UserRole;
@@ -348,6 +348,19 @@ export interface IUser {
     metal: number;
     water: number;
   };
+  // 格局（気質タイプ）情報
+  kakukyoku?: {
+    type: string;                   // 例: '従旺格', '建禄格'など
+    category: 'special' | 'normal'; // 特別格局か普通格局か
+    strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
+    description?: string;           // 格局の説明
+  };
+  yojin?: {                         // 用神情報
+    tenGod: string;                 // 十神表記: 例 '比肩', '食神'
+    element: string;                // 五行表記: 例 'wood', 'fire'
+    description?: string;           // 用神の説明
+    supportElements?: string[];     // 用神をサポートする五行
+  };
   personalityDescription?: string;
   careerAptitude?: string;
   
@@ -388,6 +401,19 @@ export interface ISajuProfile {
     earth: number;
     metal: number;
     water: number;
+  };
+  // 格局（気質タイプ）情報
+  kakukyoku?: {
+    type: string;                   // 例: '従旺格', '建禄格'など
+    category: 'special' | 'normal'; // 特別格局か普通格局か
+    strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
+    description?: string;           // 格局の説明
+  };
+  yojin?: {                         // 用神情報
+    tenGod: string;                 // 十神表記: 例 '比肩', '食神'
+    element: string;                // 五行表記: 例 'wood', 'fire'
+    description?: string;           // 用神の説明
+    supportElements?: string[];     // 用神をサポートする五行
   };
   personalityDescription: string;
   careerAptitude: string;

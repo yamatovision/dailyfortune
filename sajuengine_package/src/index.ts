@@ -6,7 +6,9 @@ export {
   FourPillars, 
   SajuOptions,
   TimezoneAdjustmentInfo, 
-  ExtendedLocation 
+  ExtendedLocation,
+  IKakukyoku,
+  IYojin
 } from './types';
 
 // 個別の計算機能も必要に応じてエクスポート
@@ -25,6 +27,9 @@ export {
 // 十神関係計算関連をエクスポート
 export * from './tenGodCalculator';
 export { calculateBranchTenGodRelation } from './tenGodImprovedAlgorithm';
+
+// 格局計算関連をエクスポート
+export { determineKakukyoku } from './kakukyokuCalculator';
 
 // 国際対応モジュールをエクスポート
 export { 

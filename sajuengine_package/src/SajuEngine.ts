@@ -28,6 +28,9 @@ import { handleSpecialCases, isSpecialCase } from './specialCaseHandler';
 import { getLiChunDate, isBeforeLiChunFromDB } from './lichunDatabase';
 // 干合・支合処理モジュールをインポート
 import { applyGanShiCombinations } from './ganShiCombinations';
+// 格局計算モジュールをインポート
+import { determineKakukyoku } from './kakukyokuCalculator';
+import { determineYojin } from './yojinCalculator';
 
 /**
  * 四柱推命計算結果の型（国際対応版）
@@ -54,6 +57,19 @@ export interface SajuResult {
     month: string[];
     day: string[];
     hour: string[];
+  };
+  // 格局と用神情報
+  kakukyoku?: {        // 格局情報
+    type: string;               // 例: '従旺格', '建禄格'など
+    category: 'special' | 'normal'; // 特別格局か普通格局か
+    strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
+    description?: string;       // 格局の説明
+  };
+  yojin?: {            // 用神情報
+    tenGod: string;             // 十神表記: 例 '比肩', '食神'
+    element: string;            // 五行表記: 例 'wood', 'fire'
+    description?: string;       // 用神の説明
+    supportElements?: string[]; // 用神をサポートする五行
   };
   // 国際対応拡張情報
   location?: {
@@ -733,7 +749,15 @@ export class SajuEngine {
         elementProfile = this.calculateElementProfile(dayPillar, monthPillar);
       }
       
-      // 12. 結果を返す（国際対応情報を含む）
+      // 12. 格局（気質タイプ）を計算
+      const kakukyoku = determineKakukyoku(fourPillars, tenGods);
+      console.log('格局計算結果:', kakukyoku);
+      
+      // 13. 用神（運気を高める要素）を計算
+      const yojin = determineYojin(fourPillars, tenGods, kakukyoku);
+      console.log('用神計算結果:', yojin);
+      
+      // 14. 結果を返す（国際対応情報を含む）
       return {
         fourPillars,
         lunarDate: processedDateTime.lunarDate || undefined,
@@ -743,6 +767,9 @@ export class SajuEngine {
         twelveFortunes,
         twelveSpiritKillers,
         hiddenStems,
+        // 格局と用神情報を追加
+        kakukyoku,
+        yojin,
         // 国際対応の情報を追加
         location: locationInfo,
         timezoneInfo
@@ -808,6 +835,20 @@ export class SajuEngine {
           yinYang: '陽'
         },
         processedDateTime: errorProcessedDateTime,
+        // エラー時の格局情報
+        kakukyoku: {
+          type: '不明',
+          category: 'normal',
+          strength: 'neutral',
+          description: '情報不足のため格局を判定できませんでした。正確な生年月日時を確認してください。'
+        },
+        // エラー時の用神情報
+        yojin: {
+          tenGod: '比肩',
+          element: '木',
+          description: '情報不足のため用神を特定できませんでした。正確な生年月日時を確認してください。',
+          supportElements: ['木', '水']
+        },
         location: errorLocationInfo,
         timezoneInfo: errorTimezoneInfo
       };

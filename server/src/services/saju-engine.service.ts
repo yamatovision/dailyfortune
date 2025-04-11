@@ -344,6 +344,19 @@ export class SajuEngineService {
         (result as any).localTimeOffset = this.calculateLocalTimeOffset(birthplaceCoordinates);
       }
       
+      // 格局（気質タイプ）情報を拡張
+      if (result.kakukyoku) {
+        // 格局の説明文を日本語で拡充（必要に応じて）
+        if (result.kakukyoku.description) {
+          const kakukyokuType = result.kakukyoku.type;
+          const strengthType = result.kakukyoku.strength === 'strong' ? '身強' :
+                              result.kakukyoku.strength === 'weak' ? '身弱' : '中和';
+          
+          // 既存の説明文を保持しつつ、日本語の文脈に合わせて調整
+          result.kakukyoku.description = `あなたの格局（気質タイプ）は「${kakukyokuType}」（${strengthType}）です。${result.kakukyoku.description}`;
+        }
+      }
+      
       return result as SajuResult;
     } catch (error) {
       if (error instanceof Error) {

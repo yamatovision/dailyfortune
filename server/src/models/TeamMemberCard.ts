@@ -5,7 +5,7 @@ import mongoose, { Document, Schema } from 'mongoose';
  */
 export interface ITeamMemberCard {
   teamId: mongoose.Types.ObjectId;
-  userId: string; // FirebaseのUID
+  userId: mongoose.Types.ObjectId; // MongoDBのObjectID
   cardContent: string; // マークダウン形式のAI生成コンテンツ
   version: number;
   lastUpdated: Date;
@@ -29,7 +29,8 @@ const teamMemberCardSchema = new Schema<ITeamMemberCardDocument>(
       required: [true, 'チームIDは必須です']
     },
     userId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: [true, 'ユーザーIDは必須です']
     },
     cardContent: {

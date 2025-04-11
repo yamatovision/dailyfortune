@@ -13,7 +13,7 @@ export interface IChatMessage {
  * チャット履歴モデルのインターフェース
  */
 export interface IChatHistory {
-  userId: string | mongoose.Types.ObjectId; // Firebase UIDまたはMongoDBのObjectID
+  userId: mongoose.Types.ObjectId; // MongoDBのObjectID
   chatType: 'personal' | 'team_member' | 'team_goal';
   relatedInfo?: {
     teamMemberId?: mongoose.Types.ObjectId;
@@ -66,7 +66,7 @@ const chatMessageSchema = new Schema<IChatMessage>(
 const chatHistorySchema = new Schema<IChatHistoryDocument>(
   {
     userId: {
-      type: Schema.Types.Mixed, // FirebaseのUIDを格納できるように変更
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'ユーザーIDは必須です']
     },
