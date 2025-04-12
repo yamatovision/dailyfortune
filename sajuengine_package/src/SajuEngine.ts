@@ -48,6 +48,12 @@ export interface SajuResult {
     mainElement: string;
     secondaryElement: string;
     yinYang: string;
+    // 五行バランス（木・火・土・金・水の出現数）
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
   };
   processedDateTime: ProcessedDateTime;
   twelveFortunes?: Record<string, string>; // 十二運星
@@ -534,8 +540,19 @@ export class SajuEngine {
           fourPillars.hourPillar.branchTenGod = tenGodResult.hourBranch || '不明';
         }
       
-        // 11. 五行属性を計算
+        // 11. 五行属性と五行バランスを計算
         elementProfile = this.calculateElementProfile(dayPillar, monthPillar);
+        
+        // 五行バランスを計算して追加
+        const elementBalance = this.calculateElementBalance(fourPillars);
+        // 型を拡張して五行バランスを追加
+        const extendedProfile = elementProfile as any;
+        extendedProfile.wood = elementBalance.wood;
+        extendedProfile.fire = elementBalance.fire;
+        extendedProfile.earth = elementBalance.earth;
+        extendedProfile.metal = elementBalance.metal;
+        extendedProfile.water = elementBalance.water;
+        elementProfile = extendedProfile;
       } catch (error) {
         // lunar-javascriptが利用できない場合は、従来の方法で計算
         console.log('lunar-javascriptが利用できないため、従来の計算方法を使用します:', error instanceof Error ? error.message : error);
@@ -745,8 +762,19 @@ export class SajuEngine {
           fourPillars.hourPillar.branchTenGod = tenGodResult.hourBranch || '不明';
         }
       
-        // 11. 五行属性を計算
+        // 11. 五行属性と五行バランスを計算
         elementProfile = this.calculateElementProfile(dayPillar, monthPillar);
+        
+        // 五行バランスを計算して追加
+        const elementBalance = this.calculateElementBalance(fourPillars);
+        // 型を拡張して五行バランスを追加
+        const extendedProfile = elementProfile as any;
+        extendedProfile.wood = elementBalance.wood;
+        extendedProfile.fire = elementBalance.fire;
+        extendedProfile.earth = elementBalance.earth;
+        extendedProfile.metal = elementBalance.metal;
+        extendedProfile.water = elementBalance.water;
+        elementProfile = extendedProfile;
       }
       
       // 12. 格局（気質タイプ）を計算
@@ -758,11 +786,14 @@ export class SajuEngine {
       console.log('用神計算結果:', yojin);
       
       // 14. 結果を返す（国際対応情報を含む）
+      // 五行バランスプロパティを持つ拡張ElementProfile型として扱う
+      const extendedElementProfile = elementProfile as any;
+
       return {
         fourPillars,
         lunarDate: processedDateTime.lunarDate || undefined,
         tenGods,
-        elementProfile,
+        elementProfile: extendedElementProfile,
         processedDateTime,
         twelveFortunes,
         twelveSpiritKillers,
@@ -832,7 +863,12 @@ export class SajuEngine {
         elementProfile: {
           mainElement: '木',
           secondaryElement: '木',
-          yinYang: '陽'
+          yinYang: '陽',
+          wood: 0,
+          fire: 0,
+          earth: 0,
+          metal: 0,
+          water: 0
         },
         processedDateTime: errorProcessedDateTime,
         // エラー時の格局情報
@@ -865,6 +901,11 @@ export class SajuEngine {
     mainElement: string;
     secondaryElement: string;
     yinYang: string;
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
   } {
     // 日柱から主要な五行属性を取得
     const mainElement = tenGodCalculator.getElementFromStem(dayPillar.stem);
@@ -878,8 +919,71 @@ export class SajuEngine {
     return {
       mainElement,
       secondaryElement,
-      yinYang
+      yinYang,
+      wood: 0,
+      fire: 0,
+      earth: 0,
+      metal: 0,
+      water: 0
     };
+  }
+  
+  /**
+   * 四柱から五行バランスを計算する（天干と地支の五行属性を数える）
+   * @param fourPillars 四柱情報
+   * @returns 五行バランス（木・火・土・金・水の出現数）
+   */
+  calculateElementBalance(fourPillars: FourPillars): {
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
+  } {
+    // 初期化
+    const balance = {
+      wood: 0,
+      fire: 0,
+      earth: 0,
+      metal: 0,
+      water: 0
+    };
+    
+    // 天干の五行を集計
+    const stems = [
+      fourPillars.yearPillar.stem,
+      fourPillars.monthPillar.stem,
+      fourPillars.dayPillar.stem,
+      fourPillars.hourPillar.stem
+    ];
+    
+    stems.forEach(stem => {
+      const element = tenGodCalculator.STEM_ELEMENTS[stem];
+      if (element === '木') balance.wood++;
+      else if (element === '火') balance.fire++;
+      else if (element === '土') balance.earth++;
+      else if (element === '金') balance.metal++;
+      else if (element === '水') balance.water++;
+    });
+    
+    // 地支の五行を集計
+    const branches = [
+      fourPillars.yearPillar.branch,
+      fourPillars.monthPillar.branch,
+      fourPillars.dayPillar.branch,
+      fourPillars.hourPillar.branch
+    ];
+    
+    branches.forEach(branch => {
+      const element = tenGodCalculator.BRANCH_ELEMENTS[branch];
+      if (element === '木') balance.wood++;
+      else if (element === '火') balance.fire++;
+      else if (element === '土') balance.earth++;
+      else if (element === '金') balance.metal++;
+      else if (element === '水') balance.water++;
+    });
+    
+    return balance;
   }
 
   /**

@@ -30,8 +30,12 @@ export interface CalendarDay {
 
 // 十神関係
 export type TenGodRelation = 
+  // 個別十神
   "比肩" | "劫財" | "偏印" | "正印" | "偏官" | "正官" | "偏財" | "正財" | "食神" | "傷官" |
-  "なし" | "不明"; // エラー時のフォールバック値
+  // 通変星グループ（ペア）
+  "比劫" | "印" | "食傷" | "財" | "官殺" |
+  // エラー時のフォールバック値
+  "なし" | "不明";
 
 /**
  * 蔵干の十神関係
@@ -134,6 +138,29 @@ export interface IKakukyoku {
   category: 'special' | 'normal'; // 特別格局か普通格局か
   strength: 'strong' | 'weak' | 'neutral'; // 身強か身弱か中和か
   description?: string;       // 格局の説明
+  extremeType?: string;       // 極身強・極身弱のタイプ
+  isExtremeStrong?: boolean;  // 極身強かどうか
+  isExtremeWeak?: boolean;    // 極身弱かどうか
+  score?: number;             // 身強弱スコア（旧計算方式との互換性用）
+  details?: string[];         // 詳細な判定理由
+}
+
+/**
+ * 十神と五行情報
+ */
+export interface TenGodWithElement {
+  tenGod: TenGodRelation;     // 十神表記
+  element: string;            // 五行表記
+  description?: string;       // 説明
+}
+
+/**
+ * 特殊格局の関連神情報
+ */
+export interface SpecialKakukyokuGods {
+  kijin: TenGodWithElement;   // 喜神情報
+  kijin2: TenGodWithElement;  // 忌神情報
+  kyujin: TenGodWithElement;  // 仇神情報
 }
 
 /**
@@ -144,4 +171,22 @@ export interface IYojin {
   element: string;            // 五行表記: 例 'wood', 'fire'
   description?: string;       // 用神の説明
   supportElements?: string[]; // 用神をサポートする五行
+  kijin?: TenGodWithElement;  // 喜神情報（用神を助ける要素）
+  kijin2?: TenGodWithElement; // 忌神情報（避けるべき要素）
+  kyujin?: TenGodWithElement; // 仇神情報（強く避けるべき要素）
+  debugInfo?: string[];       // デバッグ用情報（用神決定プロセスの説明）
+}
+
+/**
+ * 五行プロファイル情報
+ */
+export interface ElementProfile {
+  mainElement: string;      // 主要五行: wood, fire, earth, metal, water
+  secondaryElement: string; // 二次的五行
+  yinYang: string;          // 陰陽: '陽' または '陰'
+  wood: number;             // 木の強さ
+  fire: number;             // 火の強さ
+  earth: number;            // 土の強さ
+  metal: number;            // 金の強さ
+  water: number;            // 水の強さ
 }
