@@ -1,4 +1,4 @@
-import { SajuEngine, SajuResult } from '../../sajuengine_package/src';
+import { SajuEngine, SajuResult } from 'saju-engine';
 import { ValidationError } from '../utils';
 import { ExtendedLocation, TimezoneAdjustmentInfo } from '../types';
 

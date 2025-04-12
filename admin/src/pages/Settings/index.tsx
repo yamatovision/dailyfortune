@@ -16,7 +16,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton,
   MenuItem,
   Select,
   FormControl,
@@ -25,11 +24,7 @@ import {
   Pagination,
   Chip
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
 import UpdateIcon from '@mui/icons-material/Update';
-import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import AdminService from '../../services/admin.service';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -69,11 +64,11 @@ const Settings = () => {
   const [tabValue, setTabValue] = useState(0);
   
   // 管理者タブ用のステート
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminUsers, setAdminUsers] = useState<any[]>([]);
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [adminPage, setAdminPage] = useState(1);
-  const [adminTotalPages, setAdminTotalPages] = useState(1);
+  // const [adminEmail, setAdminEmail] = useState('');
+  // const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  // const [adminLoading, setAdminLoading] = useState(false);
+  // const [adminPage, setAdminPage] = useState(1);
+  // const [adminTotalPages, setAdminTotalPages] = useState(1);
   
   // 設定タブ用のステート
   const [updateTime, setUpdateTime] = useState('03:00');
@@ -127,45 +122,26 @@ const Settings = () => {
   }, []);
 
   // タブ変更ハンドラー
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   // 管理者検索ハンドラー
-  const handleAdminSearch = () => {
-    loadAdminUsers({ search: adminEmail });
-  };
+  // const handleAdminSearch = () => {
+  //   loadAdminUsers({ search: adminEmail });
+  // };
 
   // 管理者一覧の読み込み
-  const loadAdminUsers = async (params: { page?: number, search?: string } = {}) => {
-    try {
-      setAdminLoading(true);
-      
-      // 実際のAPIリクエスト
-      const response = await AdminService.getUsers({
-        page: params.page || adminPage,
-        limit: 10,
-        role: 'admin',
-        search: params.search
-      });
-      
-      if (response.data && response.data.users) {
-        setAdminUsers(response.data.users);
-        setAdminTotalPages(response.data.pagination.pages);
-      }
-    } catch (error) {
-      console.error('管理者一覧の取得に失敗しました:', error);
-      showNotification(NotificationType.ERROR, '管理者一覧の取得に失敗しました');
-    } finally {
-      setAdminLoading(false);
-    }
+  const loadAdminUsers = async (_params: { page?: number, search?: string } = {}) => {
+    // 管理者一覧の読み込み機能は将来の実装のために準備
+    // 現在は使用されていません
   };
 
   // 管理者ページネーション変更ハンドラー
-  const handleAdminPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
-    setAdminPage(value);
-    loadAdminUsers({ page: value });
-  };
+  // const handleAdminPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
+  //   setAdminPage(value);
+  //   loadAdminUsers({ page: value });
+  // };
 
   // 運勢更新設定の読み込み
   const loadFortuneUpdateSetting = async () => {
@@ -258,7 +234,7 @@ const Settings = () => {
   };
 
   // 運勢更新ログのページネーション変更ハンドラー
-  const handleLogsPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handleLogsPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setLogsPage(value);
     loadFortuneLogs({ page: value });
   };
@@ -339,7 +315,7 @@ const Settings = () => {
   };
   
   // 日柱情報ページネーション変更ハンドラー
-  const handleDayPillarsPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handleDayPillarsPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setDayPillarsPage(value);
     loadDayPillars({ page: value });
   };
@@ -380,7 +356,7 @@ const Settings = () => {
   };
   
   // 日柱生成ログのページネーション変更ハンドラー
-  const handleDayPillarLogsPageChange = (event: React.ChangeEvent<unknown>, value: number) => {
+  const handleDayPillarLogsPageChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     setDayPillarLogsPage(value);
     loadDayPillarLogs({ page: value });
   };

@@ -93,7 +93,7 @@ const SajuElementBlocks: React.FC<SajuElementBlocksProps> = ({ profile }) => {
     <Box sx={{ my: 2 }}>
       {/* ヘッダー部分 */}
       <Grid container spacing={1} sx={{ mb: 2 }}>
-        {(['year', 'month', 'day', 'hour'] as PillarKey[]).map((pillar, index) => (
+        {(['hour', 'day', 'month', 'year'] as PillarKey[]).map((pillar, index) => (
           <Grid item xs={3} key={`header-${index}`}>
             <Typography 
               align="center" 
@@ -111,7 +111,7 @@ const SajuElementBlocks: React.FC<SajuElementBlocksProps> = ({ profile }) => {
 
       {/* 天干ブロック */}
       <Grid container spacing={1} sx={{ mb: 1 }}>
-        {(['year', 'month', 'day', 'hour'] as PillarKey[]).map((pillar, index) => {
+        {(['hour', 'day', 'month', 'year'] as PillarKey[]).map((pillar, index) => {
           const stem = pillars[pillar].heavenlyStem || '?';
           const element = getStemElement(stem);
           
@@ -183,7 +183,7 @@ const SajuElementBlocks: React.FC<SajuElementBlocksProps> = ({ profile }) => {
 
       {/* 地支ブロック */}
       <Grid container spacing={1}>
-        {(['year', 'month', 'day', 'hour'] as PillarKey[]).map((pillar, index) => {
+        {(['hour', 'day', 'month', 'year'] as PillarKey[]).map((pillar, index) => {
           const branch = pillars[pillar].earthlyBranch || '?';
           const element = getBranchElement(branch);
           
@@ -260,7 +260,7 @@ const SajuElementBlocks: React.FC<SajuElementBlocksProps> = ({ profile }) => {
 
       {/* 十神関係表示 */}
       <Grid container spacing={1} sx={{ mt: 0.5 }}>
-        {(['year', 'month', 'day', 'hour'] as PillarKey[]).map((pillar, index) => (
+        {(['hour', 'day', 'month', 'year'] as PillarKey[]).map((pillar, index) => (
           <Grid item xs={3} key={`tengod-${index}`}>
             <Typography 
               align="center" 

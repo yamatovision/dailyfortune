@@ -17,7 +17,7 @@ if (!CLAUDE_API_KEY) {
 /**
  * 使用するClaudeのモデル
  */
-const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-3-7-sonnet-20250219';
+const CLAUDE_MODEL = process.env.CLAUDE_API_MODEL || 'claude-3-7-sonnet-20250219';
 
 /**
  * Claude AI APIを呼び出す関数

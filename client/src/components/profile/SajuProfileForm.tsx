@@ -295,9 +295,8 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
     return !Object.values(newErrors).some(error => error !== '');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // 親コンポーネントから呼び出される送信関数
+  const handleSubmitAction = () => {
     // フォーム送信の詳細なデバッグログ
     console.group('🧩 SajuProfileForm - フォーム送信');
     // タイムゾーン問題解決のため、日付をローカル文字列で表示
@@ -430,7 +429,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
           四柱推命の計算に必要な情報です。正確な情報を入力してください。
         </Typography>
         
-        <Box component="form" onSubmit={handleSubmit}>
+        <Box sx={{ width: '100%' }}>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
@@ -648,7 +647,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                   <Button
-                    type="submit"
+                    onClick={handleSubmitAction}
                     variant="contained"
                     color="primary"
                     disabled={isLoading}

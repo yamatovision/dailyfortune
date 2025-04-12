@@ -226,10 +226,15 @@ function formatChatHistory(messages: ChatMessage[]): string {
  * Claude APIを呼び出す
  */
 async function callClaudeAPI(prompt: string, systemPrompt: string, maxTokens: number): Promise<string> {
+  console.log('🤖 callClaudeAPI: Claude API呼び出し準備');
+  
   const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY;
-  const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-3-7-sonnet-20250219';
+  const CLAUDE_MODEL = process.env.CLAUDE_API_MODEL || 'claude-3-7-sonnet-20250219';
+
+  console.log('🤖 API設定値: API_KEY=' + (CLAUDE_API_KEY ? 'XXXXXX...（マスク済み）' : '未設定'), 'MODEL=' + CLAUDE_MODEL);
 
   if (!CLAUDE_API_KEY) {
+    console.error('🤖 API KEY環境変数未設定エラー');
     throw new Error('Claude API Key is not configured. Please set ANTHROPIC_API_KEY in your environment variables.');
   }
 
@@ -254,28 +259,101 @@ async function callClaudeAPI(prompt: string, systemPrompt: string, maxTokens: nu
       system: systemPrompt
     };
     
-    const response = await fetch(url, {
+    console.log('🤖 リクエスト準備完了:', { 
+      url,
       method: 'POST',
-      headers,
-      body: JSON.stringify(body)
+      headerKeys: Object.keys(headers),
+      bodyKeys: Object.keys(body),
+      promptLength: prompt.length,
+      systemPromptLength: systemPrompt.length,
+      maxTokens
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Claude API error: ${response.status} ${JSON.stringify(errorData)}`);
+    console.log('🤖 APIリクエスト送信開始...');
+    let startTime = Date.now();
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      
+      let endTime = Date.now();
+      console.log(`🤖 APIレスポンス受信: ${endTime - startTime}ms, ステータス=${response.status}, OK=${response.ok}`);
+      
+      if (!response.ok) {
+        console.error('🤖 APIエラーレスポンス:', response.status, response.statusText);
+        
+        try {
+          const errorData = await response.json();
+          console.error('🤖 APIエラー詳細:', JSON.stringify(errorData));
+          throw new Error(`Claude API error: ${response.status} ${JSON.stringify(errorData)}`);
+        } catch (jsonError) {
+          // JSONパースに失敗した場合はテキストとして取得
+          const errorText = await response.text();
+          console.error('🤖 APIエラーテキスト:', errorText);
+          throw new Error(`Claude API error: ${response.status} ${errorText}`);
+        }
+      }
+      
+      console.log('🤖 APIレスポンスのJSONパース開始');
+      const responseData = await response.json() as {
+        content: Array<{ type: string, text: string }>
+      };
+      
+      if (!responseData.content || !Array.isArray(responseData.content)) {
+        console.error('🤖 無効なAPIレスポンス形式:', responseData);
+        throw new Error('Invalid API response format: content array missing');
+      }
+      
+      console.log('🤖 JSONパース成功:', { 
+        contentItems: responseData.content.length,
+        contentTypes: responseData.content.map(item => item.type).join(', ')
+      });
+      
+      const textContent = responseData.content
+        .filter(item => item.type === 'text')
+        .map(item => item.text)
+        .join('');
+      
+      console.log('🤖 テキスト抽出完了: 長さ=' + textContent.length);
+      return textContent;
+      
+    } catch (fetchError) {
+      console.error('🤖 fetch実行エラー:', fetchError);
+      
+      // エラーの詳細情報をログ
+      if (fetchError instanceof Error) {
+        console.error('🤖 エラー名:', fetchError.name);
+        console.error('🤖 エラーメッセージ:', fetchError.message);
+        console.error('🤖 スタックトレース:', fetchError.stack);
+        
+        // タイムアウトやネットワークエラーの場合
+        if (fetchError.name === 'AbortError') {
+          throw new Error('API request timed out');
+        } else if (fetchError.message.includes('network')) {
+          throw new Error('Network error: Unable to connect to Claude API');
+        }
+      }
+      
+      throw fetchError;
     }
     
-    const responseData = await response.json() as {
-      content: Array<{ type: string, text: string }>
-    };
-    
-    return responseData.content
-      .filter(item => item.type === 'text')
-      .map(item => item.text)
-      .join('');
-    
   } catch (error) {
-    console.error('Claude API call error:', error);
+    console.error('🤖 Claude API呼び出し総合エラー:', error);
+    
+    if (error instanceof Error) {
+      // エラーの種類に応じたメッセージをログ
+      if (error.message.includes('API Key')) {
+        console.error('🤖 API認証エラー: キーが無効または期限切れの可能性');
+      } else if (error.message.includes('network')) {
+        console.error('🤖 ネットワークエラー: インターネット接続または API エンドポイントに問題がある可能性');
+      } else if (error.message.includes('timeout')) {
+        console.error('🤖 タイムアウトエラー: リクエストが時間内に完了しなかった');
+      }
+    }
+    
     throw error;
   }
 }
@@ -283,46 +361,71 @@ async function callClaudeAPI(prompt: string, systemPrompt: string, maxTokens: nu
 /**
  * ユーザーの四柱推命データから「調和のコンパス」を生成する
  * @param userData ユーザー情報（四柱推命データを含む）
- * @returns 生成された調和のコンパス（性格特性と人生指針）
+ * @returns 生成された調和のコンパス（マークダウン形式のテキスト全体）
  */
 export async function generateHarmonyCompass(userData: Record<string, any>): Promise<{
-  personalityDescription: string;
-  harmonyCompass: {
-    strengths: string;
-    balance: string;
-    relationships: string;
-    challenges: string;
-  };
+  content: string;
 }> {
+  console.log('🔮 generateHarmonyCompass: 調和のコンパス生成開始');
+  console.log('🔮 API設定状態: API_KEY=' + (process.env.ANTHROPIC_API_KEY ? '設定済み' : '未設定'), 'CLAUDE_MODEL=' + (process.env.CLAUDE_API_MODEL || '未設定'));
+  
   try {
+    // ユーザーデータの検証
+    if (!userData || !userData.user) {
+      console.error('🔮 ユーザーデータ不正: userDataが存在しないか不完全です', userData);
+      throw new Error('無効なユーザーデータ');
+    }
+    
+    console.log('🔮 ユーザーデータ確認:', {
+      hasDisplayName: !!userData.user.displayName,
+      hasElementAttribute: !!userData.user.elementAttribute,
+      hasDayMaster: !!userData.user.dayMaster,
+      hasFourPillars: !!userData.user.fourPillars,
+      hasElementProfile: !!userData.user.elementProfile,
+      hasKakukyoku: !!userData.user.kakukyoku,
+      hasYojin: !!userData.user.yojin
+    });
+    
     // ユーザーデータからプロンプトを構築
+    console.log('🔮 プロンプト構築開始');
     const prompt = createHarmonyCompassPrompt(userData);
+    console.log('🔮 プロンプト構築完了: 長さ=' + prompt.length);
     
     // Claude APIを呼び出し
-    const response = await callClaudeAPI(prompt, HARMONY_COMPASS_SYSTEM_PROMPT, 4096);
-    
-    // レスポンスをパース
-    const sections = parseHarmonyCompassResponse(response);
-    
-    return {
-      personalityDescription: sections.personality || '',
-      harmonyCompass: {
-        strengths: sections.strengths || '',
-        balance: sections.balance || '',
-        relationships: sections.relationships || '',
-        challenges: sections.challenges || ''
+    console.log('🔮 Claude API呼び出し開始');
+    try {
+      const response = await callClaudeAPI(prompt, HARMONY_COMPASS_SYSTEM_PROMPT, 4096);
+      console.log('🔮 Claude API呼び出し成功: レスポンス長=' + response.length);
+      
+      if (response && response.length > 0) {
+        console.log('🔮 レスポンスプレビュー:', response.substring(0, 100) + '...');
+        
+        // レスポンス全体をそのまま返す（パース処理はフロントエンドで行う）
+        console.log('🔮 調和のコンパス生成成功');
+        return {
+          content: response
+        };
+      } else {
+        console.error('🔮 APIレスポンスが空です');
+        throw new Error('APIレスポンスが空');
       }
-    };
+    } catch (apiError) {
+      console.error('🔮 Claude API呼び出しエラー:', apiError);
+      // エラーを上位へ再スロー
+      throw apiError;
+    }
   } catch (error) {
-    console.error('Generate harmony compass error:', error);
+    console.error('🔮 調和のコンパス生成エラー:', error);
+    console.error('🔮 エラータイプ:', error instanceof Error ? error.name : typeof error);
+    console.error('🔮 エラー詳細:', error instanceof Error ? error.message : String(error));
+    
+    if (error instanceof Error && error.stack) {
+      console.error('🔮 スタックトレース:', error.stack);
+    }
+    
+    // エラーメッセージを返す
     return {
-      personalityDescription: '申し訳ありません。性格特性の分析中にエラーが発生しました。',
-      harmonyCompass: {
-        strengths: '申し訳ありません。強みの分析中にエラーが発生しました。',
-        balance: '申し訳ありません。バランスの分析中にエラーが発生しました。',
-        relationships: '申し訳ありません。人間関係の分析中にエラーが発生しました。',
-        challenges: '申し訳ありません。課題の分析中にエラーが発生しました。'
-      }
+      content: '申し訳ありません。調和のコンパスの生成中にエラーが発生しました。'
     };
   }
 }
@@ -380,13 +483,13 @@ function parseHarmonyCompassResponse(response: string): {
   relationships: string;
   challenges: string;
 } {
-  // セクションタイトルのパターン
+  // 改良されたセクションパターン - マークダウン形式とテキスト形式の両方に対応
   const sectionPatterns = {
-    personality: /【格局に基づく性格特性】|【性格特性】/i,
-    strengths: /【強化すべき方向性】/i,
-    balance: /【注意すべきバランス】/i,
-    relationships: /【人間関係の智慧】/i,
-    challenges: /【成長のための課題】/i
+    personality: /##\s*格局に基づく性格特性|【格局に基づく性格特性】|【性格特性】|性格特性/i,
+    strengths: /##\s*強化すべき方向性|【強化すべき方向性】|強化すべき方向性|用神を活かす方向性/i,
+    balance: /##\s*注意すべきバランス|【注意すべきバランス】|注意すべきバランス|バランスの取り方/i,
+    relationships: /##\s*人間関係の智慧|【人間関係の智慧】|人間関係の智慧|人間関係/i,
+    challenges: /##\s*成長のための課題|【成長のための課題】|成長のための課題|課題/i
   };
   
   // 各セクションの内容を保持するオブジェクト
@@ -426,6 +529,44 @@ function parseHarmonyCompassResponse(response: string): {
           sections[currentSection] += '\n' + line;
         } else {
           sections[currentSection] = line;
+        }
+      }
+    }
+    
+    // セクションが全く検出されなかった場合、マークダウン構造で処理を試みる
+    if (Object.values(sections).every(s => s === '')) {
+      console.log('標準セクションが検出されなかったため、マークダウン構造での解析を試みます');
+      
+      // マークダウンセクションの検出
+      let markdownSections: {[key: string]: string} = {};
+      let currentMdSection: string | null = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // ##で始まる行をセクションタイトルとして扱う
+        if (line.startsWith('## ')) {
+          currentMdSection = line.substring(3).trim();
+          markdownSections[currentMdSection] = '';
+        } 
+        // 現在のセクションにコンテンツを追加
+        else if (currentMdSection && line) {
+          markdownSections[currentMdSection] += (markdownSections[currentMdSection] ? '\n' : '') + line;
+        }
+      }
+      
+      // 検出されたセクションを適切なカテゴリーにマッピング
+      for (const [title, content] of Object.entries(markdownSections)) {
+        if (/性格特性|人物像/i.test(title)) {
+          sections.personality = content;
+        } else if (/強化|方向性|強み/i.test(title)) {
+          sections.strengths = content;
+        } else if (/バランス|調整|注意/i.test(title)) {
+          sections.balance = content;
+        } else if (/人間関係|対人関係|コミュニケーション/i.test(title)) {
+          sections.relationships = content;
+        } else if (/課題|成長|弱点/i.test(title)) {
+          sections.challenges = content;
         }
       }
     }

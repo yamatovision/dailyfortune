@@ -23,7 +23,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   Pagination,
   CircularProgress
@@ -59,7 +58,7 @@ const UsersManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleteUserName, setDeleteUserName] = useState('');
-  const [deleteLoading, setDeleteLoading] = useState(false);
+  // const [deleteLoading, setDeleteLoading] = useState(false);
 
   // 通知コンテキスト
   const { showNotification } = useNotification();
@@ -150,51 +149,7 @@ const UsersManagement = () => {
     setEditDialogOpen(true);
   };
 
-  // ユーザー権限更新
-  const updateUserRole = async () => {
-    if (!editUserId) return;
-    
-    try {
-      setEditLoading(true);
-      
-      // APIリクエスト
-      await AdminService.updateUserRole(editUserId, editUserRole);
-      
-      showNotification(NotificationType.SUCCESS, 'ユーザー権限を更新しました');
-      setEditDialogOpen(false);
-      
-      // ユーザー一覧を更新
-      loadUsers();
-    } catch (error) {
-      console.error('ユーザー権限の更新に失敗しました:', error);
-      showNotification(NotificationType.ERROR, 'ユーザー権限の更新に失敗しました');
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  // ユーザープラン更新
-  const updateUserPlan = async () => {
-    if (!editUserId) return;
-    
-    try {
-      setEditLoading(true);
-      
-      // APIリクエスト
-      await AdminService.updateUserPlan(editUserId, editUserPlan);
-      
-      showNotification(NotificationType.SUCCESS, 'ユーザープランを更新しました');
-      setEditDialogOpen(false);
-      
-      // ユーザー一覧を更新
-      loadUsers();
-    } catch (error) {
-      console.error('ユーザープランの更新に失敗しました:', error);
-      showNotification(NotificationType.ERROR, 'ユーザープランの更新に失敗しました');
-    } finally {
-      setEditLoading(false);
-    }
-  };
+  // ユーザー権限更新とプラン更新はダイアログの更新ボタンのクリックハンドラーに統合されています
 
   // 削除ダイアログを開く
   const openDeleteDialog = (user: any) => {
@@ -215,8 +170,6 @@ const UsersManagement = () => {
     if (!deleteUserId) return;
     
     try {
-      setDeleteLoading(true);
-      
       // APIリクエスト
       await AdminService.removeAdmin(deleteUserId);
       
@@ -228,8 +181,6 @@ const UsersManagement = () => {
     } catch (error) {
       console.error('ユーザーの削除に失敗しました:', error);
       showNotification(NotificationType.ERROR, 'ユーザーの削除に失敗しました');
-    } finally {
-      setDeleteLoading(false);
     }
   };
 

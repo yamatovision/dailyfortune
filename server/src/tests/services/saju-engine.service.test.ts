@@ -2,7 +2,7 @@ import { SajuEngineService } from '../../services/saju-engine.service';
 import { ValidationError } from '../../utils';
 
 // SajuEngineをモック
-jest.mock('../../../../sajuengine_package/src', () => {
+jest.mock('saju-engine', () => {
   return {
     SajuEngine: jest.fn().mockImplementation(() => {
       return {

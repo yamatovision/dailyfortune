@@ -3,7 +3,7 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import { User } from '../models';
 import { handleError, ValidationError, AuthenticationError, NotFoundError } from '../utils';
 import { SajuEngineService } from '../services/saju-engine.service';
-import { SajuResult } from '../../sajuengine_package/src';
+import { SajuResult } from 'saju-engine';
 import * as claudeAIService from '../services/claude-ai';
 
 // 型定義を直接定義
@@ -400,6 +400,93 @@ export class UserController {
             if (typeof ep.water === 'number') profile.water = ep.water;
           }
           
+          // 調和のコンパスを生成（Claude AI利用）
+          console.log('🧭 調和のコンパス生成条件到達: ' + user._id);
+          console.log('🧭 環境変数確認: ANTHROPIC_API_KEY=' + (process.env.ANTHROPIC_API_KEY ? '設定済み' : '未設定'), 'CLAUDE_API_MODEL=' + (process.env.CLAUDE_API_MODEL || '未設定'));
+          
+          try {
+            // ユーザーデータを構築
+            console.log('🧭 ユーザーデータ構築開始');
+            const userData = {
+              user: {
+                displayName: user.displayName,
+                elementAttribute: sajuUpdateData.elementAttribute,
+                dayMaster: sajuUpdateData.dayMaster,
+                fourPillars: sajuUpdateData.fourPillars,
+                elementProfile: sajuUpdateData.elementProfile,
+                kakukyoku: sajuUpdateData.kakukyoku,
+                yojin: sajuUpdateData.yojin
+              }
+            };
+            console.log('🧭 構築したユーザーデータ:', JSON.stringify(userData, null, 2).substring(0, 200) + '...');
+            
+            // Claude AIで調和のコンパスを生成
+            console.log('🧭 調和のコンパス生成開始...');
+            try {
+              const compassResult = await claudeAIService.generateHarmonyCompass(userData);
+              console.log('🧭 ClaudeAPI呼び出し成功:', compassResult ? '結果あり' : '結果なし');
+              
+              if (compassResult && compassResult.content) {
+                console.log('🧭 Claudeレスポンス内容:', compassResult.content.substring(0, 100) + '...');
+                
+                // careerAptitudeフィールドに保存（マークダウンフォーマットのまま全体を保存）
+                sajuUpdateData.careerAptitude = compassResult.content;
+                console.log('🧭 careerAptitudeに保存する内容のサイズ:', compassResult.content.length, '文字');
+                
+                // personalityDescriptionは非推奨になりますが、後方互換性のために維持
+                // マークダウン形式のテキストから「格局に基づく性格特性」セクションを抽出
+                sajuUpdateData.personalityDescription = extractPersonalityDescription(compassResult.content);
+                console.log('🧭 抽出したpersonalityDescription:', sajuUpdateData.personalityDescription ? sajuUpdateData.personalityDescription.substring(0, 50) + '...' : '抽出なし');
+                
+                console.log('🧭 調和のコンパス生成完了');
+              } else {
+                console.error('🧭 Claudeレスポンスが空か不正:', compassResult);
+                throw new Error('Claudeレスポンスが空か不正');
+              }
+            } catch (claudeApiError) {
+              console.error('🧭 Claude API呼び出しエラー:', claudeApiError);
+              throw claudeApiError; // 上位のエラーハンドリングに渡す
+            }
+            
+            // 性格特性部分を抽出する補助関数
+            function extractPersonalityDescription(content: string): string {
+              console.log('🧭 personalityDescription抽出開始');
+              if (!content) {
+                console.log('🧭 コンテンツが空のため抽出できません');
+                return '';
+              }
+              
+              // マークダウン形式から性格特性セクションを抽出
+              const personalityMatch = content.match(/##\s*格局に基づく性格特性[\s\S]*?(?=##|$)/i);
+              if (personalityMatch && personalityMatch[0]) {
+                console.log('🧭 性格特性セクションを検出');
+                // セクションタイトルを除去し、テキストのみを返す
+                const result = personalityMatch[0].replace(/##\s*格局に基づく性格特性/i, '').trim();
+                console.log('🧭 抽出結果:', result.substring(0, 50) + '...');
+                return result;
+              }
+              console.log('🧭 性格特性セクションが見つかりませんでした');
+              return '';
+            }
+            
+          } catch (compassError) {
+            console.error('🧭 調和のコンパス生成エラー:', compassError);
+            console.error('🧭 エラー詳細:', JSON.stringify(compassError, Object.getOwnPropertyNames(compassError), 2));
+            
+            console.log('🧭 フォールバック処理を開始: 従来のメソッドで生成');
+            // エラー時は従来のメソッドで生成
+            const personalityDescription = this.generatePersonalityDescription(result);
+            const careerAptitude = this.generateCareerDescription(result);
+            
+            console.log('🧭 フォールバック: personalityDescription =', personalityDescription.substring(0, 50) + '...');
+            console.log('🧭 フォールバック: careerAptitude =', careerAptitude.substring(0, 50) + '...');
+            
+            // フォールバック時も同じ順序で保存（personalityDescriptionは後方互換性のために維持）
+            sajuUpdateData.careerAptitude = careerAptitude;
+            sajuUpdateData.personalityDescription = personalityDescription;
+            console.log('🧭 フォールバック処理完了');
+          }
+
           // 四柱推命情報を更新
           user = await User.findByIdAndUpdate(
             req.user.uid,
@@ -745,8 +832,12 @@ export class UserController {
       };
       
       // 調和のコンパスを生成（Claude AI利用）
+      console.log('🧭 調和のコンパス生成条件到達: ' + user._id);
+      console.log('🧭 環境変数確認: ANTHROPIC_API_KEY=' + (process.env.ANTHROPIC_API_KEY ? '設定済み' : '未設定'), 'CLAUDE_API_MODEL=' + (process.env.CLAUDE_API_MODEL || '未設定'));
+      
       try {
         // ユーザーデータを構築
+        console.log('🧭 ユーザーデータ構築開始');
         const userData = {
           user: {
             displayName: user.displayName,
@@ -758,36 +849,72 @@ export class UserController {
             yojin: updateData.yojin
           }
         };
+        console.log('🧭 構築したユーザーデータ:', JSON.stringify(userData, null, 2).substring(0, 200) + '...');
         
         // Claude AIで調和のコンパスを生成
-        console.log('調和のコンパス生成開始...');
-        const compassResult = await claudeAIService.generateHarmonyCompass(userData);
-        
-        // 結果を格納
-        updateData.personalityDescription = compassResult.personalityDescription;
-        
-        // careerAptitudeを「調和のコンパス」情報として再利用
-        updateData.careerAptitude = JSON.stringify({
-          version: '1.0',
-          type: 'harmony_compass',
-          sections: {
-            strengths: compassResult.harmonyCompass.strengths,
-            balance: compassResult.harmonyCompass.balance,
-            relationships: compassResult.harmonyCompass.relationships,
-            challenges: compassResult.harmonyCompass.challenges
+        console.log('🧭 調和のコンパス生成開始...');
+        try {
+          const compassResult = await claudeAIService.generateHarmonyCompass(userData);
+          console.log('🧭 ClaudeAPI呼び出し成功:', compassResult ? '結果あり' : '結果なし');
+          
+          if (compassResult && compassResult.content) {
+            console.log('🧭 Claudeレスポンス内容:', compassResult.content.substring(0, 100) + '...');
+            
+            // マークダウン形式のテキストからpersonalityDescriptionを抽出
+            updateData.personalityDescription = extractPersonalityDescription(compassResult.content);
+            console.log('🧭 抽出したpersonalityDescription:', updateData.personalityDescription ? updateData.personalityDescription.substring(0, 50) + '...' : '抽出なし');
+            
+            // careerAptitudeフィールドに保存
+            // テキストとして直接保存する方式に変更
+            updateData.careerAptitude = compassResult.content;
+            console.log('🧭 careerAptitudeに保存する内容のサイズ:', compassResult.content.length, '文字');
+            
+            console.log('🧭 調和のコンパス生成完了');
+          } else {
+            console.error('🧭 Claudeレスポンスが空か不正:', compassResult);
+            throw new Error('Claudeレスポンスが空か不正');
           }
-        });
+        } catch (claudeApiError) {
+          console.error('🧭 Claude API呼び出しエラー:', claudeApiError);
+          throw claudeApiError; // 上位のエラーハンドリングに渡す
+        }
         
-        console.log('調和のコンパス生成完了');
+        // 性格特性部分を抽出する補助関数
+        function extractPersonalityDescription(content: string): string {
+          console.log('🧭 personalityDescription抽出開始');
+          if (!content) {
+            console.log('🧭 コンテンツが空のため抽出できません');
+            return '';
+          }
+          
+          // マークダウン形式から性格特性セクションを抽出
+          const personalityMatch = content.match(/##\s*格局に基づく性格特性[\s\S]*?(?=##|$)/i);
+          if (personalityMatch && personalityMatch[0]) {
+            console.log('🧭 性格特性セクションを検出');
+            // セクションタイトルを除去し、テキストのみを返す
+            const result = personalityMatch[0].replace(/##\s*格局に基づく性格特性/i, '').trim();
+            console.log('🧭 抽出結果:', result.substring(0, 50) + '...');
+            return result;
+          }
+          console.log('🧭 性格特性セクションが見つかりませんでした');
+          return '';
+        }
+        
       } catch (compassError) {
-        console.error('調和のコンパス生成エラー:', compassError);
+        console.error('🧭 調和のコンパス生成エラー:', compassError);
+        console.error('🧭 エラー詳細:', JSON.stringify(compassError, Object.getOwnPropertyNames(compassError), 2));
         
+        console.log('🧭 フォールバック処理を開始: 従来のメソッドで生成');
         // エラー時は従来のメソッドで生成
         const personalityDescription = this.generatePersonalityDescription(result);
         const careerAptitude = this.generateCareerDescription(result);
         
+        console.log('🧭 フォールバック: personalityDescription =', personalityDescription.substring(0, 50) + '...');
+        console.log('🧭 フォールバック: careerAptitude =', careerAptitude.substring(0, 50) + '...');
+        
         updateData.personalityDescription = personalityDescription;
         updateData.careerAptitude = careerAptitude;
+        console.log('🧭 フォールバック処理完了');
       }
       
       // 五行バランス値の計算を追加

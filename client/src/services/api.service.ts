@@ -43,7 +43,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      timeout: 10000,
+      timeout: 45000, // 45秒に延長（特に調和コンパス生成など、AIが関わる処理用）
     });
 
     this.api.interceptors.request.use(

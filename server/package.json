@@ -41,6 +41,7 @@
     "lunar-javascript": "^1.7.2",
     "mongoose": "^8.0.0",
     "node-cron": "^3.0.3",
+    "saju-engine": "file:../sajuengine_package",
     "winston": "^3.11.0"
   },
   "devDependencies": {

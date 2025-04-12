@@ -9,7 +9,10 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 export interface IHarmonyCompass {
   version: string;
   type: string;
-  sections: {
+  // 新形式: マークダウンテキスト全体を格納
+  content?: string;
+  // 旧形式: セクション別のデータ
+  sections?: {
     strengths: string;    // 強化すべき方向性
     balance: string;      // 注意すべきバランス
     relationships: string; // 人間関係の智慧
@@ -33,15 +36,76 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
   // JSON文字列をパース
   let parsedData: IHarmonyCompass | null = null;
   let isLegacyFormat = true;
+  let markdownContent = "";
   
   try {
     const parsed = JSON.parse(data);
-    if (parsed && parsed.type === 'harmony_compass' && parsed.sections) {
+    if (parsed && parsed.type === 'harmony_compass') {
       parsedData = parsed;
       isLegacyFormat = false;
+      
+      // 新形式: contentフィールドを持つ場合
+      if (parsed.content && parsedData) {
+        markdownContent = parsed.content;
+        
+        // contentからセクションを抽出
+        // sections未定義の場合は初期化してからセット
+        if (!parsedData.sections) {
+          parsedData.sections = {
+            strengths: '',
+            balance: '',
+            relationships: '',
+            challenges: ''
+          };
+        }
+        // 抽出したセクションで上書き
+        const extractedSections = extractSectionsFromMarkdown(markdownContent);
+        if (parsedData.sections) {
+          parsedData.sections.strengths = extractedSections.strengths;
+          parsedData.sections.balance = extractedSections.balance;
+          parsedData.sections.relationships = extractedSections.relationships;
+          parsedData.sections.challenges = extractedSections.challenges;
+        }
+      }
     }
   } catch (e) {
     console.warn('調和のコンパスデータのパースに失敗しました。従来形式として表示します。', e);
+  }
+
+  // マークダウンからセクションを抽出する関数
+  function extractSectionsFromMarkdown(markdown: string) {
+    const sections = {
+      strengths: '',
+      balance: '',
+      relationships: '',
+      challenges: ''
+    };
+    
+    // 強化すべき方向性
+    const strengthsMatch = markdown.match(/(?:強化すべき方向性|強み)([\s\S]*?)(?=注意すべきバランス|バランス|人間関係|成長|$)/i);
+    if (strengthsMatch && strengthsMatch[1]) {
+      sections.strengths = strengthsMatch[1].trim();
+    }
+    
+    // 注意すべきバランス
+    const balanceMatch = markdown.match(/(?:注意すべきバランス|バランス)([\s\S]*?)(?=人間関係|成長|$)/i);
+    if (balanceMatch && balanceMatch[1]) {
+      sections.balance = balanceMatch[1].trim();
+    }
+    
+    // 人間関係の智慧
+    const relationshipsMatch = markdown.match(/(?:人間関係の智慧|人間関係)([\s\S]*?)(?=成長|課題|$)/i);
+    if (relationshipsMatch && relationshipsMatch[1]) {
+      sections.relationships = relationshipsMatch[1].trim();
+    }
+    
+    // 成長のための課題
+    const challengesMatch = markdown.match(/(?:成長のための課題|成長|課題)([\s\S]*?)(?=$)/i);
+    if (challengesMatch && challengesMatch[1]) {
+      sections.challenges = challengesMatch[1].trim();
+    }
+    
+    return sections;
   }
 
   // 従来形式の場合はそのまま表示
@@ -63,6 +127,42 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
       </Paper>
     );
   }
+  
+  // 新形式でマークダウンテキスト全体を表示する場合
+  if (markdownContent && !parsedData?.sections?.strengths) {
+    return (
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 3, 
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          backgroundColor: 'rgba(250, 245, 255, 0.5)'
+        }}
+      >
+        {markdownContent.split('\n').map((line, index) => {
+          // 見出し処理
+          if (line.startsWith('##')) {
+            const title = line.replace(/^##\s*/, '');
+            return (
+              <Typography key={index} variant="h6" sx={{ mt: 2, mb: 1, color: 'primary.main', fontWeight: 'bold' }}>
+                {title}
+              </Typography>
+            );
+          } else if (line.trim() === '') {
+            return <Box key={index} sx={{ my: 1 }} />;
+          } else {
+            return (
+              <Typography key={index} variant="body2" paragraph>
+                {line}
+              </Typography>
+            );
+          }
+        })}
+      </Paper>
+    );
+  }
 
   // タブの内容定義
   const tabs = [
@@ -71,7 +171,7 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
       label: '強化すべき方向性',
       icon: <TrendingUpIcon />,
       color: '#4caf50',
-      content: parsedData?.sections.strengths || '',
+      content: parsedData?.sections?.strengths || '',
       iconName: 'trending_up'
     },
     {
@@ -79,7 +179,7 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
       label: 'バランス',
       icon: <BalanceIcon />,
       color: '#ff9800',
-      content: parsedData?.sections.balance || '',
+      content: parsedData?.sections?.balance || '',
       iconName: 'balance'
     },
     {
@@ -87,7 +187,7 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
       label: '人間関係',
       icon: <PeopleIcon />,
       color: '#2196f3',
-      content: parsedData?.sections.relationships || '',
+      content: parsedData?.sections?.relationships || '',
       iconName: 'people'
     },
     {
@@ -95,7 +195,7 @@ const HarmonyCompass: React.FC<HarmonyCompassProps> = ({ data }) => {
       label: '成長課題',
       icon: <PsychologyIcon />,
       color: '#9c27b0',
-      content: parsedData?.sections.challenges || '',
+      content: parsedData?.sections?.challenges || '',
       iconName: 'psychology'
     }
   ];

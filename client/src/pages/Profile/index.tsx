@@ -363,13 +363,15 @@ const Profile = () => {
     }
   };
 
-  const handleSecurityFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formElement = e.target as HTMLFormElement;
-    const formData = new FormData(formElement);
-    const currentPassword = formData.get('currentPassword') as string;
-    const newPassword = formData.get('newPassword') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
+  const handleSecurityFormSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
+    // Get form fields directly from the DOM since we're not using a form submission
+    const currentPassword = (document.querySelector('input[name="currentPassword"]') as HTMLInputElement)?.value;
+    const newPassword = (document.querySelector('input[name="newPassword"]') as HTMLInputElement)?.value;
+    const confirmPassword = (document.querySelector('input[name="confirmPassword"]') as HTMLInputElement)?.value;
 
     // バリデーション
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -403,8 +405,9 @@ const Profile = () => {
         severity: 'success'
       });
       
-      // フォームをリセット
-      formElement.reset();
+      // フォームをリセット - 各フィールドを空にする
+      const passwordFields = document.querySelectorAll('input[type="password"]') as NodeListOf<HTMLInputElement>;
+      passwordFields.forEach(field => field.value = '');
       
       // パスワード変更セクションを閉じる
       setPasswordExpanded(false);
@@ -817,7 +820,7 @@ const Profile = () => {
                       アカウントのセキュリティのため、定期的なパスワード変更をお勧めします。
                     </Typography>
                     
-                    <Box component="form" onSubmit={handleSecurityFormSubmit}>
+                    <div>
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
                           <TextField
@@ -850,7 +853,8 @@ const Profile = () => {
                       </Grid>
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
                         <Button
-                          type="submit"
+                          type="button"
+                          onClick={handleSecurityFormSubmit}
                           variant="contained"
                           color="primary"
                           sx={{ 
@@ -866,7 +870,7 @@ const Profile = () => {
                           パスワードを変更
                         </Button>
                       </Box>
-                    </Box>
+                    </div>
                   </Paper>
                 </Collapse>
               </Box>

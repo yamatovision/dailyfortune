@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (user) {
         // ユーザーの詳細情報（権限など）をAPIから取得
         try {
-          const idToken = await user.getIdToken()
+          await user.getIdToken() // IDトークンを取得（認証のため）
           // シンプルに実装 - ローカルのみで動作させるため、バックエンドAPIを呼び出さない
           // スーパー管理者として扱う（Firebase認証のみを使用）
           const userData: Partial<IUser> = {

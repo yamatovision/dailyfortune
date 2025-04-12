@@ -850,6 +850,13 @@ function selectSpecificTenGod(
 function convertTenGodToElement(tenGod: TenGodRelation, dayStem: string): string {
   const dayElement = tenGodCalculator.getElementFromStem(dayStem);
   
+  // 通変星ペアの処理を先に行う
+  if (tenGod === '比劫') return dayElement;
+  if (tenGod === '印') return getElementProducing(dayElement);
+  if (tenGod === '食傷') return getElementProducedBy(dayElement);
+  if (tenGod === '財') return getElementControlledBy(dayElement);
+  if (tenGod === '官殺') return getElementControlling(dayElement);
+  
   // 十神と日干の関係から、用神の五行を特定
   switch (tenGod) {
     case '比肩':
