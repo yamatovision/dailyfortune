@@ -1056,35 +1056,30 @@ export class FortuneService {
       });
     }
     
-    if (existingFortune && !forceOverwrite) {
-      // 既存データがあり、強制上書きでない場合はエラー
-      throw new Error(`このユーザー(${userId})の${targetDate.toISOString().split('T')[0]}の運勢は既に存在します`);
-    }
-
     let fortune;
     
-    if (forceOverwrite && existingFortune) {
-      // 強制上書きモードで既存データがある場合は削除
-      await DailyFortune.deleteOne({
+    if (existingFortune) {
+      // 既存データがある場合は更新
+      existingFortune.dayPillarId = dayPillar._id as mongoose.Types.ObjectId;
+      existingFortune.fortuneScore = fortuneScore;
+      existingFortune.advice = advice;
+      existingFortune.luckyItems = luckyItems;
+      await existingFortune.save();
+      
+      fortune = existingFortune;
+    } else {
+      // 新規作成
+      fortune = new DailyFortune({
         userId: userId,
-        date: {
-          $gte: targetDate,
-          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000)
-        }
+        date: targetDate,
+        dayPillarId: dayPillar._id,
+        fortuneScore: fortuneScore,
+        advice: advice,
+        luckyItems: luckyItems
       });
-    }
-    
-    // 新規作成
-    fortune = new DailyFortune({
-      userId: userId,
-      date: targetDate,
-      dayPillarId: dayPillar._id,
-      fortuneScore: fortuneScore,
-      advice: advice,
-      luckyItems: luckyItems
-    });
 
-    await fortune.save();
+      await fortune.save();
+    }
 
     return {
       id: fortune._id,
