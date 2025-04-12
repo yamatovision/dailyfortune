@@ -9,8 +9,8 @@ interface IconMapping {
 }
 
 const iconMapping: IconMapping = {
-  color: 'palette',
-  item: 'brush',
+  color: 'checkroom',
+  item: 'restaurant',
   drink: 'local_cafe'
 };
 
@@ -79,8 +79,8 @@ const LuckyItems: React.FC<LuckyItemsProps> = ({ fortune }) => {
                   marginBottom: 1
                 }}
               >
-                {key === 'color' ? 'ラッキーカラー' : 
-                  key === 'item' ? 'ラッキーアイテム' : 'ラッキードリンク'}
+                {key === 'color' ? 'ラッキーファッション' : 
+                  key === 'item' ? 'ラッキーフード' : 'ラッキードリンク'}
               </Typography>
               <Box
                 component="span"

@@ -1537,29 +1537,29 @@ ${teamGoalAdvice}`;
   private getLuckyItemsByElement(element: string): { color: string; item: string; drink: string } {
     const luckyItemsByElement: { [key: string]: { color: string; item: string; drink: string }[] } = {
       'wood': [
-        { color: 'グリーン', item: '観葉植物', drink: '緑茶' },
-        { color: 'ライトグリーン', item: '木製ペン', drink: 'ハーブティー' },
-        { color: 'オリーブ', item: 'ノート', drink: '野菜ジュース' }
+        { color: '緑のシャツ', item: 'サラダ', drink: '緑茶' },
+        { color: 'ナチュラルリネン', item: 'アボカド', drink: 'ハーブティー' },
+        { color: '竹織りの帽子', item: '木の実ナッツ', drink: '野菜ジュース' }
       ],
       'fire': [
-        { color: 'レッド', item: 'キャンドル', drink: 'ルイボスティー' },
-        { color: 'オレンジ', item: '赤いマグカップ', drink: '温かいコーヒー' },
-        { color: 'ピンク', item: 'ライター', drink: 'トマトジュース' }
+        { color: '赤いセーター', item: '唐辣子料理', drink: 'ルイボスティー' },
+        { color: 'オレンジのスカーフ', item: '焼き立て料理', drink: '温かいコーヒー' },
+        { color: 'ピンクのアクセント', item: 'トマト料理', drink: 'トマトジュース' }
       ],
       'earth': [
-        { color: 'イエロー', item: 'クリスタル', drink: 'ウーロン茶' },
-        { color: 'ベージュ', item: '陶器のフィギュア', drink: 'ミルクティー' },
-        { color: 'ブラウン', item: '写真立て', drink: 'ココア' }
+        { color: '黄色のセーター', item: 'かぼちゃスープ', drink: 'ウーロン茶' },
+        { color: '茶色のベスト', item: 'ポテト料理', drink: 'ミルクティー' },
+        { color: 'ベージュのコート', item: '焼き菅子', drink: 'ココア' }
       ],
       'metal': [
-        { color: 'ホワイト', item: '腕時計', drink: '白ワイン' },
-        { color: 'シルバー', item: 'コイン', drink: '牛乳' },
-        { color: 'ゴールド', item: 'キーホルダー', drink: 'シャンパン' }
+        { color: '白いブラウス', item: '白身魚料理', drink: '白ワイン' },
+        { color: 'メタリックなアクセサリー', item: 'クリームソース料理', drink: '牛乳' },
+        { color: '銀色のジャケット', item: 'キノコ料理', drink: 'シャンパン' }
       ],
       'water': [
-        { color: 'ブルー', item: '青いペン', drink: 'クリアな水' },
-        { color: 'ブラック', item: 'ガラスの置物', drink: '炭酸水' },
-        { color: 'ネイビー', item: 'ハンカチ', drink: 'コーヒー' }
+        { color: '紺色のアウター', item: '魚料理', drink: 'ミネラルウォーター' },
+        { color: '深い青のドレス', item: '海藻サラダ', drink: '炭酸水' },
+        { color: '黒いレザージャケット', item: '黒豆デザート', drink: 'コーヒー' }
       ]
     };
 

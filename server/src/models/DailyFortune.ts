@@ -55,12 +55,12 @@ const dailyFortuneSchema = new Schema<IDailyFortuneDocument>(
     luckyItems: {
       color: {
         type: String,
-        required: [true, 'ラッキーカラーは必須です'],
+        required: [true, 'ラッキーファッションは必須です'],
         trim: true
       },
       item: {
         type: String,
-        required: [true, 'ラッキーアイテムは必須です'],
+        required: [true, 'ラッキーフードは必須です'],
         trim: true
       },
       drink: {

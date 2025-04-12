@@ -49,6 +49,7 @@
  * - 2025/04/06: バックエンド用のリファレンス方式に変更 (Tatsuya)
  * - 2025/04/07: Expressルーティング実装ルールを追加 (Claude)
  * - 2025/04/08: SajuProfileの削除とUserモデルへの統合 (Claude)
+ * - 2025/04/12: HarmonyCompassインターフェースを追加 (Claude)
  */
 
 // API基本パス
@@ -194,6 +195,18 @@ export const ADMIN = {
 };
 
 // ========== データモデル ==========
+
+// 調和のコンパスのインターフェース
+export interface IHarmonyCompass {
+  version: string;
+  type: string;
+  sections: {
+    strengths: string;    // 強化すべき方向性
+    balance: string;      // 注意すべきバランス
+    relationships: string; // 人間関係の智慧
+    challenges: string;   // 成長のための課題
+  };
+}
 
 // SajuEngine計算オプション
 export interface SajuOptions {
@@ -360,6 +373,21 @@ export interface IUser {
     element: string;                // 五行表記: 例 'wood', 'fire'
     description?: string;           // 用神の説明
     supportElements?: string[];     // 用神をサポートする五行
+    kijin?: {                       // 喜神情報（用神を助ける要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kijin2?: {                      // 忌神情報（避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kyujin?: {                      // 仇神情報（強く避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
   };
   personalityDescription?: string;
   careerAptitude?: string;
@@ -414,6 +442,21 @@ export interface ISajuProfile {
     element: string;                // 五行表記: 例 'wood', 'fire'
     description?: string;           // 用神の説明
     supportElements?: string[];     // 用神をサポートする五行
+    kijin?: {                       // 喜神情報（用神を助ける要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kijin2?: {                      // 忌神情報（避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kyujin?: {                      // 仇神情報（強く避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
   };
   personalityDescription: string;
   careerAptitude: string;

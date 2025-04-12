@@ -8,6 +8,25 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 SERVER_DIR="$PROJECT_ROOT"
 
+# TypeScriptエラーチェック
+echo "TypeScriptエラーチェックを実行しています..."
+cd "$SERVER_DIR"
+TS_ERRORS=$(npx tsc --noEmit 2>&1)
+TS_ERROR_COUNT=$(echo "$TS_ERRORS" | grep -c "error TS")
+
+if [ $TS_ERROR_COUNT -gt 0 ]; then
+    echo "⚠️ 警告: TypeScriptエラーが $TS_ERROR_COUNT 件あります。テスト実行前に修正してください。"
+    echo "$TS_ERRORS"
+    echo "テスト前にTypeScriptエラーを解消することを推奨します。続行しますか？ (y/n)"
+    read -r CONTINUE
+    if [[ ! "$CONTINUE" =~ ^[Yy]$ ]]; then
+        echo "セットアップを中止します。TypeScriptエラーを修正してから再実行してください。"
+        exit 1
+    fi
+else
+    echo "✓ TypeScriptエラーなし - コードベースは正常です"
+fi
+
 # ログディレクトリの作成
 LOGS_DIR="$PROJECT_ROOT/../logs/tests"
 mkdir -p "$LOGS_DIR"

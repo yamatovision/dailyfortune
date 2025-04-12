@@ -121,9 +121,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // JWTトークンの自動更新タイマー
     const tokenRefreshInterval = setInterval(() => {
       if (authManager.getCurrentAuthMode() !== AuthMode.FIREBASE) {
-        authManager.refreshJwtTokenIfNeeded();
+        authManager.refreshJwtTokenIfNeeded().catch(err => {
+          console.error('トークン自動更新エラー:', err);
+        });
       }
-    }, 5 * 60 * 1000); // 5分ごとにチェック
+    }, 60 * 1000); // 1分ごとにチェック
     
     return () => {
       firebaseUnsubscribe();

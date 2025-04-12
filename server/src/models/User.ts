@@ -103,6 +103,21 @@ export interface IUser {
     element: string;                // 五行表記: 例 'wood', 'fire'
     description?: string;           // 用神の説明
     supportElements?: string[];     // 用神をサポートする五行
+    kijin?: {                       // 喜神情報（用神を助ける要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kijin2?: {                      // 忌神情報（避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
+    kyujin?: {                      // 仇神情報（強く避けるべき要素）
+      tenGod: string;               // 十神表記
+      element: string;              // 五行表記
+      description?: string;         // 説明
+    };
   };
   personalityDescription?: string;  // 性格特性の説明
   careerAptitude?: string;          // 職業適性の説明
@@ -360,7 +375,46 @@ const userSchema = new Schema<IUserDocument>(
       description: {
         type: String
       },
-      supportElements: [String]
+      supportElements: [String],
+      kijin: {
+        tenGod: {
+          type: String,
+          trim: true
+        },
+        element: {
+          type: String,
+          trim: true
+        },
+        description: {
+          type: String
+        }
+      },
+      kijin2: {
+        tenGod: {
+          type: String,
+          trim: true
+        },
+        element: {
+          type: String,
+          trim: true
+        },
+        description: {
+          type: String
+        }
+      },
+      kyujin: {
+        tenGod: {
+          type: String,
+          trim: true
+        },
+        element: {
+          type: String,
+          trim: true
+        },
+        description: {
+          type: String
+        }
+      }
     },
     personalityDescription: {
       type: String

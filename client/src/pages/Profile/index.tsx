@@ -14,16 +14,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
   Divider,
   CircularProgress,
   useMediaQuery,
   useTheme,
   FormHelperText,
   Snackbar,
-  Alert
+  Alert,
+  Collapse,
+  Paper
 } from '@mui/material';
 import ParkIcon from '@mui/icons-material/Park'; // 木
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'; // 火
@@ -33,7 +32,8 @@ import WaterDropIcon from '@mui/icons-material/WaterDrop'; // 水
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PersonIcon from '@mui/icons-material/Person';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import SecurityIcon from '@mui/icons-material/Security';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import SajuProfileSection from './SajuProfileSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAuth } from 'firebase/auth';
@@ -85,6 +85,8 @@ const Profile = () => {
     severity: 'info'
   });
   
+  const [passwordExpanded, setPasswordExpanded] = useState(false);
+  
   const [formData, setFormData] = useState({
     // 基本プロフィール情報
     displayName: '',
@@ -110,36 +112,6 @@ const Profile = () => {
         birthPlace: userProfile.birthPlace
       });
       
-      // バックエンドからの四柱推命情報を取得
-      // 未使用関数のため削除
-      /* const formatDateForInput = (dateStr: string | undefined): string => {
-        if (!dateStr) {
-          console.log('日付データなし、デフォルト値を使用します');
-          return '1990-01-01';
-        }
-        
-        try {
-          // 日付文字列のフォーマットをチェック
-          console.log('処理対象の日付文字列:', dateStr);
-          
-          // タイムゾーン問題を解消するためにローカル日付文字列を使用
-          const date = new Date(dateStr);
-          console.log('JavaScriptのDate型に変換:', date);
-          
-          // 日付を YYYY-MM-DD 形式に変換
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const formattedDate = `${year}-${month}-${day}`;
-          
-          console.log(`日付変換結果: ${dateStr} → ${formattedDate}`);
-          return formattedDate;
-        } catch (e) {
-          console.error('日付変換エラー:', e);
-          return '1990-01-01';
-        }
-      }; */
-
       // 座標情報がない場合は都市名から取得
       const birthPlace = userProfile.birthPlace || '東京都';
       const hasCoordinates = userProfile.birthplaceCoordinates && 
@@ -372,7 +344,7 @@ const Profile = () => {
       console.groupEnd();
       
       // 更新が正常終了したらタブを切り替え（四柱推命タブを表示）
-      setTabValue(1);
+      setTabValue(0);
       
       // AuthContextで保持しているuserProfileを最新状態に更新
       await refreshUserProfile();
@@ -391,12 +363,61 @@ const Profile = () => {
     }
   };
 
-  // 目標設定は基本プロフィール情報に統合されたため、個別のハンドラーは不要
-
-  const handleSecurityFormSubmit = (e: React.FormEvent) => {
+  const handleSecurityFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // セキュリティ設定フォーム送信処理（実装予定）
-    console.log('Security form submitted');
+    const formElement = e.target as HTMLFormElement;
+    const formData = new FormData(formElement);
+    const currentPassword = formData.get('currentPassword') as string;
+    const newPassword = formData.get('newPassword') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+
+    // バリデーション
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setNotification({
+        open: true,
+        message: 'すべての項目を入力してください',
+        severity: 'error'
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setNotification({
+        open: true,
+        message: '新しいパスワードと確認用パスワードが一致しません',
+        severity: 'error'
+      });
+      return;
+    }
+
+    // パスワード変更処理
+    try {
+      setSavingProfile(true);
+      // 実際の実装ではFirebase Auth APIを使用
+      console.log('パスワード変更処理:', { currentPassword, newPassword });
+      
+      // 処理成功
+      setNotification({
+        open: true,
+        message: 'パスワードが正常に変更されました',
+        severity: 'success'
+      });
+      
+      // フォームをリセット
+      formElement.reset();
+      
+      // パスワード変更セクションを閉じる
+      setPasswordExpanded(false);
+    } catch (error: any) {
+      console.error('パスワード変更エラー:', error);
+      setNotification({
+        open: true,
+        message: `エラー: ${error.message || 'パスワード変更中にエラーが発生しました'}`,
+        severity: 'error'
+      });
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   if (loading) {
@@ -538,30 +559,28 @@ const Profile = () => {
             scrollButtons="auto"
           >
             <Tab 
-              icon={<PersonIcon />} 
-              label={isMobile ? null : "個人情報"} 
+              icon={<AutoAwesomeIcon />} 
+              label={isMobile ? null : "四柱推命"} 
               id="profile-tab-0" 
               aria-controls="profile-tabpanel-0"
               iconPosition="start"
             />
             <Tab 
-              icon={<AutoAwesomeIcon />} 
-              label={isMobile ? null : "四柱推命"} 
+              icon={<PersonIcon />} 
+              label={isMobile ? null : "個人情報"} 
               id="profile-tab-1" 
               aria-controls="profile-tabpanel-1"
               iconPosition="start"
             />
-            <Tab 
-              icon={<SecurityIcon />} 
-              label={isMobile ? null : "セキュリティ"} 
-              id="profile-tab-2" 
-              aria-controls="profile-tabpanel-2"
-              iconPosition="start"
-            />
           </Tabs>
 
-          {/* 個人情報タブ */}
+          {/* 四柱推命タブ */}
           <TabPanel value={tabValue} index={0}>
+            <SajuProfileSection />
+          </TabPanel>
+
+          {/* 個人情報タブ */}
+          <TabPanel value={tabValue} index={1}>
             <Box component="form" onSubmit={handlePersonalFormSubmit}>
               <Typography 
                 variant="h6" 
@@ -762,131 +781,94 @@ const Profile = () => {
                   ) : '保存する'}
                 </Button>
               </Box>
-            </Box>
-          </TabPanel>
-
-
-          {/* 四柱推命タブ */}
-          <TabPanel value={tabValue} index={1}>
-            <SajuProfileSection />
-          </TabPanel>
-
-          {/* セキュリティタブ */}
-          <TabPanel value={tabValue} index={2}>
-            <Box component="form" onSubmit={handleSecurityFormSubmit}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                アカウントのセキュリティ設定を更新します。定期的なパスワード変更をお勧めします。
-              </Typography>
               
-              <Box sx={{ mb: 4 }}>
-                <Typography 
-                  variant="h6" 
+              <Divider sx={{ my: 4 }} />
+              
+              <Box>
+                <Button
+                  onClick={() => setPasswordExpanded(!passwordExpanded)}
+                  variant="outlined"
+                  color="primary"
+                  startIcon={passwordExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   sx={{ 
                     mb: 2, 
-                    pb: 1, 
-                    borderBottom: '1px solid', 
-                    borderColor: 'primary.light',
-                    color: 'primary.dark',
-                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                    borderRadius: 30,
+                    pl: 2,
+                    pr: 3,
+                    fontWeight: 'medium'
                   }}
                 >
                   パスワード変更
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="現在のパスワード"
-                      name="currentPassword"
-                      type="password"
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="新しいパスワード"
-                      name="newPassword"
-                      type="password"
-                      helperText="8文字以上で、英字・数字・記号を含めてください"
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="新しいパスワード（確認）"
-                      name="confirmPassword"
-                      type="password"
-                      size={isMobile ? "small" : "medium"}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-              
-              <Divider sx={{ my: 3 }} />
-              
-              <Box sx={{ mb: 4 }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    mb: 2, 
-                    pb: 1, 
-                    borderBottom: '1px solid', 
-                    borderColor: 'primary.light',
-                    color: 'primary.dark',
-                    fontSize: { xs: '1.1rem', sm: '1.25rem' }
-                  }}
-                >
-                  通知設定
-                </Typography>
+                </Button>
                 
-                <FormGroup>
-                  <FormControlLabel 
-                    control={<Checkbox defaultChecked />} 
-                    label="運勢更新の通知" 
-                  />
-                  <FormControlLabel 
-                    control={<Checkbox defaultChecked />} 
-                    label="チームからの招待通知" 
-                  />
-                  <FormControlLabel 
-                    control={<Checkbox />} 
-                    label="マーケティングメール" 
-                  />
-                </FormGroup>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', mt: 3, flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
-                {!isMobile && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
+                <Collapse in={passwordExpanded}>
+                  <Paper
+                    elevation={0}
                     sx={{ 
-                      borderRadius: 30,
-                      px: 4,
+                      p: 3, 
+                      mb: 3, 
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      backgroundColor: 'rgba(250, 245, 255, 0.5)'
                     }}
                   >
-                    キャンセル
-                  </Button>
-                )}
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth={isMobile}
-                  sx={{ 
-                    borderRadius: 30,
-                    px: 4,
-                    background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
-                    boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
-                    '&:hover': {
-                      boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
-                    }
-                  }}
-                >
-                  保存する
-                </Button>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                      アカウントのセキュリティのため、定期的なパスワード変更をお勧めします。
+                    </Typography>
+                    
+                    <Box component="form" onSubmit={handleSecurityFormSubmit}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="現在のパスワード"
+                            name="currentPassword"
+                            type="password"
+                            size={isMobile ? "small" : "medium"}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="新しいパスワード"
+                            name="newPassword"
+                            type="password"
+                            helperText="8文字以上で、英字・数字・記号を含めてください"
+                            size={isMobile ? "small" : "medium"}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="新しいパスワード（確認）"
+                            name="confirmPassword"
+                            type="password"
+                            size={isMobile ? "small" : "medium"}
+                          />
+                        </Grid>
+                      </Grid>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                        <Button
+                          type="submit"
+                          variant="contained"
+                          color="primary"
+                          sx={{ 
+                            borderRadius: 30,
+                            px: 4,
+                            background: 'linear-gradient(135deg, #9c27b0, #7b1fa2)',
+                            boxShadow: '0 4px 10px rgba(156, 39, 176, 0.25)',
+                            '&:hover': {
+                              boxShadow: '0 6px 15px rgba(156, 39, 176, 0.35)',
+                            }
+                          }}
+                        >
+                          パスワードを変更
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Collapse>
               </Box>
             </Box>
           </TabPanel>

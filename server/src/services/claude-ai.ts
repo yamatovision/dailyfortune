@@ -22,6 +22,63 @@ const CHAT_SYSTEM_PROMPT = `
 ユーザーからの質問や情報に基づいて、四柱推命の知恵を応用した実用的なアドバイスを提供してください。
 `;
 
+// 調和のコンパス生成用のシステムプロンプト
+const HARMONY_COMPASS_SYSTEM_PROMPT = `
+あなたは四柱推命の専門家として、ユーザーの命式（四柱）情報に基づいた詳細な性格分析と人生の指針を提供します。
+以下の原則に従って、「調和のコンパス」と呼ばれる包括的なガイダンスを生成してください。
+
+【生成する内容の構成】
+1. 「格局に基づく性格特性」：ユーザーの格局タイプ（例：従旺格、建禄格）に基づいた本質的な性格と気質についての深い洞察
+2. 「強化すべき方向性」：用神と喜神に基づき、日常生活で取り入れるべき要素や環境、伸ばすべき強みについてのアドバイス
+3. 「注意すべきバランス」：五行バランスの偏りと忌神・仇神に基づく調整ポイント、避けるべき状況や環境についてのアドバイス
+4. 「人間関係の智慧」：命式に基づいた理想的な対人関係の築き方、協力関係を構築するためのヒント
+5. 「成長のための課題」：潜在的な弱点や成長課題、それを克服するための具体的なアプローチ
+
+【執筆ガイドライン】
+- 各セクションは150-250文字程度で簡潔にまとめること
+- 具体的かつ実用的なアドバイスを含めること
+- 専門用語は使用しても良いが、必ず簡単な説明を付けること
+- 励ましと希望を与える前向きな表現を心がけること
+- 押し付けがましくなく、選択肢を提示する表現を使うこと
+- 文化的背景を考慮し、西洋と東洋の双方の価値観に配慮すること
+
+命式データを解析し、ユーザー固有の「調和のコンパス」を日本語で生成してください。
+`;
+
+// 調和のコンパス生成用テンプレート
+const HARMONY_COMPASS_TEMPLATE = `
+【ユーザープロフィール】
+名前: {user.displayName}
+五行: {user.elementAttribute}
+日主: {user.dayMaster}
+
+【格局情報】
+格局タイプ: {user.kakukyoku.type}
+カテゴリ: {user.kakukyoku.category}
+身強弱: {user.kakukyoku.strength}
+
+【用神情報】
+用神: {user.yojin.tenGod}（{user.yojin.element}）
+喜神: {user.yojin.kijin.tenGod}（{user.yojin.kijin.element}）
+忌神: {user.yojin.kijin2.tenGod}（{user.yojin.kijin2.element}）
+仇神: {user.yojin.kyujin.tenGod}（{user.yojin.kyujin.element}）
+
+【五行バランス】
+木: {user.elementProfile.wood}
+火: {user.elementProfile.fire}
+土: {user.elementProfile.earth}
+金: {user.elementProfile.metal}
+水: {user.elementProfile.water}
+
+【四柱情報】
+年柱: {user.fourPillars.year.heavenlyStem}{user.fourPillars.year.earthlyBranch}
+月柱: {user.fourPillars.month.heavenlyStem}{user.fourPillars.month.earthlyBranch}
+日柱: {user.fourPillars.day.heavenlyStem}{user.fourPillars.day.earthlyBranch}
+時柱: {user.fourPillars.hour.heavenlyStem}{user.fourPillars.hour.earthlyBranch}
+
+上記の命式情報に基づいて、この人のための「調和のコンパス」を生成してください。
+`;
+
 // チャットモード別のコンテキストテンプレート
 const CONTEXT_TEMPLATES = {
   PERSONAL: `
@@ -220,6 +277,176 @@ async function callClaudeAPI(prompt: string, systemPrompt: string, maxTokens: nu
   } catch (error) {
     console.error('Claude API call error:', error);
     throw error;
+  }
+}
+
+/**
+ * ユーザーの四柱推命データから「調和のコンパス」を生成する
+ * @param userData ユーザー情報（四柱推命データを含む）
+ * @returns 生成された調和のコンパス（性格特性と人生指針）
+ */
+export async function generateHarmonyCompass(userData: Record<string, any>): Promise<{
+  personalityDescription: string;
+  harmonyCompass: {
+    strengths: string;
+    balance: string;
+    relationships: string;
+    challenges: string;
+  };
+}> {
+  try {
+    // ユーザーデータからプロンプトを構築
+    const prompt = createHarmonyCompassPrompt(userData);
+    
+    // Claude APIを呼び出し
+    const response = await callClaudeAPI(prompt, HARMONY_COMPASS_SYSTEM_PROMPT, 4096);
+    
+    // レスポンスをパース
+    const sections = parseHarmonyCompassResponse(response);
+    
+    return {
+      personalityDescription: sections.personality || '',
+      harmonyCompass: {
+        strengths: sections.strengths || '',
+        balance: sections.balance || '',
+        relationships: sections.relationships || '',
+        challenges: sections.challenges || ''
+      }
+    };
+  } catch (error) {
+    console.error('Generate harmony compass error:', error);
+    return {
+      personalityDescription: '申し訳ありません。性格特性の分析中にエラーが発生しました。',
+      harmonyCompass: {
+        strengths: '申し訳ありません。強みの分析中にエラーが発生しました。',
+        balance: '申し訳ありません。バランスの分析中にエラーが発生しました。',
+        relationships: '申し訳ありません。人間関係の分析中にエラーが発生しました。',
+        challenges: '申し訳ありません。課題の分析中にエラーが発生しました。'
+      }
+    };
+  }
+}
+
+/**
+ * 調和のコンパス生成用のプロンプトを作成
+ */
+function createHarmonyCompassPrompt(userData: Record<string, any>): string {
+  try {
+    // テンプレートの変数をユーザー情報で置換
+    let prompt = HARMONY_COMPASS_TEMPLATE;
+    
+    // 複雑なオブジェクトパスを処理するヘルパー関数
+    const getNestedValue = (obj: any, path: string) => {
+      return path.split('.').reduce((prev, curr) => {
+        return prev && prev[curr] !== undefined ? prev[curr] : undefined;
+      }, obj);
+    };
+    
+    // プレースホルダーを探して置換
+    const placeholders = HARMONY_COMPASS_TEMPLATE.match(/\{([^}]+)\}/g) || [];
+    
+    for (const placeholder of placeholders) {
+      const path = placeholder.slice(1, -1); // {user.name} -> user.name
+      const value = getNestedValue(userData, path);
+      
+      if (value !== undefined) {
+        // 配列の場合は箇条書きに変換
+        if (Array.isArray(value)) {
+          const formattedValue = value.map(item => `- ${item}`).join('\n');
+          prompt = prompt.replace(placeholder, formattedValue);
+        } else {
+          prompt = prompt.replace(placeholder, String(value));
+        }
+      } else {
+        // 値が見つからない場合は「未設定」に置換
+        prompt = prompt.replace(placeholder, '未設定');
+      }
+    }
+    
+    return prompt;
+  } catch (error) {
+    console.error('Create harmony compass prompt error:', error);
+    return '四柱推命データからユーザープロフィールを解析し、調和のコンパスを生成してください。';
+  }
+}
+
+/**
+ * 調和のコンパスのレスポンスをセクションごとにパースする
+ */
+function parseHarmonyCompassResponse(response: string): {
+  personality: string;
+  strengths: string;
+  balance: string;
+  relationships: string;
+  challenges: string;
+} {
+  // セクションタイトルのパターン
+  const sectionPatterns = {
+    personality: /【格局に基づく性格特性】|【性格特性】/i,
+    strengths: /【強化すべき方向性】/i,
+    balance: /【注意すべきバランス】/i,
+    relationships: /【人間関係の智慧】/i,
+    challenges: /【成長のための課題】/i
+  };
+  
+  // 各セクションの内容を保持するオブジェクト
+  const sections: any = {
+    personality: '',
+    strengths: '',
+    balance: '',
+    relationships: '',
+    challenges: ''
+  };
+  
+  try {
+    // テキストを行に分割
+    const lines = response.split('\n');
+    let currentSection = '';
+    
+    // 各行を処理
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // セクションタイトルをチェック
+      let foundSection = false;
+      for (const [section, pattern] of Object.entries(sectionPatterns)) {
+        if (pattern.test(line)) {
+          currentSection = section;
+          foundSection = true;
+          break;
+        }
+      }
+      
+      // セクションタイトル行はスキップ
+      if (foundSection) continue;
+      
+      // 現在のセクションにテキストを追加
+      if (currentSection && line) {
+        if (sections[currentSection]) {
+          sections[currentSection] += '\n' + line;
+        } else {
+          sections[currentSection] = line;
+        }
+      }
+    }
+    
+    // 各セクションの前後の空白を削除
+    for (const section of Object.keys(sections)) {
+      if (sections[section]) {
+        sections[section] = sections[section].trim();
+      }
+    }
+    
+    return sections;
+  } catch (error) {
+    console.error('Parse harmony compass response error:', error);
+    return {
+      personality: '',
+      strengths: '',
+      balance: '',
+      relationships: '',
+      challenges: ''
+    };
   }
 }
 

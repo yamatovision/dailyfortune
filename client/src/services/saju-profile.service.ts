@@ -91,6 +91,40 @@ export class SajuProfileService {
 
   // ユーザープロフィール変換ユーティリティメソッド
   private convertProfileData(userProfile: any): ISajuProfile {
+    // サーバーからのelementProfileを適切に処理
+    // サーバーからの値があればそれを使用し、なければデフォルト値を使用
+    console.log('サーバーから受け取ったelementProfile:', userProfile.elementProfile);
+    
+    // サーバーからのelementProfileオブジェクトをログに出力して内容を確認
+    if (userProfile.elementProfile) {
+      console.log('サーバーからのelementProfile詳細:', {
+        wood: userProfile.elementProfile.wood,
+        fire: userProfile.elementProfile.fire,
+        earth: userProfile.elementProfile.earth,
+        metal: userProfile.elementProfile.metal,
+        water: userProfile.elementProfile.water
+      });
+    }
+    
+    // elementProfileの有効性をチェック
+    let validElementProfile = false;
+    if (userProfile.elementProfile) {
+      const elemValues = [
+        userProfile.elementProfile.wood,
+        userProfile.elementProfile.fire,
+        userProfile.elementProfile.earth,
+        userProfile.elementProfile.metal,
+        userProfile.elementProfile.water
+      ];
+      
+      // 少なくとも一つの値が数値で、かつ20以外であれば有効とみなす
+      validElementProfile = elemValues.some(val => 
+        typeof val === 'number' && !isNaN(val) && val !== 20
+      );
+      
+      console.log('elementProfileは有効か:', validElementProfile);
+    }
+    
     return {
       userId: userProfile.id,
       birthplace: userProfile.birthPlace || '',
@@ -103,21 +137,30 @@ export class SajuProfileService {
         day: { heavenlyStem: '', earthlyBranch: '', heavenlyStemTenGod: '', earthlyBranchTenGod: '', hiddenStems: [] },
         hour: { heavenlyStem: '', earthlyBranch: '', heavenlyStemTenGod: '', earthlyBranchTenGod: '', hiddenStems: [] }
       },
-      elementProfile: userProfile.elementProfile || {
-        wood: 20,
-        fire: 20,
-        earth: 20,
-        metal: 20,
-        water: 20
+      // 有効なelementProfileがある場合はそれを使用し、なければデフォルト値を使用
+      elementProfile: validElementProfile ? userProfile.elementProfile : {
+        wood: 0,  // デフォルトは0（データがない場合）
+        fire: 0,
+        earth: 0,
+        metal: 0,
+        water: 0
       },
       // 格局情報を追加
       kakukyoku: userProfile.kakukyoku,
-      // 用神情報を追加
-      yojin: userProfile.yojin,
+      // 用神情報を詳細に追加（喜神・忌神・仇神を含む）
+      yojin: userProfile.yojin ? {
+        tenGod: userProfile.yojin.tenGod || '',
+        element: userProfile.yojin.element || '',
+        description: userProfile.yojin.description || '',
+        supportElements: userProfile.yojin.supportElements || [],
+        kijin: userProfile.yojin.kijin,
+        kijin2: userProfile.yojin.kijin2,
+        kyujin: userProfile.yojin.kyujin
+      } : undefined,
       personalityDescription: userProfile.personalityDescription || '',
       careerAptitude: userProfile.careerAptitude || '',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: userProfile.createdAt ? new Date(userProfile.createdAt) : new Date(),
+      updatedAt: userProfile.updatedAt ? new Date(userProfile.updatedAt) : new Date()
     };
   }
   
@@ -326,6 +369,39 @@ export class SajuProfileService {
         }
       }
       
+      // サーバーからのelementProfileを適切に処理
+      console.log('My Profileで受け取ったelementProfile:', userProfile.elementProfile);
+      
+      // サーバーからのelementProfileオブジェクトをログに出力して内容を確認
+      if (userProfile.elementProfile) {
+        console.log('My ProfileのelementProfile詳細:', {
+          wood: userProfile.elementProfile.wood,
+          fire: userProfile.elementProfile.fire,
+          earth: userProfile.elementProfile.earth,
+          metal: userProfile.elementProfile.metal,
+          water: userProfile.elementProfile.water
+        });
+      }
+      
+      // elementProfileの有効性をチェック
+      let validElementProfile = false;
+      if (userProfile.elementProfile) {
+        const elemValues = [
+          userProfile.elementProfile.wood,
+          userProfile.elementProfile.fire,
+          userProfile.elementProfile.earth,
+          userProfile.elementProfile.metal,
+          userProfile.elementProfile.water
+        ];
+        
+        // 少なくとも一つの値が数値で、かつ20以外であれば有効とみなす
+        validElementProfile = elemValues.some(val => 
+          typeof val === 'number' && !isNaN(val) && val !== 20
+        );
+        
+        console.log('My ProfileのelementProfileは有効か:', validElementProfile);
+      }
+      
       // サーバー側モデルからクライアント側モデルへの変換
       const sajuProfile: ISajuProfile = {
         userId: userProfile.id,
@@ -333,8 +409,9 @@ export class SajuProfileService {
         birthplaceCoordinates: userProfile.birthplaceCoordinates,
         localTimeOffset: userProfile.localTimeOffset,
         mainElement: userProfile.elementAttribute || 'wood',
-        elementProfile: userProfile.elementProfile || {
-          wood: 0,
+        // 有効なelementProfileがある場合はそれを使用し、なければデフォルト値を使用
+        elementProfile: validElementProfile ? userProfile.elementProfile : {
+          wood: 0,  // デフォルトは0（データがない場合）
           fire: 0,
           earth: 0,
           metal: 0,
@@ -346,9 +423,17 @@ export class SajuProfileService {
           day: { heavenlyStem: '', earthlyBranch: '' },
           hour: { heavenlyStem: '', earthlyBranch: '' }
         },
-        // 格局と用神情報を追加
+        // 格局と用神情報を追加（喜神・忌神・仇神を含む）
         kakukyoku: userProfile.kakukyoku,
-        yojin: userProfile.yojin,
+        yojin: userProfile.yojin ? {
+          tenGod: userProfile.yojin.tenGod || '',
+          element: userProfile.yojin.element || '',
+          description: userProfile.yojin.description || '',
+          supportElements: userProfile.yojin.supportElements || [],
+          kijin: userProfile.yojin.kijin,
+          kijin2: userProfile.yojin.kijin2,
+          kyujin: userProfile.yojin.kyujin
+        } : undefined,
         personalityDescription: userProfile.personalityDescription || '',
         careerAptitude: userProfile.careerAptitude || '',
         createdAt: userProfile.createdAt ? new Date(userProfile.createdAt) : new Date(),
@@ -423,11 +508,11 @@ export class SajuProfileService {
   // 五行属性から色を取得
   getElementColor(element: string): string {
     const elementColors = {
-      wood: 'var(--wood-color, #43a047)',
-      fire: 'var(--fire-color, #e53935)',
-      earth: 'var(--earth-color, #ff8f00)',
-      metal: 'var(--metal-color, #f9a825)', // より濃い金色 (#fdd835 → #f9a825)
-      water: 'var(--water-color, #1e88e5)',
+      wood: 'var(--wood-color, #0000ff)', // 青/緑色
+      fire: 'var(--fire-color, #ff0000)', // 赤色
+      earth: 'var(--earth-color, #ffff00)', // 黄色
+      metal: 'var(--metal-color, #ffffff)', // 白色
+      water: 'var(--water-color, #000000)', // 黒/紺色
     };
     return elementColors[element as keyof typeof elementColors] || 'var(--primary-color)';
   }
@@ -435,11 +520,11 @@ export class SajuProfileService {
   // 五行属性から背景色を取得
   getElementBackground(element: string): string {
     const elementBackgrounds = {
-      wood: 'var(--wood-bg, #e8f5e9)',
-      fire: 'var(--fire-bg, #ffebee)',
-      earth: 'var(--earth-bg, #fff8e1)',
-      metal: 'var(--metal-bg, #fff8e1)', // 金属の背景色を少し濃い黄色に (#fffde7 → #fff8e1)
-      water: 'var(--water-bg, #e3f2fd)',
+      wood: 'var(--wood-bg, #e6f2ff)', // 青/緑色の薄い背景
+      fire: 'var(--fire-bg, #ffe6e6)', // 赤色の薄い背景
+      earth: 'var(--earth-bg, #ffffcc)', // 黄色の薄い背景
+      metal: 'var(--metal-bg, #f9f9f9)', // 白色の薄い背景
+      water: 'var(--water-bg, #e6e6e6)', // 黒/紺色の薄い背景
     };
     return elementBackgrounds[element as keyof typeof elementBackgrounds] || 'var(--background-color)';
   }

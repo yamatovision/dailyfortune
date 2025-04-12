@@ -61,25 +61,21 @@ router.get('/saju/city-coordinates/:cityName', async (req: Request, res: Respons
       throw new ValidationError('都市名は必須です');
     }
     
+    // URLからデコード
+    const decodedCityName = decodeURIComponent(cityName);
+    console.log(`都市名座標検索: ${decodedCityName}`);
+    
     const sajuEngineService = new SajuEngineService();
-    const coordinates = sajuEngineService.getCityCoordinates(decodeURIComponent(cityName));
+    const coordinates = sajuEngineService.getCityCoordinates(decodedCityName);
     
-    if (!coordinates) {
-      throw new NotFoundError('指定された都市の座標が見つかりません');
-    }
-    
+    // フォールバック実装により、常に座標を返す
     return res.status(200).json({
-      cityName: decodeURIComponent(cityName),
+      cityName: decodedCityName,
       coordinates,
       success: true
     });
   } catch (error) {
-    if (error instanceof NotFoundError) {
-      return res.status(404).json({
-        error: error.message,
-        success: false
-      });
-    }
+    console.error('都市座標取得エラー:', error);
     return handleError(error, res);
   }
 });

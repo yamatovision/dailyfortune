@@ -222,8 +222,34 @@ export class SajuEngineService {
   getCityCoordinates(cityName: string): any | undefined {
     if (!cityName) return undefined;
     
+    // 日本語-英語の都市名マッピング
+    const japaneseToEnglishMap: {[key: string]: string} = {
+      '東京': 'Tokyo',
+      '大阪': 'Osaka',
+      '名古屋': 'Nagoya',
+      '福岡': 'Fukuoka',
+      '札幌': 'Sapporo',
+      '京都': 'Kyoto',
+      '神戸': 'Kobe',
+      '横浜': 'Yokohama',
+      '広島': 'Hiroshima',
+      '仙台': 'Sendai',
+      '新宿': 'Tokyo', // 東京の一部として扱う
+      '渋谷': 'Tokyo', // 東京の一部として扱う
+      '池袋': 'Tokyo', // 東京の一部として扱う
+      '銀座': 'Tokyo', // 東京の一部として扱う
+      '浅草': 'Tokyo', // 東京の一部として扱う
+      '博多': 'Fukuoka', // 福岡の一部として扱う
+      '難波': 'Osaka', // 大阪の一部として扱う
+      '梅田': 'Osaka', // 大阪の一部として扱う
+      '栄': 'Nagoya', // 名古屋の一部として扱う
+    };
+    
+    // デコードされた都市名を使用
+    const decodedCityName = decodeURIComponent(cityName);
+    
     // 完全一致で検索
-    const exactCoordinates = this.dateTimeProcessor.getCityCoordinates(cityName);
+    const exactCoordinates = this.dateTimeProcessor.getCityCoordinates(decodedCityName);
     if (exactCoordinates) {
       return {
         longitude: exactCoordinates.longitude,
@@ -231,13 +257,37 @@ export class SajuEngineService {
       };
     }
     
+    // 日本語の都市名を英語に変換して検索
+    if (japaneseToEnglishMap[decodedCityName]) {
+      const englishCityName = japaneseToEnglishMap[decodedCityName];
+      const japaneseCoordinates = this.dateTimeProcessor.getCityCoordinates(englishCityName);
+      if (japaneseCoordinates) {
+        return {
+          longitude: japaneseCoordinates.longitude,
+          latitude: japaneseCoordinates.latitude
+        };
+      }
+    }
+    
     // 都市名から都道府県サフィックスを削除（例: 東京都→東京、大阪府→大阪）
-    const simplifiedName = cityName
+    const simplifiedName = decodedCityName
       .replace(/[都道府県市区町村]$/, '')  // 末尾の行政区分を削除
       .replace(/\s+/g, '');                // 空白を削除
     
+    // 簡略化した名前で英語変換を試みる
+    if (japaneseToEnglishMap[simplifiedName]) {
+      const englishCityName = japaneseToEnglishMap[simplifiedName];
+      const simplifiedCoordinates = this.dateTimeProcessor.getCityCoordinates(englishCityName);
+      if (simplifiedCoordinates) {
+        return {
+          longitude: simplifiedCoordinates.longitude,
+          latitude: simplifiedCoordinates.latitude
+        };
+      }
+    }
+    
     // 簡略化した名前で再検索
-    if (simplifiedName !== cityName) {
+    if (simplifiedName !== decodedCityName) {
       const simplifiedCoordinates = this.dateTimeProcessor.getCityCoordinates(simplifiedName);
       if (simplifiedCoordinates) {
         return {
@@ -250,7 +300,7 @@ export class SajuEngineService {
     // 部分一致検索（「大阪市内」→「大阪」など）
     const availableCities = this.dateTimeProcessor.getAvailableCities();
     for (const city of availableCities) {
-      if (cityName.includes(city) || city.includes(simplifiedName)) {
+      if (decodedCityName.includes(city) || city.includes(simplifiedName)) {
         const partialCoordinates = this.dateTimeProcessor.getCityCoordinates(city);
         if (partialCoordinates) {
           return {
@@ -261,7 +311,12 @@ export class SajuEngineService {
       }
     }
     
-    return undefined;
+    // 最終フォールバック: 東京の座標を返す（デフォルト値）
+    console.warn(`都市 "${decodedCityName}" の座標が見つかりません。デフォルトとして東京の座標を使用します。`);
+    return {
+      longitude: 139.6917,
+      latitude: 35.6895
+    };
   }
   
   /**
@@ -355,6 +410,32 @@ export class SajuEngineService {
           // 既存の説明文を保持しつつ、日本語の文脈に合わせて調整
           result.kakukyoku.description = `あなたの格局（気質タイプ）は「${kakukyokuType}」（${strengthType}）です。${result.kakukyoku.description}`;
         }
+        
+        // kakukyokuが存在するがフィールドが足りない場合に初期化
+        if (!result.kakukyoku.type) result.kakukyoku.type = '';
+        if (!result.kakukyoku.category) result.kakukyoku.category = 'normal';
+        if (!result.kakukyoku.strength) result.kakukyoku.strength = 'neutral';
+        if (!result.kakukyoku.description) result.kakukyoku.description = '';
+      }
+      
+      // 用神（運気を高める要素）情報を拡張
+      if (result.yojin) {
+        // 用神の説明文を日本語で拡充（必要に応じて）
+        if (result.yojin.description) {
+          const yojinTenGod = result.yojin.tenGod;
+          const yojinElement = this.translateElementToJapanese(result.yojin.element);
+          
+          // 既存の説明文が既に十分な場合は変更しない
+          if (!result.yojin.description.includes('あなたの用神は')) {
+            result.yojin.description = `あなたの用神は「${yojinTenGod}（${yojinElement}）」です。${result.yojin.description}`;
+          }
+        }
+        
+        // yojinが存在するがフィールドが足りない場合に初期化
+        if (!result.yojin.tenGod) result.yojin.tenGod = '';
+        if (!result.yojin.element) result.yojin.element = '';
+        if (!result.yojin.description) result.yojin.description = '';
+        if (!result.yojin.supportElements) result.yojin.supportElements = [];
       }
       
       return result as SajuResult;
@@ -667,5 +748,132 @@ export class SajuEngineService {
     
     // その他の組み合わせ
     return 'バランスのとれた多様なエネルギーが流れています。';
+  }
+  
+  /**
+   * 五行属性を日本語に変換
+   * @param element 五行属性（英語または日本語）
+   * @returns 五行属性（日本語）
+   */
+  private translateElementToJapanese(element: string): string {
+    const translations: { [key: string]: string } = {
+      'wood': '木',
+      'fire': '火',
+      'earth': '土',
+      'metal': '金',
+      'water': '水',
+      // 日本語の場合もそのまま返せるようにマッピング
+      '木': '木',
+      '火': '火',
+      '土': '土',
+      '金': '金',
+      '水': '水'
+    };
+    
+    return translations[element] || element;
+  }
+  
+  /**
+   * 四柱情報から五行バランスを計算するユーティリティメソッド
+   * @param fourPillars 四柱情報
+   * @returns 五行バランス（木・火・土・金・水の出現数）
+   */
+  calculateElementBalance(fourPillars: any): {
+    wood: number;
+    fire: number;
+    earth: number;
+    metal: number;
+    water: number;
+  } {
+    // 天干と地支の要素マッピング
+    const stemElements: Record<string, string> = {
+      '甲': 'wood', '乙': 'wood',
+      '丙': 'fire', '丁': 'fire',
+      '戊': 'earth', '己': 'earth',
+      '庚': 'metal', '辛': 'metal',
+      '壬': 'water', '癸': 'water'
+    };
+    
+    const branchElements: Record<string, string> = {
+      '子': 'water', '丑': 'earth',
+      '寅': 'wood', '卯': 'wood',
+      '辰': 'earth', '巳': 'fire',
+      '午': 'fire', '未': 'earth',
+      '申': 'metal', '酉': 'metal',
+      '戌': 'earth', '亥': 'water'
+    };
+    
+    // 初期化
+    const balance = {
+      wood: 0,
+      fire: 0,
+      earth: 0,
+      metal: 0,
+      water: 0
+    };
+    
+    try {
+      // 天干の五行を集計
+      const stems = [
+        fourPillars.year?.heavenlyStem || fourPillars.yearPillar?.stem,
+        fourPillars.month?.heavenlyStem || fourPillars.monthPillar?.stem,
+        fourPillars.day?.heavenlyStem || fourPillars.dayPillar?.stem,
+        fourPillars.hour?.heavenlyStem || fourPillars.hourPillar?.stem
+      ];
+      
+      stems.forEach(stem => {
+        if (!stem) return;
+        const element = stemElements[stem];
+        if (element === 'wood') balance.wood++;
+        else if (element === 'fire') balance.fire++;
+        else if (element === 'earth') balance.earth++;
+        else if (element === 'metal') balance.metal++;
+        else if (element === 'water') balance.water++;
+      });
+      
+      // 地支の五行を集計
+      const branches = [
+        fourPillars.year?.earthlyBranch || fourPillars.yearPillar?.branch,
+        fourPillars.month?.earthlyBranch || fourPillars.monthPillar?.branch,
+        fourPillars.day?.earthlyBranch || fourPillars.dayPillar?.branch,
+        fourPillars.hour?.earthlyBranch || fourPillars.hourPillar?.branch
+      ];
+      
+      branches.forEach(branch => {
+        if (!branch) return;
+        const element = branchElements[branch];
+        if (element === 'wood') balance.wood++;
+        else if (element === 'fire') balance.fire++;
+        else if (element === 'earth') balance.earth++;
+        else if (element === 'metal') balance.metal++;
+        else if (element === 'water') balance.water++;
+      });
+      
+      // 蔵干の集計（オプション）
+      // 蔵干は地支に内包される天干であり、より深いレベルの分析に使用
+      const hiddenStems = [
+        ...(fourPillars.year?.hiddenStems || fourPillars.yearPillar?.hiddenStems || []),
+        ...(fourPillars.month?.hiddenStems || fourPillars.monthPillar?.hiddenStems || []),
+        ...(fourPillars.day?.hiddenStems || fourPillars.dayPillar?.hiddenStems || []),
+        ...(fourPillars.hour?.hiddenStems || fourPillars.hourPillar?.hiddenStems || [])
+      ];
+      
+      // 蔵干の五行も集計に含める場合はコメントを外す
+      // hiddenStems.forEach(stem => {
+      //   if (!stem) return;
+      //   const element = stemElements[stem];
+      //   if (element === 'wood') balance.wood++;
+      //   else if (element === 'fire') balance.fire++;
+      //   else if (element === 'earth') balance.earth++;
+      //   else if (element === 'metal') balance.metal++;
+      //   else if (element === 'water') balance.water++;
+      // });
+      
+      console.log('計算された五行バランス:', balance);
+      return balance;
+    } catch (error) {
+      console.error('五行バランス計算エラー:', error);
+      return balance; // エラー時は初期値を返す
+    }
   }
 }

@@ -3,6 +3,41 @@ import { AuthRequest } from '../middleware/auth.middleware';
 import { User } from '../models';
 import { handleError, ValidationError, AuthenticationError, NotFoundError } from '../utils';
 import { SajuEngineService } from '../services/saju-engine.service';
+import { SajuResult } from '../../sajuengine_package/src';
+import * as claudeAIService from '../services/claude-ai';
+
+// 型定義を直接定義
+interface IKakukyoku {
+  type: string;
+  category: 'special' | 'normal';
+  strength: 'strong' | 'weak' | 'neutral';
+  description?: string;
+}
+
+interface IYojin {
+  tenGod: string;
+  element: string;
+  description?: string;
+  supportElements?: string[];
+  // 喜神情報（用神を助ける要素）
+  kijin?: {
+    tenGod: string;
+    element: string;
+    description?: string;
+  };
+  // 忌神情報（避けるべき要素）
+  kijin2?: {
+    tenGod: string;
+    element: string;
+    description?: string;
+  };
+  // 仇神情報（強く避けるべき要素）
+  kyujin?: {
+    tenGod: string;
+    element: string;
+    description?: string;
+  };
+}
 
 /**
  * ユーザー関連のコントローラークラス
@@ -90,6 +125,11 @@ export class UserController {
         elementAttribute: user.elementAttribute,
         dayMaster: user.dayMaster,
         fourPillars: user.fourPillars,
+        elementProfile: user.elementProfile,
+        kakukyoku: user.kakukyoku,
+        yojin: user.yojin,
+        personalityDescription: user.personalityDescription,
+        careerAptitude: user.careerAptitude,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       });
@@ -245,7 +285,7 @@ export class UserController {
           const [hours, minutes] = user.birthTime.split(':').map(Number);
           
           // 四柱推命を計算
-          const result = sajuEngineService.calculateSajuProfile(
+          const result: SajuResult = sajuEngineService.calculateSajuProfile(
             user.birthDate as Date, // Type assertion to assure TypeScript
             hours,
             minutes,
@@ -290,13 +330,62 @@ export class UserController {
             },
             personalityDescription: this.generatePersonalityDescription(result),
             careerAptitude: this.generateCareerDescription(result),
-            elementProfile: {
-              wood: 0,
-              fire: 0,
-              earth: 0,
-              metal: 0,
-              water: 0
-            }
+            // 五行バランス値の計算を追加
+            elementProfile: (() => {
+              // 四柱から五行バランスを計算
+              // 型安全のためにanyにキャスト
+              const elementProfile = result.elementProfile as any;
+              if (elementProfile && 
+                  typeof elementProfile.wood === 'number' &&
+                  typeof elementProfile.fire === 'number' &&
+                  typeof elementProfile.earth === 'number' &&
+                  typeof elementProfile.metal === 'number' &&
+                  typeof elementProfile.water === 'number') {
+                return {
+                  wood: elementProfile.wood,
+                  fire: elementProfile.fire,
+                  earth: elementProfile.earth,
+                  metal: elementProfile.metal,
+                  water: elementProfile.water
+                };
+              }
+              
+              // 計算されたバランスがない場合は、自分で計算
+              const fourPillars = result.fourPillars;
+              if (fourPillars) {
+                try {
+                  // SajuEngineのcalculateElementBalanceメソッドを直接呼び出す
+                  const elementBalance = this.sajuEngineService.calculateElementBalance(fourPillars);
+                  console.log('計算された五行バランス:', elementBalance);
+                  return elementBalance;
+                } catch (error) {
+                  console.error('五行バランス計算エラー:', error);
+                }
+              }
+              
+              // どちらも失敗した場合のデフォルト値
+              return {
+                wood: 0,
+                fire: 0,
+                earth: 0,
+                metal: 0,
+                water: 0
+              };
+            })(),
+            // 格局（気質タイプ）情報を追加
+            kakukyoku: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku ? {
+              type: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.type || '',
+              category: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.category || 'normal',
+              strength: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.strength || 'neutral',
+              description: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.description || ''
+            } : undefined,
+            // 用神（運気を高める要素）情報を追加
+            yojin: (result as SajuResult & { yojin?: IYojin }).yojin ? {
+              tenGod: (result as SajuResult & { yojin?: IYojin }).yojin?.tenGod || '',
+              element: (result as SajuResult & { yojin?: IYojin }).yojin?.element || '',
+              description: (result as SajuResult & { yojin?: IYojin }).yojin?.description || '',
+              supportElements: (result as SajuResult & { yojin?: IYojin }).yojin?.supportElements || []
+            } : undefined
           };
           
           // elementProfileの処理
@@ -350,6 +439,9 @@ export class UserController {
         elementAttribute: user.elementAttribute,
         dayMaster: user.dayMaster,
         fourPillars: user.fourPillars,
+        elementProfile: user.elementProfile,
+        kakukyoku: user.kakukyoku,
+        yojin: user.yojin,
         personalityDescription: user.personalityDescription,
         careerAptitude: user.careerAptitude,
         createdAt: user.createdAt,
@@ -496,7 +588,7 @@ export class UserController {
       });
       
       // 四柱推命を計算
-      const result = this.sajuEngineService.calculateSajuProfile(
+      const result: SajuResult = this.sajuEngineService.calculateSajuProfile(
         user.birthDate,
         hours,
         minutes,
@@ -554,6 +646,38 @@ export class UserController {
           metal: number;
           water: number;
         };
+        // 格局（気質タイプ）情報
+        kakukyoku?: {
+          type: string;
+          category: 'special' | 'normal';
+          strength: 'strong' | 'weak' | 'neutral';
+          description?: string;
+        };
+        // 用神（運気を高める要素）情報
+        yojin?: {
+          tenGod: string;
+          element: string;
+          description?: string;
+          supportElements?: string[];
+          // 喜神情報（用神を助ける要素）
+          kijin?: {
+            tenGod: string;
+            element: string;
+            description?: string;
+          };
+          // 2番目の喜神情報
+          kijin2?: {
+            tenGod: string;
+            element: string;
+            description?: string;
+          };
+          // 仇神情報（避けるべき要素）
+          kyujin?: {
+            tenGod: string;
+            element: string;
+            description?: string;
+          };
+        };
       }
 
       const updateData: UpdateData = {
@@ -588,39 +712,128 @@ export class UserController {
             earthlyBranchTenGod: result.fourPillars.hourPillar.branchTenGod || "",
             hiddenStems: result.fourPillars.hourPillar.hiddenStems || []
           }
-        }
+        },
+        // 格局（気質タイプ）情報を追加
+        kakukyoku: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku ? {
+          type: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.type || '',
+          category: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.category || 'normal',
+          strength: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.strength || 'neutral',
+          description: (result as SajuResult & { kakukyoku?: IKakukyoku }).kakukyoku?.description || ''
+        } : undefined,
+        // 用神（運気を高める要素）情報を追加（喜神・忌神・仇神を含む）
+        yojin: (result as SajuResult & { yojin?: IYojin }).yojin ? {
+          tenGod: (result as SajuResult & { yojin?: IYojin }).yojin?.tenGod || '',
+          element: (result as SajuResult & { yojin?: IYojin }).yojin?.element || '',
+          description: (result as SajuResult & { yojin?: IYojin }).yojin?.description || '',
+          supportElements: (result as SajuResult & { yojin?: IYojin }).yojin?.supportElements || [],
+          kijin: (result as SajuResult & { yojin?: IYojin }).yojin?.kijin || { 
+            tenGod: '', 
+            element: '',
+            description: '' 
+          },
+          kijin2: (result as SajuResult & { yojin?: IYojin }).yojin?.kijin2 || { 
+            tenGod: '', 
+            element: '',
+            description: '' 
+          },
+          kyujin: (result as SajuResult & { yojin?: IYojin }).yojin?.kyujin || { 
+            tenGod: '', 
+            element: '',
+            description: '' 
+          }
+        } : undefined
       };
       
-      // 性格特性と職業適性の説明を生成（SajuProfileServiceから移植）
-      const personalityDescription = this.generatePersonalityDescription(result);
-      const careerAptitude = this.generateCareerDescription(result);
-      
-      updateData.personalityDescription = personalityDescription;
-      updateData.careerAptitude = careerAptitude;
-      
-      // elementProfileの処理
-      updateData.elementProfile = {
-        wood: 0,
-        fire: 0,
-        earth: 0,
-        metal: 0,
-        water: 0
-      };
-      
-      // 結果にelementProfileが存在し、五行のバランス値が数値として存在する場合は使用
-      if (result.elementProfile) {
-        // TypeScriptエラー回避のためにanyでキャスト
-        const ep = result.elementProfile as any;
+      // 調和のコンパスを生成（Claude AI利用）
+      try {
+        // ユーザーデータを構築
+        const userData = {
+          user: {
+            displayName: user.displayName,
+            elementAttribute: updateData.elementAttribute,
+            dayMaster: updateData.dayMaster,
+            fourPillars: updateData.fourPillars,
+            elementProfile: updateData.elementProfile,
+            kakukyoku: updateData.kakukyoku,
+            yojin: updateData.yojin
+          }
+        };
         
-        // 一時変数に格納して型の安全性を確保
-        const profile = updateData.elementProfile;
+        // Claude AIで調和のコンパスを生成
+        console.log('調和のコンパス生成開始...');
+        const compassResult = await claudeAIService.generateHarmonyCompass(userData);
         
-        if (typeof ep.wood === 'number') profile.wood = ep.wood;
-        if (typeof ep.fire === 'number') profile.fire = ep.fire;
-        if (typeof ep.earth === 'number') profile.earth = ep.earth;
-        if (typeof ep.metal === 'number') profile.metal = ep.metal;
-        if (typeof ep.water === 'number') profile.water = ep.water;
+        // 結果を格納
+        updateData.personalityDescription = compassResult.personalityDescription;
+        
+        // careerAptitudeを「調和のコンパス」情報として再利用
+        updateData.careerAptitude = JSON.stringify({
+          version: '1.0',
+          type: 'harmony_compass',
+          sections: {
+            strengths: compassResult.harmonyCompass.strengths,
+            balance: compassResult.harmonyCompass.balance,
+            relationships: compassResult.harmonyCompass.relationships,
+            challenges: compassResult.harmonyCompass.challenges
+          }
+        });
+        
+        console.log('調和のコンパス生成完了');
+      } catch (compassError) {
+        console.error('調和のコンパス生成エラー:', compassError);
+        
+        // エラー時は従来のメソッドで生成
+        const personalityDescription = this.generatePersonalityDescription(result);
+        const careerAptitude = this.generateCareerDescription(result);
+        
+        updateData.personalityDescription = personalityDescription;
+        updateData.careerAptitude = careerAptitude;
       }
+      
+      // 五行バランス値の計算を追加
+      updateData.elementProfile = (() => {
+        // SajuEngineから返された結果にelementProfileが含まれている場合はそれを使用
+        // 型安全のためにanyにキャスト
+        const elementProfile = result.elementProfile as any;
+        if (elementProfile && 
+            typeof elementProfile.wood === 'number' &&
+            typeof elementProfile.fire === 'number' &&
+            typeof elementProfile.earth === 'number' &&
+            typeof elementProfile.metal === 'number' &&
+            typeof elementProfile.water === 'number') {
+          
+          console.log('SajuEngineから取得した五行バランス:', elementProfile);
+          return {
+            wood: elementProfile.wood,
+            fire: elementProfile.fire,
+            earth: elementProfile.earth,
+            metal: elementProfile.metal,
+            water: elementProfile.water
+          };
+        }
+        
+        // SajuEngineから適切な値が返されない場合は、コントローラー側で計算
+        const fourPillars = result.fourPillars;
+        if (fourPillars) {
+          try {
+            // SajuEngineのcalculateElementBalanceメソッドを直接呼び出す
+            const elementBalance = this.sajuEngineService.calculateElementBalance(fourPillars);
+            console.log('コントローラーで計算した五行バランス:', elementBalance);
+            return elementBalance;
+          } catch (error) {
+            console.error('五行バランス計算エラー:', error);
+          }
+        }
+        
+        // どちらも失敗した場合のデフォルト値
+        return {
+          wood: 0,
+          fire: 0,
+          earth: 0,
+          metal: 0,
+          water: 0
+        };
+      })();
       
       // ユーザー情報を更新
       const updatedUser = await User.findByIdAndUpdate(
@@ -639,6 +852,9 @@ export class UserController {
           elementAttribute: updatedUser.elementAttribute,
           dayMaster: updatedUser.dayMaster,
           fourPillars: updatedUser.fourPillars,
+          elementProfile: updatedUser.elementProfile,
+          kakukyoku: updatedUser.kakukyoku,
+          yojin: updatedUser.yojin,
           personalityDescription: updatedUser.personalityDescription?.substring(0, 100) + '...',
           careerAptitude: updatedUser.careerAptitude?.substring(0, 100) + '...'
         }

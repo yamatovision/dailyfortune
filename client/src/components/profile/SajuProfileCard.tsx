@@ -2,17 +2,14 @@ import React from 'react';
 import { Box, Card, CardContent, Typography, Grid, Icon, Paper } from '@mui/material';
 import { ISajuProfile } from '@shared/index';
 import sajuProfileService from '../../services/saju-profile.service';
+import SajuElementBlocks from './SajuElementBlocks';
 
 interface SajuProfileCardProps {
   profile: ISajuProfile;
 }
 
 const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
-  const formatDate = (date: Date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
+  // 日付フォーマット関数は現在使用されていないため削除
 
   // const elementIcon = sajuProfileService.getElementIcon(profile.mainElement);
   const elementColor = sajuProfileService.getElementColor(profile.mainElement);
@@ -139,15 +136,15 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="subtitle2" color="text.secondary">日主:</Typography>
+              <Typography variant="subtitle2" color="text.secondary">格局:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                {pillars.day.heavenlyStem}
+                {profile.kakukyoku ? profile.kakukyoku.type : '計算中...'}
               </Typography>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Typography variant="subtitle2" color="text.secondary">更新日:</Typography>
-              <Typography variant="body2">
-                {formatDate(new Date(profile.updatedAt))}
+              <Typography variant="subtitle2" color="text.secondary">用神:</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                {profile.yojin ? profile.yojin.tenGod : '計算中...'}
               </Typography>
             </Grid>
           </Grid>
@@ -167,372 +164,23 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
           四柱
         </Typography>
         
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={6} sm={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2
-              }}
-            >
-              <Typography 
-                variant="subtitle2" 
-                color="primary" 
-                align="center" 
-                sx={{ 
-                  borderBottom: '1px solid', 
-                  borderColor: 'primary.light', 
-                  pb: 1,
-                  mb: 1
-                }}
-              >
-                年柱
-              </Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>天干:</strong> {pillars.year.heavenlyStem}
-                                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>地支:</strong> {pillars.year.earthlyBranch}
-                                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={6} sm={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2
-              }}
-            >
-              <Typography 
-                variant="subtitle2" 
-                color="primary" 
-                align="center" 
-                sx={{ 
-                  borderBottom: '1px solid', 
-                  borderColor: 'primary.light', 
-                  pb: 1,
-                  mb: 1
-                }}
-              >
-                月柱
-              </Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>天干:</strong> {pillars.month.heavenlyStem}
-                  {pillars.month.heavenlyStemTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.month.heavenlyStemTenGod})</span>}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>地支:</strong> {pillars.month.earthlyBranch}
-                  {pillars.month.earthlyBranchTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.month.earthlyBranchTenGod})</span>}
-                </Typography>
-                {pillars.month.hiddenStems && pillars.month.hiddenStems.length > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.85em', color: 'gray' }}>
-                    <strong>蔵干:</strong> {pillars.month.hiddenStems.join(', ')}
-                  </Typography>
-                )}
-              </Box>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={6} sm={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                bgcolor: 'rgba(156, 39, 176, 0.05)'
-              }}
-            >
-              <Typography 
-                variant="subtitle2" 
-                color="primary" 
-                align="center" 
-                sx={{ 
-                  borderBottom: '1px solid', 
-                  borderColor: 'primary.main', 
-                  pb: 1,
-                  mb: 1,
-                  fontWeight: 'bold'
-                }}
-              >
-                日柱
-              </Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 'medium' }}>
-                  <strong>天干:</strong> {pillars.day.heavenlyStem}
-                  {pillars.day.heavenlyStemTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> (日主)</span>}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 'medium' }}>
-                  <strong>地支:</strong> {pillars.day.earthlyBranch}
-                  {pillars.day.earthlyBranchTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.day.earthlyBranchTenGod})</span>}
-                </Typography>
-                {pillars.day.hiddenStems && pillars.day.hiddenStems.length > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.85em', color: 'gray', fontWeight: 'medium' }}>
-                    <strong>蔵干:</strong> {pillars.day.hiddenStems.join(', ')}
-                  </Typography>
-                )}
-              </Box>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={6} sm={3}>
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2
-              }}
-            >
-              <Typography 
-                variant="subtitle2" 
-                color="primary" 
-                align="center" 
-                sx={{ 
-                  borderBottom: '1px solid', 
-                  borderColor: 'primary.light', 
-                  pb: 1,
-                  mb: 1
-                }}
-              >
-                時柱
-              </Typography>
-              <Box>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>天干:</strong> {pillars.hour.heavenlyStem}
-                  {pillars.hour.heavenlyStemTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.hour.heavenlyStemTenGod})</span>}
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 0.5 }}>
-                  <strong>地支:</strong> {pillars.hour.earthlyBranch}
-                  {pillars.hour.earthlyBranchTenGod && <span style={{fontSize: '0.85em', color: 'gray'}}> ({pillars.hour.earthlyBranchTenGod})</span>}
-                </Typography>
-                {pillars.hour.hiddenStems && pillars.hour.hiddenStems.length > 0 && (
-                  <Typography variant="body2" sx={{ fontSize: '0.85em', color: 'gray' }}>
-                    <strong>蔵干:</strong> {pillars.hour.hiddenStems.join(', ')}
-                  </Typography>
-                )}
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+        {/* 新しいビジュアル表示（ブロック形式） */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            backgroundColor: 'rgba(250, 245, 255, 0.5)'
+          }}
+        >
+          <SajuElementBlocks profile={profile} />
+        </Paper>
 
-        {/* 格局（気質タイプ）情報があれば表示 */}
-        {profile.kakukyoku && (
-          <>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: '1.1rem', 
-                borderBottom: '1px solid', 
-                borderColor: 'divider',
-                pb: 1,
-                mb: 2,
-                color: 'primary.main'
-              }}
-            >
-              格局（気質タイプ）
-            </Typography>
-            
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 3, 
-                mb: 3, 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                backgroundColor: 'rgba(250, 245, 255, 0.5)'
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
-                  {profile.kakukyoku.type}
-                </Typography>
-                <Box 
-                  sx={{ 
-                    px: 1.5, 
-                    py: 0.5, 
-                    borderRadius: 4, 
-                    border: '2px solid',
-                    borderColor: profile.kakukyoku.strength === 'strong' ? 'success.main' : 
-                               profile.kakukyoku.strength === 'weak' ? 'info.main' : 'warning.main',
-                    backgroundColor: profile.kakukyoku.strength === 'strong' ? 'success.light' : 
-                                    profile.kakukyoku.strength === 'weak' ? 'info.light' : 'warning.light',
-                    color: profile.kakukyoku.strength === 'strong' ? 'success.dark' : 
-                          profile.kakukyoku.strength === 'weak' ? 'info.dark' : 'warning.dark',
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    mr: 1,
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
-                    {profile.kakukyoku.strength === 'strong' ? 'trending_up' : 
-                     profile.kakukyoku.strength === 'weak' ? 'trending_down' : 'trending_flat'}
-                  </Icon>
-                  {profile.kakukyoku.strength === 'strong' ? '極身強' : 
-                  profile.kakukyoku.strength === 'weak' ? '極身弱' : '中和状態'}
-                </Box>
-                {profile.kakukyoku.category && (
-                  <Box 
-                    sx={{ 
-                      px: 1.5, 
-                      py: 0.5, 
-                      borderRadius: 4,
-                      border: '2px solid',
-                      borderColor: profile.kakukyoku.category === 'special' ? 'secondary.main' : 'primary.main',
-                      backgroundColor: profile.kakukyoku.category === 'special' ? 'secondary.light' : 'primary.light',
-                      color: profile.kakukyoku.category === 'special' ? 'secondary.dark' : 'primary.dark',
-                      fontSize: '0.875rem',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
-                      {profile.kakukyoku.category === 'special' ? 'stars' : 'category'}
-                    </Icon>
-                    {profile.kakukyoku.category === 'special' ? '特別格局' : '普通格局'}
-                  </Box>
-                )}
-              </Box>
-              <Typography variant="body2" paragraph>
-                {profile.kakukyoku.description || 
-                  `${profile.kakukyoku.type}は、${profile.kakukyoku.strength === 'strong' ? '身強の' : 
-                  profile.kakukyoku.strength === 'weak' ? '身弱の' : '中和の'}気質タイプです。詳細な説明は近日公開予定です。`}
-              </Typography>
-            </Paper>
-          </>
-        )}
 
-        {/* 用神（運気を高める要素）情報があれば表示 */}
-        {profile.yojin && (
-          <>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: '1.1rem', 
-                borderBottom: '1px solid', 
-                borderColor: 'divider',
-                pb: 1,
-                mb: 2,
-                color: 'primary.main'
-              }}
-            >
-              用神（運気を高める要素）
-            </Typography>
-            
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 3, 
-                mb: 3, 
-                border: '1px solid',
-                borderColor: 'divider',
-                borderRadius: 2,
-                backgroundColor: 'rgba(250, 245, 255, 0.5)'
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-                <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
-                  {profile.yojin.tenGod}
-                </Typography>
-                <Box 
-                  sx={{ 
-                    px: 1.5, 
-                    py: 0.5, 
-                    borderRadius: 4, 
-                    border: '2px solid',
-                    borderColor: `${getElementColorVar(profile.yojin.element)}80`, // 80は透明度
-                    backgroundColor: getElementBgVar(profile.yojin.element),
-                    color: getElementColorVar(profile.yojin.element),
-                    fontSize: '0.875rem',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <Icon sx={{ fontSize: '1rem', mr: 0.5 }}>
-                    {getElementIconName(profile.yojin.element)}
-                  </Icon>
-                  {sajuProfileService.translateElementToJapanese(profile.yojin.element)}
-                </Box>
-                {profile.kakukyoku && (
-                  <Box
-                    sx={{
-                      ml: 1,
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 4,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      backgroundColor: 'background.paper',
-                      color: 'text.secondary',
-                      fontSize: '0.75rem',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Icon sx={{ fontSize: '0.875rem', mr: 0.5 }}>info</Icon>
-                    {profile.kakukyoku.strength === 'strong' ? '身強を抑制' : 
-                     profile.kakukyoku.strength === 'weak' ? '身弱を強化' : 'バランスを調整'}
-                  </Box>
-                )}
-              </Box>
-              <Typography variant="body2" paragraph>
-                {profile.yojin.description || 
-                  `あなたの用神は「${profile.yojin.tenGod}（${sajuProfileService.translateElementToJapanese(profile.yojin.element)}）」です。用神はあなたの運気を高めるために必要な五行要素です。詳細な説明は近日公開予定です。`}
-              </Typography>
-              
-              {profile.yojin.supportElements && profile.yojin.supportElements.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    サポート要素:
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                    {profile.yojin.supportElements.map((el, idx) => (
-                      <Box
-                        key={idx}
-                        sx={{
-                          px: 1.5, 
-                          py: 0.5, 
-                          borderRadius: 1,
-                          backgroundColor: getElementBgVar(el),
-                          color: getElementColorVar(el),
-                          fontSize: '0.75rem',
-                          fontWeight: 'medium',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.5
-                        }}
-                      >
-                        <Icon sx={{ fontSize: '0.875rem' }}>{getElementIconName(el)}</Icon>
-                        {sajuProfileService.translateElementToJapanese(el)}
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Paper>
-          </>
-        )}
+
 
         <Typography 
           variant="h6" 
@@ -582,29 +230,52 @@ const SajuProfileCard: React.FC<SajuProfileCardProps> = ({ profile }) => {
             color: 'primary.main'
           }}
         >
-          仕事とキャリア
+          調和のコンパス
         </Typography>
         
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: 2,
-            backgroundColor: 'rgba(250, 245, 255, 0.5)'
-          }}
-        >
-          <Typography variant="body2" paragraph>
-            {profile.careerAptitude || 
-              `${mainElement === 'metal' ? '金属の五行を持つあなたは、精密さと効率を重視する職業に適性があります。会計士、エンジニア、ITプロフェッショナル、品質管理、法律家などの職種で才能を発揮できるでしょう。計画性と完璧さを追求する仕事が向いています。' :
-               mainElement === 'wood' ? '木の五行を持つあなたは、創造性と成長を伴う職業に適性があります。教育者、プロジェクトマネージャー、環境関連、コンサルタント、起業家などの分野で活躍できるでしょう。長期的なビジョンを持ち、物事を育てる仕事が向いています。' :
-               mainElement === 'water' ? '水の五行を持つあなたは、知性と直感力を活かせる職業に適性があります。研究者、作家、心理学者、アナリスト、哲学者などの分野で才能を発揮できるでしょう。深い洞察と創造的思考を活かす仕事が向いています。' :
-               mainElement === 'fire' ? '火の五行を持つあなたは、情熱とエネルギーを活かせる職業に適性があります。営業、マーケティング、パフォーマー、デザイナー、広報など人前に立つ仕事や、リーダーシップを発揮できる役職が向いています。' :
-               mainElement === 'earth' ? '土の五行を持つあなたは、安定性と実用性を重視する職業に適性があります。不動産、人事、カウンセラー、医療従事者、対人サービス業などが向いています。人を支え、安定した環境を作る仕事で力を発揮するでしょう。' :
-               '五行のバランスを活かした職業選択が望ましいでしょう。あなたの強みを理解し、それを活かせる分野で専門性を高めることで、キャリアの充実と成功が期待できます。'}`}
-          </Typography>
-        </Paper>
+        {/* 調和のコンパスを表示（careerAptitudeフィールドを利用） */}
+        {profile.careerAptitude && (
+          <Box>
+            {(() => {
+              try {
+                // JSON形式かどうかを確認
+                const parsed = JSON.parse(profile.careerAptitude);
+                if (parsed && parsed.type === 'harmony_compass') {
+                  // 新しいHarmonyCompassコンポーネントをインポート
+                  const HarmonyCompass = require('./HarmonyCompass').default;
+                  return <HarmonyCompass data={profile.careerAptitude} />;
+                }
+              } catch (e) {
+                // パースエラーの場合は従来の表示方法で表示
+                console.log('調和のコンパスデータではないか、パースに失敗しました', e);
+              }
+              
+              // 従来形式で表示（フォールバック）
+              return (
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(250, 245, 255, 0.5)'
+                  }}
+                >
+                  <Typography variant="body2" paragraph>
+                    {profile.careerAptitude || 
+                      `${mainElement === 'metal' ? '金属の五行を持つあなたは、精密さと効率を重視する職業に適性があります。会計士、エンジニア、ITプロフェッショナル、品質管理、法律家などの職種で才能を発揮できるでしょう。計画性と完璧さを追求する仕事が向いています。' :
+                       mainElement === 'wood' ? '木の五行を持つあなたは、創造性と成長を伴う職業に適性があります。教育者、プロジェクトマネージャー、環境関連、コンサルタント、起業家などの分野で活躍できるでしょう。長期的なビジョンを持ち、物事を育てる仕事が向いています。' :
+                       mainElement === 'water' ? '水の五行を持つあなたは、知性と直感力を活かせる職業に適性があります。研究者、作家、心理学者、アナリスト、哲学者などの分野で才能を発揮できるでしょう。深い洞察と創造的思考を活かす仕事が向いています。' :
+                       mainElement === 'fire' ? '火の五行を持つあなたは、情熱とエネルギーを活かせる職業に適性があります。営業、マーケティング、パフォーマー、デザイナー、広報など人前に立つ仕事や、リーダーシップを発揮できる役職が向いています。' :
+                       mainElement === 'earth' ? '土の五行を持つあなたは、安定性と実用性を重視する職業に適性があります。不動産、人事、カウンセラー、医療従事者、対人サービス業などが向いています。人を支え、安定した環境を作る仕事で力を発揮するでしょう。' :
+                       '五行のバランスを活かした職業選択が望ましいでしょう。あなたの強みを理解し、それを活かせる分野で専門性を高めることで、キャリアの充実と成功が期待できます。'}`}
+                  </Typography>
+                </Paper>
+              );
+            })()}
+          </Box>
+        )}
       </CardContent>
     </Card>
   );
