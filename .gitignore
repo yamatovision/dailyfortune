@@ -89,3 +89,12 @@ server/scripts/verify-migration.js
 .claude_data/
 temp/firebase-service-account.json
 /server/firebase-service-account.json
+
+# バックアップとテストファイル
+backup/
+server/scripts/migration-logs/
+temp/check-yojin.js
+server/check-current-user.js
+server/test-*.js
+server/scripts/test-kakukyoku-yojin-custom.js
+test-harmony-compass.html
