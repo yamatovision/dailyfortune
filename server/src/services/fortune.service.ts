@@ -1200,25 +1200,45 @@ export class FortuneService {
       const prompt = `
 あなたは四柱推命に基づいて運勢アドバイスを作成する専門家です。以下の情報に基づいて、マークダウン形式のアドバイスを作成してください。
 
-# ユーザー情報
-- 五行属性: ${userElement}
-- 目標: ${user.goal || '設定なし'}
-- チーム役割: ${user.teamRole || '設定なし'}
+# ユーザー基本情報
+- 名前: ${user.displayName || 'ユーザー'}
+- 日主: ${user.dayMaster || '不明'}
+- 主要五行: ${userElement}
+
+# 四柱情報
+- 四柱: ${user.fourPillars?.year?.heavenlyStem || ''}${user.fourPillars?.year?.earthlyBranch || ''} ${user.fourPillars?.month?.heavenlyStem || ''}${user.fourPillars?.month?.earthlyBranch || ''} ${user.fourPillars?.day?.heavenlyStem || ''}${user.fourPillars?.day?.earthlyBranch || ''} ${user.fourPillars?.hour?.heavenlyStem || ''}${user.fourPillars?.hour?.earthlyBranch || ''}
+
+# 五行バランス
+- 木: ${user.elementProfile?.wood || 0}
+- 火: ${user.elementProfile?.fire || 0}
+- 土: ${user.elementProfile?.earth || 0}
+- 金: ${user.elementProfile?.metal || 0}
+- 水: ${user.elementProfile?.water || 0}
+
+# 格局・用神情報
+- 格局: ${user.kakukyoku?.type || '不明'}（${user.kakukyoku?.strength || '不明'}）
+- 用神: ${user.yojin?.tenGod || '不明'}（${user.yojin?.element || '不明'}）
+- 喜神: ${user.yojin?.kijin?.tenGod || '不明'}（${user.yojin?.kijin?.element || '不明'}）
+- 忌神: ${user.yojin?.kijin2?.tenGod || '不明'}（${user.yojin?.kijin2?.element || '不明'}）
+- 仇神: ${user.yojin?.kyujin?.tenGod || '不明'}（${user.yojin?.kyujin?.element || '不明'}）
 
 # 本日の日柱情報
 - 天干: ${dayPillar.heavenlyStem}
 - 地支: ${dayPillar.earthlyBranch} 
 - 五行属性: ${stemElement}
-
-# 運勢スコア: ${fortuneScore}/100
+- 運勢スコア: ${fortuneScore}/100
 - 運勢タイプ: ${fortuneType}
 
-以下の3セクションからなるマークダウン形式のアドバイスを作成してください：
-1. 「今日のあなたの運気」- 今日の全体的な運気と五行属性の相性について
-2. 「個人目標へのアドバイス」- ユーザーの目標に関連したアドバイス
-3. 「チーム目標へのアドバイス」- チームでの役割に関連したアドバイス
+# ユーザー目標
+- 個人目標: ${user.goal || '設定なし'}
+- チーム役割: ${user.teamRole || '設定なし'}
 
-それぞれのセクションは200-300文字程度にしてください。四柱推命の知識に基づいた具体的で実用的なアドバイスを提供してください。
+以下の3セクションからなるマークダウン形式のアドバイスを作成してください：
+1. 「今日のあなたの運気」- 本日の日柱と用神・喜神・忌神との相性や、五行バランスを考慮した運気の分析
+2. 「個人目標へのアドバイス」- 格局と用神を考慮したうえで、目標達成のための具体的なアドバイス
+3. 「チーム目標へのアドバイス」- 五行特性を活かした対人関係や協力のためのアドバイス
+
+それぞれのセクションは200-300文字程度にしてください。四柱推命の知識に基づいた具体的で実用的なアドバイスを提供してください。セクション内では、用神や喜神を活かす時間帯、注意すべき時間帯なども含めると良いでしょう。
       `;
       
       // Claude 3.7 Sonnetモデルを使用
