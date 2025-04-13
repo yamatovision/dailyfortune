@@ -45,7 +45,7 @@ export function calculateKoreanMonthPillar(date: Date, yearStem: string, options
     const dateKey = formatDateKey(date);
     
     // 特殊ケースのチェック
-    if (SPECIAL_CASES_2023[dateKey] && options.ignoreSpecialCases !== true) {
+    if (SPECIAL_CASES_2023[dateKey] && (options as any).ignoreSpecialCases !== true) {
       const specialCase = SPECIAL_CASES_2023[dateKey];
       return {
         stem: specialCase.charAt(0),

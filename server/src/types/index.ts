@@ -1,6 +1,8 @@
 /**
  * ===== 統合型定義・APIパスガイドライン =====
  * 
+ * FIX: 2025-04-14 FortuneScoreResult インターフェースを追加
+ * 
  * 【重要】このファイルはフロントエンド（client）からは直接インポートして使用します。
  * バックエンド（server）では、このファイルをリファレンスとして、
  * server/src/types/index.ts に必要な型定義をコピーして使用してください。
@@ -49,9 +51,14 @@
  * - 2025/04/06: バックエンド用のリファレンス方式に変更 (Tatsuya)
  * - 2025/04/07: Expressルーティング実装ルールを追加 (Claude)
  * - 2025/04/08: SajuProfileの削除とUserモデルへの統合 (Claude)
+ * - 2025/04/12: HarmonyCompassインターフェースを追加 (Claude)
  */
 
 // API基本パス
+// ※※※ 重要 ※※※
+// デプロイ時の問題回避：
+// 環境変数VITE_API_URLには '/api/v1' を含めないこと
+// APIパスと合わせると '/api/v1/api/v1/...' のように重複するため
 export const API_BASE_PATH = '/api/v1';
 
 // ========== 認証関連 ==========
@@ -124,6 +131,9 @@ export const TEAM = {
   GET_TEAM_COMPATIBILITY: (teamId: string) => `${API_BASE_PATH}/teams/${teamId}/compatibility`,
   GET_MEMBER_COMPATIBILITY: (teamId: string, userId1: string, userId2: string) => 
     `${API_BASE_PATH}/teams/${teamId}/compatibility/${userId1}/${userId2}`,
+  GET_TEAM_ENHANCED_COMPATIBILITY: (teamId: string) => `${API_BASE_PATH}/teams/${teamId}/enhanced-compatibility`,
+  GET_MEMBER_ENHANCED_COMPATIBILITY: (teamId: string, userId1: string, userId2: string) => 
+    `${API_BASE_PATH}/teams/${teamId}/enhanced-compatibility/${userId1}/${userId2}`,
   GET_MEMBER_CARD: (teamId: string, userId: string) => `${API_BASE_PATH}/teams/${teamId}/members/${userId}/card`,
 };
 
@@ -190,6 +200,18 @@ export const ADMIN = {
 };
 
 // ========== データモデル ==========
+
+// 調和のコンパスのインターフェース
+export interface IHarmonyCompass {
+  version: string;
+  type: string;
+  sections: {
+    strengths: string;    // 強化すべき方向性
+    balance: string;      // 注意すべきバランス
+    relationships: string; // 人間関係の智慧
+    challenges: string;   // 成長のための課題
+  };
+}
 
 // SajuEngine計算オプション
 export interface SajuOptions {
@@ -287,7 +309,7 @@ export interface IGeoCoordinates {
 
 // ユーザーモデル
 export interface IUser {
-  id: string; // クライアント向けに文字列として提供
+  id: string; // クライアント向けには文字列として提供
   email: string;
   displayName: string;
   role: UserRole;
@@ -302,6 +324,9 @@ export interface IUser {
   gender?: Gender;
   birthplaceCoordinates?: IGeoCoordinates;
   localTimeOffset?: number; // 地方時オフセット（分単位）
+  // 国際対応拡張情報
+  timeZone?: string; // タイムゾーン識別子（例：'Asia/Tokyo'）
+  extendedLocation?: ExtendedLocation; // 拡張ロケーション情報
   elementAttribute?: Element; // 五行属性
   dayMaster?: string; // 日主
   fourPillars?: {
@@ -455,22 +480,6 @@ export interface IGoal {
   updatedAt: Date;
 }
 
-/**
- * 運勢スコア計算結果の拡張型
- */
-export interface FortuneScoreResult {
-  score: number; // 最終スコア（0-100）
-  balanceStatus?: Record<string, 'deficient' | 'balanced' | 'excessive'>; // 五行バランス状態
-  yojinRelation?: string; // 用神との関係性
-  stemElement: string; // 天干の五行
-  branchElement: string; // 地支の五行
-  dayIsGeneratingYojin?: boolean; // 日柱が用神を生成する関係性か
-  dayIsControllingYojin?: boolean; // 日柱が用神を抑制する関係性か
-  useBalancedAlgorithm: boolean; // バランスアルゴリズムを使用したか
-  useEnhancedAlgorithm: boolean; // 拡張アルゴリズムを使用したか
-  fortuneType?: string; // 運勢タイプ（excellent/good/neutral/poor/bad）
-}
-
 // チームモデル
 export interface ITeam {
   id: string;
@@ -600,6 +609,26 @@ export interface ISystemSetting {
 
 // ========== リクエスト/レスポンス型 ==========
 
+// 運勢スコア計算結果
+export interface FortuneScoreResult {
+  score: number;
+  advice: string;
+  luckyItems: {
+    color: string;
+    item: string;
+    drink: string;
+  };
+  stemElement?: string;
+  branchElement?: string;
+  useBalancedAlgorithm?: boolean;
+  useEnhancedAlgorithm?: boolean;
+  fortuneType?: string;
+  balanceStatus?: string;
+  yojinRelation?: string;
+  dayIsGeneratingYojin?: boolean;
+  dayIsControllingYojin?: boolean;
+}
+
 // ログインリクエスト
 export interface LoginRequest {
   email: string;
@@ -642,7 +671,7 @@ export interface JwtRefreshTokenResponse {
 
 export interface JwtMigrateRequest {
   password: string;
-  // Firebase関連フィールドは削除されました
+  firebaseUid?: string;
 }
 
 // 登録リクエスト

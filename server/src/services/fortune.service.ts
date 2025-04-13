@@ -907,6 +907,12 @@ export class FortuneService {
     // 基本的な結果オブジェクト
     const result: FortuneScoreResult = {
       score: 0,
+      advice: '', // 初期値を設定
+      luckyItems: { // 初期値を設定
+        color: '',
+        item: '',
+        drink: ''
+      },
       stemElement,
       branchElement,
       useBalancedAlgorithm: true, // 常にバランスアルゴリズムを使用

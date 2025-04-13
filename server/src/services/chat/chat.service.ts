@@ -5,6 +5,7 @@ import { User } from '../../models/User';
 import { claudeApiClient } from '../claude-api-client';
 import { buildChatContext } from './context-builder.service';
 import { CHAT_SYSTEM_PROMPT, createContextPrompt, formatChatHistory } from './chat-contexts';
+import logger from '../../utils/logger';
 
 /**
  * ChatService - チャット機能の中核サービス
@@ -39,13 +40,20 @@ export class ChatService {
     aiResponse: string;
     chatHistory: IChatHistoryDocument;
   }> {
+    const traceId = Math.random().toString(36).substring(2, 15);
+    
     try {
+      // 処理開始のログ
+      console.log(`[${traceId}] 🔄 チャットメッセージ処理開始 - ユーザーID: ${userId}, モード: ${mode}`);
+      
       // ユーザー情報の取得（エリートかライトプランかを判断するため）
       // 柔軟な検索ヘルパーを使用
       const user = await this.findUserById(userId);
       if (!user) {
         throw new Error('ユーザーが見つかりません');
       }
+
+      console.log(`[${traceId}] 👤 ユーザー情報取得完了 - 名前: ${user.displayName}, プラン: ${user.plan || 'standard'}`);
 
       // AIモデルの選択（エリートプランならSonnet、ライトプランならHaiku）
       const aiModel = user.plan === 'elite' ? 'sonnet' : 'haiku';
@@ -55,6 +63,8 @@ export class ChatService {
 
       // アクティブなチャット履歴を取得または作成
       let chatHistory = await this.getOrCreateChatSession(userId, mode, contextInfo, aiModel) as IChatHistoryDocument;
+      
+      console.log(`[${traceId}] 📜 チャット履歴取得完了 - ID: ${chatHistory.id}, メッセージ数: ${chatHistory.messages.length}`);
 
       // ユーザーメッセージを追加
       this.addUserMessage(chatHistory, message);
@@ -65,14 +75,31 @@ export class ChatService {
       // コンテキストプロンプトの構築
       const contextPrompt = createContextPrompt(context);
       
-      // メッセージをAPIフォーマットに変換
-      const messages = chatHistory.messages.map(m => ({
-        role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.content
-      }));
+      // メッセージをAPIフォーマットに変換（最初にコンテキストプロンプトを追加）
+      const messages = [
+        // 最初のメッセージとしてコンテキストプロンプトを追加
+        {
+          role: 'user' as const,
+          content: contextPrompt
+        },
+        // AIからの応答としてウェルカムメッセージを追加（空の場合はスキップ）
+        {
+          role: 'assistant' as const,
+          content: 'このコンテキスト情報を受け取りました。あなたの運勢情報を確認し、質問に対応いたします。'
+        },
+        // 実際のチャット履歴を追加
+        ...chatHistory.messages.map(m => ({
+          role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.content
+        }))
+      ];
       
       // AI modelの選択
       const model = aiModel === 'sonnet' ? 'claude-3-7-sonnet-20250219' : 'claude-3-haiku-20240307';
+      
+      console.log(`[${traceId}] 🤖 通常モードでのAI API呼び出し開始 - モデル: ${model}`);
+      
+      const startTime = Date.now();
       
       // AIレスポンスの生成
       const aiResponse = await claudeApiClient.callAPI({
@@ -81,19 +108,25 @@ export class ChatService {
         maxTokens: aiModel === 'sonnet' ? 4000 : 1500,
         model
       });
+      
+      const processingTime = Date.now() - startTime;
+      
+      console.log(`[${traceId}] ✅ AI API呼び出し完了 - レスポンス長: ${aiResponse.length}文字, 処理時間: ${processingTime}ms`);
 
       // AIレスポンスをチャット履歴に追加
       this.addAIMessage(chatHistory, aiResponse);
 
       // チャット履歴を保存
       await chatHistory.save();
+      
+      console.log(`[${traceId}] 💾 チャットメッセージ処理完了 - 合計メッセージ数: ${chatHistory.messages.length}`);
 
       return {
         aiResponse,
         chatHistory
       };
     } catch (error) {
-      console.error('Chat service error:', error);
+      console.error(`[${traceId}] ❌ チャットメッセージ処理エラー:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -110,7 +143,12 @@ export class ChatService {
       teamGoalId?: string;
     }
   ): AsyncGenerator<string, { chatHistory: IChatHistoryDocument }, unknown> {
+    const traceId = Math.random().toString(36).substring(2, 15);
+    
     try {
+      // 処理開始のログ
+      console.log(`[${traceId}] 🔄 チャットストリーミング処理開始 - ユーザーID: ${userId}, モード: ${mode}`);
+      
       // ユーザー情報の取得（エリートかライトプランかを判断するため）
       // 柔軟な検索ヘルパーを使用
       const user = await this.findUserById(userId);
@@ -127,6 +165,8 @@ export class ChatService {
 
       // アクティブなチャット履歴を取得または作成
       let chatHistory = await this.getOrCreateChatSession(userId, mode, contextInfo, aiModel) as IChatHistoryDocument;
+      
+      console.log(`[${traceId}] 📜 チャット履歴取得完了 - ID: ${chatHistory.id}, メッセージ数: ${chatHistory.messages.length}`);
 
       // ユーザーメッセージを追加
       this.addUserMessage(chatHistory, message);
@@ -134,20 +174,46 @@ export class ChatService {
       // チャットコンテキストの構築
       const context = await buildChatContext(user, mode, contextInfo);
 
-      // メッセージと役割をマッピング
-      const messages = chatHistory.messages.map(m => ({
-        role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-        content: m.content
-      }));
+      // コンテキストプロンプトの構築
+      const contextPrompt = createContextPrompt(context);
+      
+      // メッセージと役割をマッピング（最初にコンテキストプロンプトを追加）
+      const messages = [
+        // 最初のメッセージとしてコンテキストプロンプトを追加
+        {
+          role: 'user' as const,
+          content: contextPrompt
+        },
+        // AIからの応答としてウェルカムメッセージを追加
+        {
+          role: 'assistant' as const,
+          content: 'このコンテキスト情報を受け取りました。あなたの運勢情報を確認し、質問に対応いたします。'
+        },
+        // 実際のチャット履歴を追加
+        ...chatHistory.messages.map(m => ({
+          role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+          content: m.content
+        }))
+      ];
 
       // トークン上限を調整
       const maxTokens = aiModel === 'haiku' ? 1500 : 4000;
       
       // AI modelの選択
       const model = aiModel === 'sonnet' ? 'claude-3-7-sonnet-20250219' : 'claude-3-haiku-20240307';
-
-      // コンテキストプロンプトの構築
-      const contextPrompt = createContextPrompt(context);
+      
+      console.log(`[${traceId}] 📝 コンテキスト構築完了 - コンテキスト情報キー: ${Object.keys(context).join(', ')}`);
+      
+      // 四柱推命情報の存在を確認して出力
+      console.log(`[${traceId}] 🔮 四柱推命コンテキスト情報:`, {
+        hasKakukyoku: context.user?.kakukyoku ? true : false,
+        hasYojin: context.user?.yojin ? true : false,
+        hasElementProfile: context.user?.elementProfile ? true : false,
+        hasPillars: !!context.user?.pillars,
+        hasDailyFortune: !!context.dailyFortune
+      });
+      
+      console.log(`[${traceId}] 🤖 Streaming call to Claude API with model: ${model}`);
       
       // ストリーミングAPIを呼び出し
       let completeResponse = '';
@@ -166,8 +232,10 @@ export class ChatService {
           completeResponse += chunk;
           yield chunk;
         }
+        
+        console.log(`[${traceId}] ✅ ストリーミングレスポンス完了 - 合計文字数: ${completeResponse.length}文字`);
       } catch (error) {
-        console.error('Streaming error:', error);
+        console.error(`[${traceId}] ❌ ストリーミングエラー:`, error);
         throw error;
       }
 
@@ -176,10 +244,12 @@ export class ChatService {
 
       // チャット履歴を保存
       await chatHistory.save();
+      
+      console.log(`[${traceId}] 💾 チャット履歴保存完了 - 合計メッセージ数: ${chatHistory.messages.length}`);
 
       return { chatHistory };
     } catch (error) {
-      console.error('Chat streaming service error:', error);
+      console.error(`[${traceId}] ❌ チャットストリーミングサービスエラー:`, error);
       throw error;
     }
   }

@@ -22,7 +22,8 @@ interface ChatContainerProps {
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
-  initialMode = ChatMode.PERSONAL,
+  // 運勢相談モードを無効化しているため、デフォルトを相性相談モードに変更
+  initialMode = ChatMode.TEAM_MEMBER,
   onBack,
   fullscreen = false
 }) => {

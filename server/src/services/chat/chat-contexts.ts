@@ -52,9 +52,8 @@ export const CONTEXT_TEMPLATES = {
 
 本日の運勢:
 - 日付: {dailyFortune.date}
-- 日柱: {dayPillar.heavenlyStem}{dayPillar.earthlyBranch}
-- 運勢スコア: {fortuneScore}/100
 - ラッキーアイテム: 色/{dailyFortune.luckyItems.color}、食べ物/{dailyFortune.luckyItems.item}、飲み物/{dailyFortune.luckyItems.drink}
+【注：日柱と運勢スコア情報も参照してください（利用可能な場合）】
 
 個人目標: {userGoals}
 
@@ -90,20 +89,28 @@ export const CONTEXT_TEMPLATES = {
  * @returns 生成されたプロンプト
  */
 export function createContextPrompt(context: Record<string, any>): string {
+  const traceId = Math.random().toString(36).substring(2, 15);
+  
   try {
     // コンテキスト情報から適切なテンプレートを選択
     let template = '';
+    let mode = '';
     
     if (context.targetMember) {
       // チームメンバー相性モード
       template = CONTEXT_TEMPLATES.TEAM_MEMBER;
+      mode = 'チームメンバー相性';
     } else if (context.teamGoal) {
       // チーム目標モード
       template = CONTEXT_TEMPLATES.TEAM_GOAL;
+      mode = 'チーム目標';
     } else {
       // 個人運勢モード（デフォルト）
       template = CONTEXT_TEMPLATES.PERSONAL;
+      mode = '個人運勢';
     }
+    
+    console.log(`[${traceId}] 📋 プロンプトテンプレート選択: ${mode}モード`);
     
     // テンプレートの変数をコンテキスト情報で置換
     let prompt = template;
@@ -117,6 +124,7 @@ export function createContextPrompt(context: Record<string, any>): string {
     
     // プレースホルダーを探して置換
     const placeholders = template.match(/\{([^}]+)\}/g) || [];
+    const missingPlaceholders: string[] = [];
     
     for (const placeholder of placeholders) {
       const path = placeholder.slice(1, -1); // {user.name} -> user.name
@@ -131,14 +139,21 @@ export function createContextPrompt(context: Record<string, any>): string {
           prompt = prompt.replace(placeholder, String(value));
         }
       } else {
-        // 値が見つからない場合は空文字に置換
+        // 値が見つからない場合は未設定に置換し、ログに記録
         prompt = prompt.replace(placeholder, '未設定');
+        missingPlaceholders.push(path);
       }
     }
     
+    if (missingPlaceholders.length > 0) {
+      console.log(`[${traceId}] ⚠️ プロンプト内の未設定項目: ${missingPlaceholders.join(', ')}`);
+    }
+    
+    console.log(`[${traceId}] 📝 プロンプト生成完了 - 文字数: ${prompt.length}`);
+    
     return prompt;
   } catch (error) {
-    console.error('Create context prompt error:', error);
+    console.error(`[${traceId}] ❌ プロンプト生成エラー:`, error);
     return '四柱推命による運勢相談を行います。';
   }
 }

@@ -27,14 +27,7 @@ export class ChatController {
       // ストリーミングフラグを取得
       const useStreaming = req.query.stream === 'true' || req.body.stream === true;
       
-      console.log('チャットリクエスト情報:', {
-        userId,
-        messageLength: message?.length,
-        mode,
-        isStreaming: useStreaming,
-        hasToken: !!req.query.token || !!req.headers.authorization,
-        method: req.method
-      });
+      console.log(`🔊 チャットリクエスト受信 - ユーザーID: ${userId}, モード: ${mode}, ストリーミング: ${useStreaming}, メソッド: ${req.method}`);
 
       if (!userId) {
         res.status(401).json({
