@@ -107,10 +107,9 @@ export class UserService {
       // カスタムクレーム設定
       await auth.setCustomUserClaims(userRecord.uid, { role: userRole });
       
-      // MongoDBにユーザー情報を保存
+      // MongoDBにユーザー情報を保存（MongoDB ObjectIDを使用）
       const newUser = new User({
-        _id: userRecord.uid, // FirebaseのUIDをそのまま使用
-        uid: userRecord.uid, // UIDも保存
+        _id: new mongoose.Types.ObjectId(), // MongoDBのObjectIDを自動生成
         email: data.email,
         password: data.password, // パスワードも保存（ハッシュ化される）
         displayName: data.displayName,

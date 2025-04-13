@@ -35,7 +35,7 @@ export const createUser = async (req: AuthRequest, res: Response) => {
     
     const userService = new UserService();
     const newUser = await userService.createUser(req.body, {
-      uid: req.user.uid,
+      uid: req.user.id, // MongoDB ObjectID
       role: req.user.role
     });
     
@@ -59,7 +59,7 @@ export const updateUserRole = async (req: AuthRequest, res: Response) => {
     
     const userService = new UserService();
     const updatedUser = await userService.updateUserRole(userId, role, {
-      uid: req.user.uid,
+      uid: req.user.id, // MongoDB ObjectID
       role: req.user.role
     });
     
@@ -83,7 +83,7 @@ export const updateUserPlan = async (req: AuthRequest, res: Response) => {
     
     const userService = new UserService();
     const updatedUser = await userService.updateUserPlan(userId, plan, {
-      uid: req.user.uid,
+      uid: req.user.id, // MongoDB ObjectID
       role: req.user.role
     });
     
@@ -106,7 +106,7 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
     
     const userService = new UserService();
     const result = await userService.deleteUser(userId, {
-      uid: req.user.uid,
+      uid: req.user.id, // MongoDB ObjectID
       role: req.user.role
     });
     
