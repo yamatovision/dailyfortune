@@ -94,7 +94,9 @@ export const getTeamById = async (
   
   // 標準化された関数を使用してメンバーシップを確認
   const isMember = await isTeamMember(teamId, userId);
-  const adminIdStr = team.adminId.toString();
+  
+  // adminIdがnullまたはundefinedの場合の対応
+  const adminIdStr = team.adminId ? team.adminId.toString() : '';
   const isAdmin = adminIdStr === userIdStr;
 
   if (!isMember && !isAdmin) {
@@ -122,7 +124,8 @@ export const updateTeam = async (
 
   // 管理者権限チェック - 常にObjectIDを文字列化して比較
   const userIdStr = userId.toString();
-  const adminIdStr = team.adminId.toString();
+  // adminIdがnullまたはundefinedの場合の対応
+  const adminIdStr = team.adminId ? team.adminId.toString() : '';
   const isAdmin = adminIdStr === userIdStr;
   
   if (!isAdmin) {
@@ -158,7 +161,8 @@ export const deleteTeam = async (teamId: string | mongoose.Types.ObjectId, userI
 
   // 管理者権限チェック - 常にObjectIDを文字列化して比較
   const userIdStr = userId.toString();
-  const adminIdStr = team.adminId.toString();
+  // adminIdがnullまたはundefinedの場合の対応
+  const adminIdStr = team.adminId ? team.adminId.toString() : '';
   const isAdmin = adminIdStr === userIdStr;
   
   if (!isAdmin) {
@@ -194,7 +198,8 @@ export const isTeamAdmin = async (teamId: string | mongoose.Types.ObjectId, user
   
   // 通常のチーム管理者確認 - 常に文字列化して比較
   const userIdStr = userId.toString();
-  const adminIdStr = team.adminId.toString();
+  // adminIdがnullまたはundefinedの場合の対応
+  const adminIdStr = team.adminId ? team.adminId.toString() : '';
   return adminIdStr === userIdStr;
 };
 
