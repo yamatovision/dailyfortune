@@ -7,10 +7,9 @@
 import { FortuneScoreResult } from '../types';
 import { claudeApiClient } from './claude-api-client';
 import { User } from '../models/User';
-import { Document } from 'mongoose';
 
-// User型定義
-type UserDocument = Document & {
+// User型定義 - MongooseのDocumentではなく一般的なオブジェクトとして定義
+interface UserData {
   displayName: string;
   gender?: string;
   elementAttribute?: string;
@@ -20,7 +19,7 @@ type UserDocument = Document & {
   yojin?: any;
   elementProfile?: any;
   [key: string]: any;
-};
+}
 
 // ラッキーアイテム生成用のシステムプロンプト
 export const LUCKY_ITEMS_SYSTEM_PROMPT = `
@@ -87,7 +86,7 @@ export class LuckyItemsService {
    */
   public async generateLuckyItems(
     userData: {
-      user: UserDocument,
+      user: UserData,
       fortuneDetails?: FortuneScoreResult
     },
     dayStem: string,
@@ -161,7 +160,7 @@ export class LuckyItemsService {
    * @param fortuneDetails 運勢詳細情報（オプション）
    */
   private buildLuckyItemsPrompt(
-    user: UserDocument, 
+    user: UserData, 
     dayStem: string, 
     dayBranch: string, 
     fortuneDetails?: FortuneScoreResult

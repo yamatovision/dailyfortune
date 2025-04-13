@@ -6,10 +6,9 @@
  */
 import { claudeApiClient } from './claude-api-client';
 import { User } from '../models/User';
-import { Document } from 'mongoose';
 
-// User型定義
-type UserDocument = Document & {
+// User型定義 - MongooseのDocumentではなく一般的なオブジェクトとして定義
+interface UserData {
   displayName: string;
   elementAttribute?: string;
   dayMaster?: string;
@@ -19,7 +18,7 @@ type UserDocument = Document & {
   yojin?: any;
   elementProfile?: any;
   [key: string]: any;
-};
+}
 
 // チームメンバーカルテ生成用のシステムプロンプト
 export const MEMBER_CARD_SYSTEM_PROMPT = `
@@ -119,7 +118,7 @@ export class MemberCardService {
    * @param team チーム情報
    * @returns 生成されたチームメンバーカルテ（マークダウン形式）
    */
-  public async generateMemberCard(user: UserDocument, team: { name: string; size: number }): Promise<string> {
+  public async generateMemberCard(user: UserData, team: { name: string; size: number }): Promise<string> {
     console.log('🧩 generateMemberCard: チームメンバーカルテ生成開始');
     
     try {
@@ -172,7 +171,7 @@ export class MemberCardService {
   /**
    * チームメンバーカルテ生成用のプロンプトを作成
    */
-  private createMemberCardPrompt(user: UserDocument, team: { name: string; size: number }): string {
+  private createMemberCardPrompt(user: UserData, team: { name: string; size: number }): string {
     try {
       // テンプレートの変数をユーザー情報で置換
       let prompt = MEMBER_CARD_TEMPLATE;

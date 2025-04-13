@@ -6,10 +6,9 @@
  */
 import { claudeApiClient } from './claude-api-client';
 import { User } from '../models/User';
-import { Document } from 'mongoose';
 
-// User型定義
-type UserDocument = Document & {
+// User型定義 - MongooseのDocumentではなく一般的なオブジェクトとして定義
+interface UserData {
   displayName: string;
   elementAttribute?: string;
   dayMaster?: string;
@@ -18,7 +17,7 @@ type UserDocument = Document & {
   yojin?: any;
   elementProfile?: any;
   [key: string]: any;
-};
+}
 
 // 調和のコンパス生成用のシステムプロンプト
 export const HARMONY_COMPASS_SYSTEM_PROMPT = `
@@ -97,7 +96,7 @@ export class HarmonyCompassService {
    * @param user ユーザー情報（四柱推命データを含む）
    * @returns 生成された調和のコンパス（マークダウン形式のテキスト全体）
    */
-  public async generateHarmonyCompass(user: UserDocument): Promise<{
+  public async generateHarmonyCompass(user: UserData): Promise<{
     content: string;
     sections?: HarmonyCompassSections;
   }> {
@@ -178,7 +177,7 @@ export class HarmonyCompassService {
   /**
    * 調和のコンパス生成用のプロンプトを作成
    */
-  private createHarmonyCompassPrompt(user: UserDocument): string {
+  private createHarmonyCompassPrompt(user: UserData): string {
     try {
       // テンプレートの変数をユーザー情報で置換
       let prompt = HARMONY_COMPASS_TEMPLATE;
