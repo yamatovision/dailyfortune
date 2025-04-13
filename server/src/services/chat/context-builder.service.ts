@@ -106,7 +106,13 @@ async function buildPersonalContext(user: any): Promise<Record<string, any>> {
         elementAttribute: user.elementAttribute,
         dayMaster: user.dayMaster,
         jobTitle: user.jobTitle || '',
-        pillars: user.fourPillars || {}
+        pillars: user.fourPillars || {},
+        // 格局情報を追加
+        kakukyoku: user.kakukyoku || null,
+        // 用神情報を追加
+        yojin: user.yojin || null,
+        // 五行バランス情報を追加
+        elementProfile: user.elementProfile || null
       },
       dailyFortune: fortune ? {
         date: fortune.date.toISOString().split('T')[0],
