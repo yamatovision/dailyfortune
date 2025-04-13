@@ -856,18 +856,23 @@ export class UserController {
         };
         console.log('🧭 構築したユーザーデータ:', JSON.stringify(userData, null, 2).substring(0, 200) + '...');
         
-        // Claude AIで調和のコンパスを生成
+        // 調和のコンパスを生成
         console.log('🧭 調和のコンパス生成開始...');
         try {
-          const compassResult = await claudeAIService.generateHarmonyCompass(userData);
-          console.log('🧭 ClaudeAPI呼び出し成功:', compassResult ? '結果あり' : '結果なし');
+          const compassResult = await harmonyCompassService.generateHarmonyCompass(userData.user);
+          console.log('🧭 調和のコンパス生成成功:', compassResult ? '結果あり' : '結果なし');
           
           if (compassResult && compassResult.content) {
-            console.log('🧭 Claudeレスポンス内容:', compassResult.content.substring(0, 100) + '...');
+            console.log('🧭 調和のコンパス内容:', compassResult.content.substring(0, 100) + '...');
             
             // マークダウン形式のテキストからpersonalityDescriptionを抽出
-            updateData.personalityDescription = extractPersonalityDescription(compassResult.content);
-            console.log('🧭 抽出したpersonalityDescription:', updateData.personalityDescription ? updateData.personalityDescription.substring(0, 50) + '...' : '抽出なし');
+            if (compassResult.sections && compassResult.sections.personality) {
+              updateData.personalityDescription = compassResult.sections.personality;
+              console.log('🧭 セクションから抽出したpersonalityDescription:', updateData.personalityDescription.substring(0, 50) + '...');
+            } else {
+              updateData.personalityDescription = extractPersonalityDescription(compassResult.content);
+              console.log('🧭 テキストから抽出したpersonalityDescription:', updateData.personalityDescription ? updateData.personalityDescription.substring(0, 50) + '...' : '抽出なし');
+            }
             
             // careerAptitudeフィールドに保存
             // テキストとして直接保存する方式に変更
@@ -876,12 +881,12 @@ export class UserController {
             
             console.log('🧭 調和のコンパス生成完了');
           } else {
-            console.error('🧭 Claudeレスポンスが空か不正:', compassResult);
-            throw new Error('Claudeレスポンスが空か不正');
+            console.error('🧭 調和のコンパスレスポンスが空か不正:', compassResult);
+            throw new Error('調和のコンパスレスポンスが空か不正');
           }
-        } catch (claudeApiError) {
-          console.error('🧭 Claude API呼び出しエラー:', claudeApiError);
-          throw claudeApiError; // 上位のエラーハンドリングに渡す
+        } catch (compassError) {
+          console.error('🧭 調和のコンパス生成エラー:', compassError);
+          throw compassError; // 上位のエラーハンドリングに渡す
         }
         
         // 性格特性部分を抽出する補助関数
