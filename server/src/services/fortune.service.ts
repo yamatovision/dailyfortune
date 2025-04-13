@@ -1467,8 +1467,8 @@ ${teamGoalAdvice}`;
           
           if (user && user.fourPillars && user.kakukyoku && user.yojin && user.elementProfile) {
             try {
-              // Claude AIを使用してラッキーアイテムを生成
-              const { generateLuckyItemsWithClaude } = await import('./claude-ai');
+              // 新しいラッキーアイテム生成サービスを使用
+              const { luckyItemsService } = await import('./lucky-items.service');
               
               // fortuneScoreResultがある場合は、バランス情報と用神情報を渡す
               const enhancedUserData = { 
@@ -1476,7 +1476,7 @@ ${teamGoalAdvice}`;
                 fortuneDetails: fortuneScoreResult || undefined
               };
               
-              const luckyItems = await generateLuckyItemsWithClaude(
+              const luckyItems = await luckyItemsService.generateLuckyItems(
                 enhancedUserData,
                 heavenlyStem,
                 earthlyBranch

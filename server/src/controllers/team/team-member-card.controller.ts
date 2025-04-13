@@ -7,7 +7,7 @@ import {
   TeamGoal 
 } from '../../models';
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { claudeAI } from '../../utils';
+import { memberCardService } from '../../services/member-card.service';
 
 /**
  * メンバーカルテ情報を取得するコントローラー
@@ -120,49 +120,21 @@ const generateMemberCard = async (teamId: string, userId: string, user: any, tea
       return existingCard;
     }
     
-    // AIに送信するプロンプトを作成
-    const prompt = `
-以下のユーザー情報とチーム目標に基づいて、メンバーカルテ（特性分析、チーム貢献分析、コミュニケーションガイド）を作成してください。マークダウン形式で返答してください。
+    // チーム情報を構築
+    const teamInfo = {
+      name: team.name,
+      size: await User.countDocuments({ teamId: team._id })
+    };
 
-【ユーザー情報】
-- 名前: ${user.displayName}
-- 役割: ${user.jobTitle || '未設定'}
-- 五行属性: ${user.elementAttribute || '未設定'}
-- 日柱: ${user.dayMaster || '未設定'}
-${user.fourPillars ? `- 天干: ${user.fourPillars.day.heavenlyStem}
-- 地支: ${user.fourPillars.day.earthlyBranch}` : ''}
-${user.elementProfile ? `- 五行バランス: 木(${user.elementProfile.wood}) 火(${user.elementProfile.fire}) 土(${user.elementProfile.earth}) 金(${user.elementProfile.metal}) 水(${user.elementProfile.water})` : ''}
-
-【格局・用神情報】
-- 格局: ${user.kakukyoku?.type || '未設定'} (${user.kakukyoku?.strength === 'strong' ? '身強' : user.kakukyoku?.strength === 'weak' ? '身弱' : '未設定'})
-- 格局説明: ${user.kakukyoku?.description || '未設定'}
-- 用神: ${user.yojin?.tenGod || '未設定'} (${user.yojin?.element || '未設定'})
-- 喜神: ${user.yojin?.kijin?.tenGod || '未設定'} (${user.yojin?.kijin?.element || '未設定'})
-- 忌神: ${user.yojin?.kijin2?.tenGod || '未設定'} (${user.yojin?.kijin2?.element || '未設定'})
-- 仇神: ${user.yojin?.kyujin?.tenGod || '未設定'} (${user.yojin?.kyujin?.element || '未設定'})
-
-【チーム目標】
-- 内容: ${teamGoal ? teamGoal.content : '未設定'}
-- 期限: ${teamGoal && teamGoal.deadline ? new Date(teamGoal.deadline).toLocaleDateString('ja-JP') : '未設定'}
-
-以下の構成で作成してください：
-1. 基本プロファイル（五行属性と格局タイプの意味）
-2. 特性と才能（箇条書き）
-3. 用神と喜神に基づく強み（箇条書き）
-4. チーム貢献分析（目標達成への貢献方法）
-5. 最適な役割と貢献方法（箇条書き）
-6. 強化すべき領域と避けるべき領域（箇条書き、忌神・仇神を考慮）
-7. コミュニケーションガイド（効果的/避けるべきアプローチ）
-8. 将来の成長ポテンシャル（用神を活かした長期的な成長方向）
-`;
-
-    // ClaudeAI APIを呼び出す
+    // メンバーカルテを生成
     let aiResponse;
     
     try {
-      aiResponse = await claudeAI.callClaudeAI(prompt, claudeAI.MEMBER_CARD_SYSTEM_PROMPT);
+      // 新しいメンバーカルテサービスを使用
+      aiResponse = await memberCardService.generateMemberCard(user, teamInfo);
+      console.log('メンバーカルテ生成成功');
     } catch (error) {
-      console.error('Claude AI API呼び出しエラー:', error);
+      console.error('メンバーカルト生成エラー:', error);
       // エラーが発生した場合はフォールバックとしてダミーレスポンスを使用
       aiResponse = generateDummyAIResponse(user.displayName, user.elementAttribute || 'water', teamGoal);
     }
