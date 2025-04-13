@@ -40,6 +40,35 @@
     - 権限: `super_admin`
   - MongoDB接続情報も`.env`ファイルで定義（MONGODB_URI）
 
+### 1.1.1 秘密鍵とAPIキーの安全な取り扱い
+
+- **⚠️ 重大な警告**: テストスクリプト内に秘密鍵やAPIキーを直接ハードコードしないでください
+- **実装ルール**:
+  1. すべての秘密鍵やAPIキーは`.env`ファイルにのみ保存する
+  2. テストスクリプト内では必ず`process.env`から読み込む
+  3. デフォルト値としても秘密情報を含めない
+  4. 秘密情報を含むファイルは`.gitignore`に追加する
+
+```typescript
+// ❌ 危険: キーをハードコード（絶対にしないこと）
+const CLAUDE_API_KEY = 'sk-ant-api03-XXXXXXXXXXXXXXX';
+
+// ❌ 危険: デフォルト値にキーを設定（絶対にしないこと）
+const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY || 'sk-ant-api03-XXXXXXXXXXXXXXX';
+
+// ✅ 安全: 環境変数のみを使用
+const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY;
+if (!CLAUDE_API_KEY) {
+  console.error('APIキーが設定されていません。.envファイルを確認してください。');
+  process.exit(1);
+}
+
+// ✅ 安全: デフォルト値には秘密情報を含めない
+const CLAUDE_API_KEY = process.env.ANTHROPIC_API_KEY || 'API_KEY_NOT_SET';
+```
+
+- **理由**: 秘密情報をコードにハードコードすると、GitHubなどのバージョン管理システムに漏洩する可能性があり、セキュリティリスクが発生します。また、GitHubの自動セキュリティ検出により、プッシュが拒否される原因になります。
+
 ### 1.2 サーバー起動・停止プロセス
 
 **起動前の確認事項**:
@@ -164,6 +193,40 @@ node scripts/get-token.js shiraishi.tatsuya@mikoto.co.jp aikakumei
 | ポート使用中エラー | `lsof -i :8080`で確認し`kill -9 <PID>`で解放 |
 | データモデル型エラー | モデル定義とテストコードの型一致を確認 |
 | コントローラーエラー | `UserRole`などの定義を確認。auth.middleware.tsから正しくインポートしているか確認 |
+| Gitプッシュ拒否 | 秘密鍵・APIキーがコード内にハードコードされていないか確認し、削除する |
+
+### 3.1.1 秘密情報によるGitプッシュ問題
+
+Gitプッシュが「リポジトリルール違反」で拒否される場合は、以下の手順で対処してください：
+
+1. **問題の特定**:
+   ```bash
+   # 秘密情報を含むファイルを検索
+   grep -r -i "APIKey\|secret\|password\|token\|credential\|mongodb+srv\|sk-ant" --include="*.js" --include="*.ts" .
+   ```
+
+2. **修正方法**:
+   - 秘密情報を含むファイルから直接ハードコードされた値を削除
+   - 代わりに環境変数から読み込むよう変更
+   - 該当ファイルを`.gitignore`に追加
+
+3. **コミット履歴に秘密情報がある場合**:
+   ```bash
+   # ★重要★ 機密情報漏洩対策手順 (docs/gitrule.mdも参照)
+   # 1. 現状の作業を外部バックアップ
+   # 2. 新しいorphanブランチ作成
+   git checkout --orphan clean-branch-new
+   # 3. すべてのファイルをステージング
+   git add .
+   # 4. 機密ファイルをアンステージ
+   git reset scripts/test-lucky-items/
+   # 5. コミット
+   git commit -m "安全なクリーンアップ: 機密情報除去"
+   # 6. プッシュ
+   git push -u origin clean-branch-new
+   ```
+
+このような問題を防ぐため、常にコード内に秘密情報をハードコードしないでください。
 
 ### 3.2 テスト失敗時のチェックリスト
 
@@ -632,4 +695,4 @@ DB-TDDアプローチでは、データ理解を最優先することで、堅�
 
 **注意**: このガイドラインは継続的に更新されます。最新バージョンを参照してください。
 
-**最終更新**: 2025-04-09
+**最終更新**: 2025-04-13
