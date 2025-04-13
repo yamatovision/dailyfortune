@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { DailyFortune } from '../models/DailyFortune';
-import { TeamContextFortune } from '../models/TeamContextFortune';
 import { DayPillar } from '../models/DayPillar';
 import { User } from '../models/User';
 import { Team } from '../models/Team';
@@ -13,7 +12,7 @@ import { FortuneScoreResult } from '../types';
  */
 export class FortuneService {
   /**
-   * 運勢ダッシュボード情報を取得する（個人運勢とチームコンテキスト運勢を統合）
+   * 運勢ダッシュボード情報を取得する（個人運勢に統合）
    * @param userId ユーザーID
    * @param teamId チームID（指定がない場合はユーザーのデフォルトチーム）
    * @returns 運勢ダッシュボード情報
@@ -40,12 +39,9 @@ export class FortuneService {
         targetTeamId = user.teamId.toString();
       }
       
-      // チームIDがあればチームコンテキスト運勢を取得
+      // チームIDがあればチーム目標とランキングを取得
       if (targetTeamId) {
         try {
-          const teamContextFortune = await this.getTeamContextFortune(userId, targetTeamId);
-          response.teamContextFortune = teamContextFortune;
-          
           // チーム目標を取得
           const teamGoal = await TeamGoal.findOne({ teamId: targetTeamId }).lean();
           if (teamGoal) {
@@ -78,8 +74,8 @@ export class FortuneService {
             // ランキング取得エラーは全体のレスポンスに影響しないよう処理を続行
           }
         } catch (err) {
-          console.error(`チームコンテキスト運勢の取得に失敗しました: ${err}`);
-          // チームコンテキスト運勢の取得に失敗しても、全体の処理は続行
+          console.error(`チーム情報の取得に失敗しました: ${err}`);
+          // チーム情報の取得に失敗しても、全体の処理は続行
         }
       }
       
@@ -101,260 +97,6 @@ export class FortuneService {
     }
   }
   
-  /**
-   * チームコンテキスト運勢を取得する
-   * @param userId ユーザーID
-   * @param teamId チームID
-   * @param date 日付（指定がない場合は今日）
-   * @returns チームコンテキスト運勢情報
-   */
-  public async getTeamContextFortune(userId: string, teamId: string, date?: Date): Promise<any> {
-    // 日付が指定されていない場合は今日の日付を使用
-    const targetDate = date || new Date();
-    targetDate.setHours(0, 0, 0, 0); // 時刻部分をリセット
-    
-    // ユーザーIDがObjectIDかどうかを確認
-    let userIdQuery: string | mongoose.Types.ObjectId = userId;
-    if (mongoose.Types.ObjectId.isValid(userId)) {
-      userIdQuery = new mongoose.Types.ObjectId(userId);
-    }
-    
-    // チームIDがObjectIDかどうかを確認
-    let teamIdQuery: string | mongoose.Types.ObjectId = teamId;
-    if (mongoose.Types.ObjectId.isValid(teamId)) {
-      teamIdQuery = new mongoose.Types.ObjectId(teamId);
-    }
-    
-    // 既存のチームコンテキスト運勢データを検索
-    const teamContextFortune = await TeamContextFortune.findOne({
-      userId: userIdQuery,
-      teamId: teamIdQuery,
-      date: {
-        $gte: targetDate,
-        $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-      }
-    }).populate('dayPillarId');
-    
-    // 運勢データが見つかった場合はそれを返す
-    if (teamContextFortune) {
-      const dayPillar = teamContextFortune.dayPillarId as any;
-      return {
-        id: teamContextFortune._id,
-        userId: teamContextFortune.userId,
-        teamId: teamContextFortune.teamId,
-        date: teamContextFortune.date,
-        dayPillar: {
-          heavenlyStem: dayPillar.heavenlyStem,
-          earthlyBranch: dayPillar.earthlyBranch
-        },
-        teamGoalId: teamContextFortune.teamGoalId,
-        score: teamContextFortune.fortuneScore,
-        teamContextAdvice: teamContextFortune.teamContextAdvice,
-        collaborationTips: teamContextFortune.collaborationTips,
-        createdAt: teamContextFortune.createdAt,
-        updatedAt: teamContextFortune.updatedAt
-      };
-    }
-    
-    // 見つからない場合は自動生成
-    return this.generateTeamContextFortune(userId, teamId, targetDate);
-  }
-  
-  /**
-   * チームコンテキスト運勢を生成する
-   * @param userId ユーザーID
-   * @param teamId チームID
-   * @param date 日付
-   * @param forceOverwrite 既存データを強制上書きするか（手動更新時はtrue）
-   * @returns 生成されたチームコンテキスト運勢情報
-   */
-  public async generateTeamContextFortune(userId: string, teamId: string, date: Date, forceOverwrite: boolean = false): Promise<any> {
-    // ユーザー情報を取得 - より堅牢な検索ロジック
-    let user;
-    try {
-      // 検索ID文字列の正規化（トリムして空白除去）
-      const normalizedUserId = typeof userId === 'string' ? userId.trim() : userId;
-      
-      // まずMongoDBのObjectIDとして検索
-      if (normalizedUserId && mongoose.Types.ObjectId.isValid(normalizedUserId)) {
-        try {
-          user = await User.findById(normalizedUserId);
-          console.log(`ユーザーをObjectIDで検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
-        } catch (err) {
-          console.warn(`ObjectIDによる検索で例外が発生: ${err}`);
-        }
-      }
-      
-      // 見つからなければFirebaseのUIDまたは他のフィールドで検索
-      if (!user) {
-        const query = { 
-          $or: [
-            { uid: normalizedUserId },
-            { firebaseUid: normalizedUserId },
-            { email: normalizedUserId }
-          ]
-        };
-        
-        // 追加の検索として、文字列形式の_idとしても検索
-        if (normalizedUserId && typeof normalizedUserId === 'string') {
-          query.$or.push({ _id: normalizedUserId } as any);  // TypeScriptエラー回避のためanyにキャスト
-        }
-        
-        user = await User.findOne(query);
-        console.log(`ユーザーを複合条件で検索: ${normalizedUserId}, 結果: ${user ? '見つかりました' : '見つかりません'}`);
-      }
-      
-      if (!user) {
-        console.error(`ユーザーが見つかりません: userId=${normalizedUserId}`);
-        throw new Error(`ユーザーが見つかりません: ${normalizedUserId}`);
-      }
-    } catch (error) {
-      console.error(`ユーザー検索中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`ユーザー検索エラー: ${error instanceof Error ? error.message : String(error)}`);
-    }
-    
-    // チーム情報を取得
-    const team = await Team.findById(teamId);
-    if (!team) {
-      throw new Error('チームが見つかりません');
-    }
-    
-    // チーム目標を取得
-    const teamGoal = await TeamGoal.findOne({ teamId }).lean();
-    
-    // 日付の日柱情報を取得
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0); // 時刻部分をリセット
-    
-    const dayPillar = await DayPillar.findOne({
-      date: {
-        $gte: targetDate,
-        $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-      }
-    });
-    
-    if (!dayPillar) {
-      throw new Error('日柱情報が見つかりません');
-    }
-    
-    // 個人の基本運勢スコアを計算
-    const fortuneScore = this.calculateFortuneScore(
-      user.elementAttribute || 'water',
-      dayPillar.heavenlyStem,
-      dayPillar.earthlyBranch,
-      user
-    );
-    
-    // チームコンテキスト特化アドバイスを生成
-    let teamContextAdvice;
-    let collaborationTips;
-
-    // 環境変数から利用モードを取得
-    const useClaudeAPI = process.env.USE_CLAUDE_API === 'true';
-    
-    if (useClaudeAPI) {
-      // Claude APIを使用して生成
-      try {
-        const generatedAdvice = await this.generateTeamContextAdvice(
-          user,
-          team,
-          teamGoal,
-          dayPillar,
-          typeof fortuneScore === 'number' ? fortuneScore : fortuneScore.score
-        );
-        teamContextAdvice = generatedAdvice.teamContextAdvice;
-        collaborationTips = generatedAdvice.collaborationTips;
-      } catch (error) {
-        console.error('チームコンテキストアドバイス生成エラー:', error);
-        // フォールバックとしてテンプレートベースのアドバイスを使用
-        const fallbackAdvice = this.generateTemplateBasedTeamContextAdvice(
-          user,
-          team,
-          teamGoal,
-          dayPillar,
-          typeof fortuneScore === 'number' ? fortuneScore : fortuneScore.score
-        );
-        teamContextAdvice = fallbackAdvice.teamContextAdvice;
-        collaborationTips = fallbackAdvice.collaborationTips;
-      }
-    } else {
-      // テンプレートベースのアドバイスを使用
-      const templateAdvice = this.generateTemplateBasedTeamContextAdvice(
-        user,
-        team,
-        teamGoal,
-        dayPillar,
-        typeof fortuneScore === 'number' ? fortuneScore : fortuneScore.score
-      );
-      teamContextAdvice = templateAdvice.teamContextAdvice;
-      collaborationTips = templateAdvice.collaborationTips;
-    }
-    
-    // 既存のチームコンテキスト運勢データがあるか確認
-    let existingTeamContextFortune = null;
-    
-    if (!forceOverwrite) {
-      // 強制上書きでない場合は既存データをチェック
-      existingTeamContextFortune = await TeamContextFortune.findOne({
-        userId,
-        teamId,
-        date: {
-          $gte: targetDate,
-          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-        }
-      });
-    }
-    
-    if (existingTeamContextFortune && !forceOverwrite) {
-      // 既存データがあり、強制上書きでない場合はエラー
-      throw new Error(`このユーザー(${userId})のチーム(${teamId})の${targetDate.toISOString().split('T')[0]}のチームコンテキスト運勢は既に存在します`);
-    }
-    
-    let teamContextFortune;
-    
-    if (forceOverwrite && existingTeamContextFortune) {
-      // 強制上書きモードで既存データがある場合は削除
-      await TeamContextFortune.deleteOne({
-        userId,
-        teamId,
-        date: {
-          $gte: targetDate,
-          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000)
-        }
-      });
-    }
-    
-    // 新規作成
-    teamContextFortune = new TeamContextFortune({
-      userId,
-      teamId,
-      date: targetDate,
-      dayPillarId: dayPillar._id,
-      teamGoalId: teamGoal?._id,
-      fortuneScore: fortuneScore,
-      teamContextAdvice,
-      collaborationTips
-    });
-    
-    await teamContextFortune.save();
-    
-    return {
-      id: teamContextFortune._id,
-      userId: teamContextFortune.userId,
-      teamId: teamContextFortune.teamId,
-      date: teamContextFortune.date,
-      dayPillar: {
-        heavenlyStem: dayPillar.heavenlyStem,
-        earthlyBranch: dayPillar.earthlyBranch
-      },
-      teamGoalId: teamContextFortune.teamGoalId,
-      score: teamContextFortune.fortuneScore,
-      teamContextAdvice: teamContextFortune.teamContextAdvice,
-      collaborationTips: teamContextFortune.collaborationTips,
-      createdAt: teamContextFortune.createdAt,
-      updatedAt: teamContextFortune.updatedAt
-    };
-  }
   
   /**
    * Claude APIを使用してチームコンテキスト運勢アドバイスを生成する
@@ -938,6 +680,8 @@ export class FortuneService {
         fortuneScore: fortune.fortuneScore, // テスト互換性のために追加
         advice: fortune.advice,
         luckyItems: fortune.luckyItems,
+        teamId: fortune.teamId,
+        teamGoalId: fortune.teamGoalId,
         createdAt: fortune.createdAt,
         updatedAt: fortune.updatedAt
       };
@@ -1087,6 +831,13 @@ export class FortuneService {
       existingFortune.fortuneScore = fortuneScoreResult.score;
       existingFortune.advice = advice;
       existingFortune.luckyItems = luckyItems;
+      
+      // チーム情報の更新
+      if (user.teamId) {
+        existingFortune.teamId = user.teamId;
+        existingFortune.teamGoalId = await this.getLatestTeamGoalId(user.teamId);
+      }
+      
       await existingFortune.save();
       
       fortune = existingFortune;
@@ -1098,7 +849,9 @@ export class FortuneService {
         dayPillarId: dayPillar._id,
         fortuneScore: fortuneScoreResult.score,
         advice: advice,
-        luckyItems: luckyItems
+        luckyItems: luckyItems,
+        teamId: user.teamId, // ユーザーのチームID
+        teamGoalId: user.teamId ? await this.getLatestTeamGoalId(user.teamId) : undefined // 最新のチーム目標ID
       });
 
       await fortune.save();
@@ -1116,6 +869,8 @@ export class FortuneService {
       fortuneScore: fortune.fortuneScore, // テスト互換性のために追加
       advice: fortune.advice,
       luckyItems: fortune.luckyItems,
+      teamId: fortune.teamId,
+      teamGoalId: fortune.teamGoalId,
       createdAt: fortune.createdAt,
       updatedAt: fortune.updatedAt
     };
@@ -1248,6 +1003,25 @@ export class FortuneService {
       return 'neutral';
     }
   }
+  
+  /**
+   * 最新のチーム目標IDを取得する
+   * @param teamId チームID
+   * @returns 最新のチーム目標ID、存在しない場合はundefined
+   */
+  private async getLatestTeamGoalId(teamId: mongoose.Types.ObjectId | string): Promise<mongoose.Types.ObjectId | undefined> {
+    try {
+      const teamGoal = await TeamGoal.findOne({ teamId: teamId })
+        .sort({ createdAt: -1 })
+        .select('_id')
+        .lean();
+      
+      return teamGoal?._id as mongoose.Types.ObjectId | undefined;
+    } catch (error) {
+      console.error(`チーム目標の取得に失敗しました: ${error}`);
+      return undefined;
+    }
+  }
 
   /**
    * マークダウン形式の運勢アドバイスを生成する
@@ -1305,6 +1079,12 @@ export class FortuneService {
         apiKey: apiKey
       });
       
+      // チーム目標情報の取得
+      let teamGoal = null;
+      if (user.teamId) {
+        teamGoal = await TeamGoal.findOne({ teamId: user.teamId }).lean();
+      }
+      
       // 四柱推命情報からプロンプトを作成
       const userElement = user.elementAttribute || 'water';
       const dayElement = this.getStemElement(dayPillar.heavenlyStem);
@@ -1358,13 +1138,16 @@ export class FortuneService {
 # ユーザー目標
 - 個人目標: ${user.goal || '設定なし'}
 - チーム役割: ${user.teamRole || '設定なし'}
+- チーム目標: ${teamGoal?.content || '目標未設定'}
+- 目標期限: ${teamGoal?.deadline ? new Date(teamGoal.deadline).toLocaleDateString() : '未設定'}
+- 進捗状況: ${teamGoal?.progress || 0}%
 
 以下の3セクションからなるマークダウン形式のアドバイスを作成してください：
 1. 「今日のあなたの運気」- 本日の日柱と用神・喜神・忌神との相性や、五行バランスを考慮した運気の分析
 2. 「個人目標へのアドバイス」- 格局と用神を考慮したうえで、目標達成のための具体的なアドバイス
-3. 「チーム目標へのアドバイス」- 五行特性を活かした対人関係や協力のためのアドバイス
+3. 「チーム目標へのアドバイス」- チーム目標「${teamGoal?.content || '未設定'}」の達成に向けたアドバイス。五行特性を活かした対人関係や協力について具体的に言及してください。
 
-それぞれのセクションは200-300文字程度にしてください。四柱推命の知識に基づいた具体的で実用的なアドバイスを提供してください。セクション内では、用神や喜神を活かす時間帯、注意すべき時間帯なども含めると良いでしょう。
+それぞれのセクションは200-300文字程度にしてください。四柱推命の知識に基づいた具体的で実用的なアドバイスを提供してください。セクション内では、用神や喜神を活かす時間帯、注意すべき時間帯なども含めると良いでしょう。特にチーム目標に関しては、具体的な目標内容を参照した上で、達成のための具体的な行動や注意点を提案してください。
       `;
       
       // Claude 3.7 Sonnetモデルを使用
@@ -1402,13 +1185,19 @@ export class FortuneService {
   /**
    * テンプレートベースのアドバイスを生成する（Claude API非使用時のフォールバック）
    */
-  private generateTemplateBasedAdvice(
+  private async generateTemplateBasedAdvice(
     user: any,
     dayPillar: any,
     fortuneScore: number
-  ): string {
+  ): Promise<string> {
     const userElement = user.elementAttribute || 'water';
     const stemElement = this.getStemElement(dayPillar.heavenlyStem);
+
+    // チーム目標情報の取得
+    let teamGoal = null;
+    if (user.teamId) {
+      teamGoal = await TeamGoal.findOne({ teamId: user.teamId }).lean();
+    }
 
     // 運勢の種類を決定
     let fortuneType = 'neutral';
@@ -1425,7 +1214,13 @@ export class FortuneService {
     // 各属性と相性の組み合わせに応じたテンプレートを作成
     const dayDescription = this.getDayDescription(userElement, stemElement, fortuneType);
     const personalGoalAdvice = this.getPersonalGoalAdvice(userElement, stemElement, fortuneType, user.goal);
-    const teamGoalAdvice = this.getTeamGoalAdvice(userElement, stemElement, fortuneType, user.teamRole);
+    // チーム目標情報を含めてチームアドバイスを生成
+    const teamGoalAdvice = this.getTeamGoalAdvice(
+      userElement, 
+      stemElement, 
+      fortuneType, 
+      user.teamRole
+    );
 
     // マークダウン形式で結合
     return `# 今日のあなたの運気
@@ -1932,16 +1727,8 @@ ${teamGoalAdvice}`;
           date: today
         });
         
-        const teamContextFortune = await TeamContextFortune.findOne({
-          userId: member._id,
-          teamId: teamId,
-          date: today
-        });
-        
-        // 運勢スコアを決定（チームコンテキスト運勢があればそれを優先）
-        const fortuneScore = teamContextFortune ? 
-          teamContextFortune.fortuneScore : 
-          (userFortune ? userFortune.fortuneScore : 0);
+        // チームコンテキスト運勢は統合されたため、個人運勢のみを使用
+        const fortuneScore = userFortune ? userFortune.fortuneScore : 0;
         
         return {
           userId: member._id ? member._id.toString() : '',

@@ -7,8 +7,12 @@ export interface IDailyFortune {
   userId: mongoose.Types.ObjectId;  // MongoDB ObjectID
   date: Date;
   dayPillarId: mongoose.Types.ObjectId;
+  teamId?: mongoose.Types.ObjectId; // オプショナル - チームコンテキスト用
+  teamGoalId?: mongoose.Types.ObjectId; // オプショナル - チーム目標参照用
   fortuneScore: number;
   advice: string;
+  teamAdvice?: string; // チーム特化アドバイス（オプショナル）
+  collaborationTips?: string[]; // チーム協力ヒント（オプショナル）
   luckyItems: {
     color: string;
     item: string;
@@ -41,6 +45,14 @@ const dailyFortuneSchema = new Schema<IDailyFortuneDocument>(
       type: Schema.Types.ObjectId,
       ref: 'DayPillar',
       required: [true, '日柱IDは必須です']
+    },
+    teamId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Team'
+    },
+    teamGoalId: {
+      type: Schema.Types.ObjectId,
+      ref: 'TeamGoal'
     },
     fortuneScore: {
       type: Number,
@@ -80,6 +92,9 @@ const dailyFortuneSchema = new Schema<IDailyFortuneDocument>(
 dailyFortuneSchema.index({ userId: 1, date: 1 }, { unique: true });
 dailyFortuneSchema.index({ date: 1 });
 dailyFortuneSchema.index({ fortuneScore: -1 });
+// チーム関連の検索用インデックス
+dailyFortuneSchema.index({ teamId: 1, date: 1 });
+dailyFortuneSchema.index({ userId: 1, teamId: 1, date: 1 });
 
 /**
  * デイリー運勢モデル

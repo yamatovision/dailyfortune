@@ -31,6 +31,10 @@ coverage/
 *.swp
 *.swo
 
-# 機密情報を含むスクリプト
+# 機密情報を含むスクリプト - GitHubセキュリティ対策
+# これらのファイルにはAPIキーなどの機密情報が含まれているため、
+# リポジトリから除外する必要があります。
 scripts/test-lucky-items/
 scripts/.jwt_token_cache.json
+scripts/**/test-*-credentials.js
+scripts/**/auth-tokens.json

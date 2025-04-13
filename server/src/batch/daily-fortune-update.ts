@@ -124,47 +124,11 @@ export async function updateDailyFortunes(
           console.log(`ユーザー ${userId} の運勢を処理します...`);
           
           try {
-            // 個人運勢の生成
+            // 個人運勢の生成（チーム情報も含む）
             // 生成対象日をそのまま Date オブジェクトとして渡す（複製して渡す）
             // Stringとしてキャストして互換性を確保
             await (fortuneService as any).generateFortune(userId, targetDate, forceUpdate);
-            
-            // ユーザーが所属するチームがあれば、チームコンテキスト運勢も生成
-            if (user.teamId) {
-              const teamId = user.teamId;
-              
-              // チームIDの有効性を検証
-              if (!mongoose.Types.ObjectId.isValid(teamId)) {
-                console.warn(`ユーザー ${userId} の無効なチームID: ${teamId}`);
-                updateErrors.push({
-                  userId: `${userId}/${teamId}`,
-                  message: `無効なチームID: ${teamId}`,
-                  stack: undefined
-                });
-              } else {
-                try {
-                  // チームの存在確認
-                  const teamExists = await mongoose.model('Team').exists({ _id: teamId });
-                  if (!teamExists) {
-                    throw new Error(`チームが存在しません (チームID: ${teamId})`);
-                  }
-                  
-                  // チームごとのチームコンテキスト運勢を生成
-                  // チームコンテキスト運勢の生成（同じ日付オブジェクトを使用）
-                  // Stringとしてキャストして互換性を確保
-                  await (fortuneService as any).generateTeamContextFortune(userId, teamId, targetDate, forceUpdate);
-                  console.log(`ユーザー ${userId} のチームコンテキスト運勢を生成しました (チームID: ${teamId})`);
-                } catch (teamFortuneError) {
-                  console.error(`ユーザー ${userId} のチームコンテキスト運勢生成中にエラーが発生しました (チームID: ${teamId}):`, teamFortuneError);
-                  // チームコンテキスト運勢の生成エラーは個別に記録するが、個人運勢生成の成功カウントには影響させない
-                  updateErrors.push({
-                    userId: `${userId}/${teamId}`,
-                    message: `チームコンテキスト運勢生成エラー: ${teamFortuneError instanceof Error ? teamFortuneError.message : String(teamFortuneError)}`,
-                    stack: teamFortuneError instanceof Error ? teamFortuneError.stack : undefined,
-                  });
-                }
-              }
-            }
+            console.log(`ユーザー ${userId} の運勢を生成しました`);
             
             return { success: true, userId };
           } catch (error) {

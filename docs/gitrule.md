@@ -98,7 +98,14 @@ GitHubへのコード安全なアップロード・管理を支援します。**
 4. すべてのファイルをステージ: git add .
 5. センシティブファイルをアンステージ: git reset パス/ファイル
 6. 全ファイルの初期コミット作成
-7. 確認後のみブランチ置換実行
+7. 新ブランチをリモートにプッシュ: git push -u origin clean-branch
+   (注: 元のブランチ名を維持する必要がなければ、この手順だけで完了です)
+
+# 元のブランチ名を維持する必要がある場合の追加手順:
+8. バックアップを再確認: git branch backup-before-replace
+9. 元ブランチに切り替え: git checkout original-branch
+10. 履歴置換: git reset --hard clean-branch
+11. 強制プッシュ: git push -f origin original-branch
 ```
 
 ### 全ファイルコミットの徹底

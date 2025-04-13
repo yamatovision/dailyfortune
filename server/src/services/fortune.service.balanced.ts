@@ -121,7 +121,7 @@ export function calculateYojinScore(
 /**
  * 相生関係（生み出す関係）をチェック
  */
-function isGeneratingRelation(from: string, to: string): boolean {
+export function isGeneratingRelation(from: string, to: string): boolean {
   const generatingPairs = [
     ['water', 'wood'], 
     ['wood', 'fire'], 
@@ -136,7 +136,7 @@ function isGeneratingRelation(from: string, to: string): boolean {
 /**
  * 相剋関係（抑制する関係）をチェック
  */
-function isControllingRelation(from: string, to: string): boolean {
+export function isControllingRelation(from: string, to: string): boolean {
   const controllingPairs = [
     ['wood', 'earth'], 
     ['earth', 'water'], 
