@@ -221,7 +221,10 @@ const AisyouPage: React.FC = () => {
 
   // 相性詳細ダイアログを開く
   const handleOpenCompatibility = async (member: any) => {
-    if (!user || !teamId) return;
+    if (!user || !teamId || !user.id || !member.userId) {
+      setError('ユーザー情報が不足しているため、相性を取得できません');
+      return;
+    }
     
     setSelectedMember(member);
     setDialogOpen(true);
@@ -231,7 +234,7 @@ const AisyouPage: React.FC = () => {
       // 選択されたメンバーと現在のユーザーの相性を取得
       const compatibilityData = await teamService.getMemberCompatibility(
         teamId, 
-        user.id, // FirebaseのuidではなくMongoDBのObjectID
+        user.id, // MongoDBのObjectID
         member.userId
       );
       console.log('相性データ:', compatibilityData);

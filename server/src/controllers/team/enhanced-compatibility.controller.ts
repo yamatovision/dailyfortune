@@ -76,6 +76,14 @@ class EnhancedCompatibilityController {
       
       console.log(`拡張チーム相性リクエスト受信 - teamId: ${teamId}, userId1: ${userId1}, userId2: ${userId2}`);
       
+      // パラメータのバリデーション
+      if (!teamId || !userId1 || !userId2 || userId1 === 'undefined' || userId2 === 'undefined') {
+        return res.status(400).json({
+          success: false,
+          message: 'チームIDまたはユーザーIDが無効です'
+        });
+      }
+      
       // ユーザー情報を直接取得
       const [user1, user2] = await Promise.all([
         User.findById(userId1),
@@ -84,7 +92,10 @@ class EnhancedCompatibilityController {
       
       if (!user1 || !user2) {
         console.error(`ユーザーが見つかりません: user1=${!!user1}, user2=${!!user2}`);
-        throw new Error(`ユーザーが見つかりません (id1: ${userId1}, id2: ${userId2})`);
+        return res.status(404).json({
+          success: false,
+          message: `ユーザーが見つかりません (id1: ${userId1}, id2: ${userId2})`
+        });
       }
       
       // IDが確実に存在することを確認
