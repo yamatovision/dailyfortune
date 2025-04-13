@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DailyFortune - AI相談</title>
+  
+  <!-- フォントとアイコン -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  
+  <style>
+    :root {
+      --primary-color: #9c27b0;
+      --primary-dark: #7b1fa2;
+      --primary-light: #e1bee7;
+      --background-color: #fcf7ff;
+      --text-color: #3a3a3a;
+      --text-secondary: #666666;
+      --white: #ffffff;
+      --divider: #e6e0eb;
+      --success: #4caf50;
+      --border-radius: 16px;
+      --shadow: 0 3px 8px rgba(156, 39, 176, 0.1);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, var(--background-color) 0%, #f6edff 100%);
+      color: var(--text-color);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 100%;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    
+    /* ヘッダー */
+    .header {
+      background: linear-gradient(120deg, var(--primary-color), var(--primary-dark));
+      color: var(--white);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .header h1 {
+      font-size: 1.3rem;
+      font-weight: 400;
+      margin: 0 auto;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+    
+    .header .icon {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+    
+    .header .icon:active {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    /* モード切替 */
+    .mode-selector {
+      background: linear-gradient(to right, var(--primary-light), #f3e5f5);
+      padding: 12px 16px;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid rgba(156, 39, 176, 0.1);
+    }
+    
+    .mode-chip {
+      background-color: var(--white);
+      color: var(--primary-color);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    /* 削除：管理者専用スタイルを削除 */
+    
+    .mode-chip.active {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--white);
+      box-shadow: 0 3px 10px rgba(156, 39, 176, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    .mode-chip .material-icons {
+      font-size: 16px;
+      margin-right: 4px;
+    }
+    
+    /* チャットエリア */
+    .chat-container {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      scroll-behavior: smooth;
+    }
+    
+    .message {
+      margin-bottom: 16px;
+      max-width: 85%;
+      display: flex;
+      align-items: flex-start;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .user-message {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+    
+    .ai-message {
+      margin-right: auto;
+    }
+    
+    .message-bubble {
+      padding: 14px 18px;
+      border-radius: var(--border-radius);
+      position: relative;
+      box-shadow: var(--shadow);
+      line-height: 1.6;
+    }
+    
+    .user-message .message-bubble {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+    }
+    
+    .ai-message .message-bubble {
+      background-color: var(--white);
+      border-bottom-left-radius: 4px;
+      border-left: 3px solid var(--primary-light);
+    }
+    
+    .message-time {
+      font-size: 0.7rem;
+      margin-top: 4px;
+      opacity: 0.7;
+      text-align: right;
+    }
+    
+    .user-message .message-time {
+      color: var(--white);
+    }
+    
+    .ai-message .message-time {
+      color: var(--text-secondary);
+    }
+    
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 8px;
+      font-size: 16px;
+      box-shadow: var(--shadow);
+    }
+    
+    .ai-avatar {
+      background: linear-gradient(135deg, #ba68c8, var(--primary-color));
+      color: var(--white);
+    }
+    
+    .user-avatar {
+      background: linear-gradient(135deg, #8e24aa, #6a1b9a);
+      color: var(--white);
+    }
+    
+    /* 入力エリア */
+    .input-container {
+      padding: 14px 18px;
+      background-color: rgba(255, 255, 255, 0.9);
+      border-top: 1px solid var(--divider);
+      display: flex;
+      align-items: center;
+      position: sticky;
+      bottom: 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .message-input {
+      flex: 1;
+      border: 1px solid var(--divider);
+      border-radius: 24px;
+      padding: 14px 20px;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.8);
+      resize: none;
+      max-height: 120px;
+      outline: none;
+      transition: all 0.3s ease;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .message-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(156, 39, 176, 0.1);
+    }
+    
+    .mic-button, .send-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 8px rgba(156, 39, 176, 0.3);
+    }
+    
+    .mic-button {
+      margin-right: 10px;
+      background: linear-gradient(135deg, #9575cd, #7e57c2);
+    }
+    
+    .mic-button.recording {
+      animation: pulse 1.5s infinite;
+      background: linear-gradient(135deg, #d81b60, #c2185b);
+    }
+    
+    .send-button {
+      margin-left: 10px;
+    }
+    
+    .mic-button:hover, .send-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(156, 39, 176, 0.4);
+    }
+    
+    .send-button:disabled {
+      background: #e0e0e0;
+      cursor: default;
+      box-shadow: none;
+    }
+    
+    /* 型選択パネル（シンプル化して必要時のみ表示） */
+    .context-panel {
+      padding: 16px;
+      background-color: rgba(255, 255, 255, 0.8);
+      border-bottom: 1px solid var(--divider);
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      display: none; /* デフォルトでは非表示 */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .context-panel.active {
+      display: block;
+      animation: slideDown 0.4s ease;
+    }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .context-title {
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--primary-dark);
+      font-size: 0.9rem;
+      letter-spacing: 0.3px;
+    }
+    
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .member-chip {
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    
+    .member-chip:hover {
+      background-color: #d8bae6;
+      transform: translateY(-1px);
+    }
+    
+    .member-chip.selected {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(156, 39, 176, 0.2);
+    }
+    
+    @media (min-width: 768px) {
+      .app-container {
+        max-width: 600px;
+        margin: 0 auto;
+        border-left: 1px solid var(--divider);
+        border-right: 1px solid var(--divider);
+        box-shadow: 0 0 40px rgba(156, 39, 176, 0.1);
+        border-radius: 0 0 8px 8px;
+      }
+      
+      body {
+        background: linear-gradient(135deg, var(--background-color) 0%, #f1e4f7 100%);
+        padding: 0;
+        height: 100vh;
+      }
+    }
+    
+    /* メニュー */
+    .menu-popup {
+      position: absolute;
+      top: 56px;
+      right: 10px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      overflow: hidden;
+      width: 180px;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .menu-popup.active {
+      display: block;
+    }
+    
+    .menu-item {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    
+    .menu-item:hover {
+      background-color: var(--primary-light);
+    }
+    
+    .menu-item .material-icons {
+      margin-right: 12px;
+      color: var(--primary-color);
+      font-size: 20px;
+    }
+    
+    /* トースト通知 */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 1001;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+    
+    /* アニメーション */
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(156, 39, 176, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(156, 39, 176, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(156, 39, 176, 0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="icon back-button">
+        <span class="material-icons">arrow_back</span>
+      </div>
+      <h1>AI相談</h1>
+      <div class="icon menu-button" id="menu-button">
+        <span class="material-icons">more_vert</span>
+      </div>
+    </header>
+    
+    <!-- メニュー -->
+    <div class="menu-popup" id="menu-popup">
+      <div class="menu-item" id="save-chat">
+        <span class="material-icons">save</span>
+        <span>会話を保存</span>
+      </div>
+      <div class="menu-item" id="clear-chat">
+        <span class="material-icons">delete_sweep</span>
+        <span>会話をクリア</span>
+      </div>
+    </div>
+    
+    <!-- モード切替（シンプル化） -->
+    <div class="mode-selector">
+      <button class="mode-chip active" data-mode="personal">
+        <span class="material-icons">person</span>
+        運勢相談
+      </button>
+      <button class="mode-chip" data-mode="team-member">
+        <span class="material-icons">people</span>
+        相性相談
+      </button>
+      <button class="mode-chip" data-mode="team-goal">
+        <span class="material-icons">flag</span>
+        目標相談
+      </button>
+    </div>
+    
+    <!-- コンテキストパネル（必要時のみ表示） -->
+    <div class="context-panel" id="team-member-panel">
+      <div class="context-title">メンバーを選択</div>
+      <div class="chip-container">
+        <div class="member-chip" data-member-id="1">田中 太郎</div>
+        <div class="member-chip" data-member-id="2">鈴木 花子</div>
+        <div class="member-chip" data-member-id="3">佐藤 次郎</div>
+      </div>
+    </div>
+    
+    <!-- チャットエリア -->
+    <div class="chat-container">
+      <div class="messages-container" id="messages">
+        <!-- AIメッセージ -->
+        <div class="message ai-message">
+          <div class="avatar ai-avatar">
+            <span class="material-icons">psychology</span>
+          </div>
+          <div>
+            <div class="message-bubble">
+              こんにちは。今日の運勢や相性について相談したいことがあれば、お気軽にお尋ねください。
+            </div>
+            <div class="message-time">10:30</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 入力エリア -->
+      <div class="input-container">
+        <button class="mic-button" id="mic-button" title="音声入力">
+          <span class="material-icons">mic</span>
+        </button>
+        <textarea class="message-input" placeholder="メッセージを入力..." rows="1" id="message-input"></textarea>
+        <button class="send-button" id="send-button" disabled>
+          <span class="material-icons">send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- トースト通知 -->
+  <div class="toast" id="toast">会話を保存しました</div>
+  
+  <script>
+    // DOM 要素
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const micButton = document.getElementById('mic-button');
+    const messagesContainer = document.getElementById('messages');
+    const modeChips = document.querySelectorAll('.mode-chip');
+    const contextPanels = document.querySelectorAll('.context-panel');
+    const memberChips = document.querySelectorAll('.member-chip');
+    const menuButton = document.getElementById('menu-button');
+    const menuPopup = document.getElementById('menu-popup');
+    const saveChat = document.getElementById('save-chat');
+    const clearChat = document.getElementById('clear-chat');
+    const toast = document.getElementById('toast');
+    
+    // 現在のモードとメンバー
+    let currentMode = 'personal';
+    let selectedMember = null;
+    
+    // 音声認識
+    let recognition = null;
+    let isRecording = false;
+    
+    // SpeechRecognition APIのサポートチェック
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      // 音声認識結果
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        messageInput.value = transcript;
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+        sendButton.disabled = false;
+      };
+      
+      // 音声認識終了
+      recognition.onend = function() {
+        micButton.classList.remove('recording');
+        isRecording = false;
+      };
+      
+      // 音声認識エラー
+      recognition.onerror = function(event) {
+        console.error('Speech recognition error', event.error);
+        micButton.classList.remove('recording');
+        isRecording = false;
+      };
+    }
+    
+    // テキストエリアの高さ自動調整
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+      
+      // 送信ボタンの有効/無効切り替え
+      sendButton.disabled = this.value.trim() === '';
+    });
+    
+    // Enterキー対応
+    messageInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendButton.disabled) {
+          sendMessage();
+        }
+      }
+    });
+    
+    // 送信ボタンクリック
+    sendButton.addEventListener('click', sendMessage);
+    
+    // マイクボタンクリック
+    micButton.addEventListener('click', function() {
+      if (!recognition) {
+        // 音声認識に非対応のブラウザの場合
+        showToast('お使いのブラウザは音声入力に対応していません。');
+        return;
+      }
+      
+      if (isRecording) {
+        // 録音停止
+        recognition.stop();
+        micButton.classList.remove('recording');
+        isRecording = false;
+      } else {
+        // 録音開始
+        recognition.start();
+        micButton.classList.add('recording');
+        isRecording = true;
+      }
+    });
+    
+    // メニューボタンクリック
+    menuButton.addEventListener('click', function(e) {
+      e.stopPropagation();
+      menuPopup.classList.toggle('active');
+    });
+    
+    // メニュー外クリック時に閉じる
+    document.addEventListener('click', function(e) {
+      if (menuPopup.classList.contains('active') && !menuPopup.contains(e.target)) {
+        menuPopup.classList.remove('active');
+      }
+    });
+    
+    // 会話保存
+    saveChat.addEventListener('click', function() {
+      // メッセージ内容を取得してJSON形式で保存
+      const messageElements = messagesContainer.querySelectorAll('.message');
+      const chatHistory = Array.from(messageElements).map(el => {
+        const isUser = el.classList.contains('user-message');
+        const text = el.querySelector('.message-bubble').textContent.trim();
+        const time = el.querySelector('.message-time').textContent;
+        
+        return {
+          sender: isUser ? 'user' : 'ai',
+          text: text,
+          timestamp: time
+        };
+      });
+      
+      // JSONに変換して保存（実際の実装ではサーバーに送信）
+      const chatData = JSON.stringify({
+        mode: currentMode,
+        messages: chatHistory,
+        savedAt: new Date().toISOString()
+      });
+      
+      // localStorage保存のモック
+      try {
+        localStorage.setItem('dailyFortune_chatHistory', chatData);
+        showToast('会話を保存しました');
+      } catch (e) {
+        showToast('保存に失敗しました');
+        console.error('保存エラー:', e);
+      }
+      
+      menuPopup.classList.remove('active');
+    });
+    
+    // 会話クリア
+    clearChat.addEventListener('click', function() {
+      // 確認ダイアログ
+      if (confirm('会話履歴をクリアしますか？この操作は元に戻せません。')) {
+        // 初期メッセージ以外を全て削除
+        const messages = messagesContainer.querySelectorAll('.message');
+        if (messages.length > 0) {
+          // 最初のAIメッセージを除く全メッセージを削除
+          Array.from(messages).slice(1).forEach(msg => {
+            msg.remove();
+          });
+        }
+        
+        showToast('会話履歴をクリアしました');
+      }
+      
+      menuPopup.classList.remove('active');
+    });
+    
+    // トースト表示関数
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+    
+    // モード切替
+    modeChips.forEach(chip => {
+      chip.addEventListener('click', function() {
+        // アクティブクラスの切り替え
+        modeChips.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        
+        // モード更新
+        currentMode = this.dataset.mode;
+        
+        // コンテキストパネル表示切替
+        contextPanels.forEach(panel => {
+          panel.classList.remove('active');
+        });
+        
+        if (currentMode === 'team-member') {
+          document.getElementById('team-member-panel').classList.add('active');
+        }
+        
+        // モード変更メッセージ
+        let modeMessage;
+        switch(currentMode) {
+          case 'personal':
+            modeMessage = "運勢相談モードに切り替えました。今日の運勢や個人的な質問について聞いてください。";
+            break;
+          case 'team-member':
+            modeMessage = "相性相談モードに切り替えました。チームメンバーを選択すると、その人との相性について相談できます。";
+            break;
+          case 'team-goal':
+            modeMessage = "目標相談モードに切り替えました。チーム目標達成のためのアドバイスが欲しい場合は、具体的な目標について教えてください。";
+            break;
+        }
+        
+        addAIMessage(modeMessage);
+        
+        // メンバー選択をリセット
+        if (currentMode !== 'team-member') {
+          selectedMember = null;
+          memberChips.forEach(chip => chip.classList.remove('selected'));
+        }
+      });
+    });
+    
+    // メンバーチップ選択
+    memberChips.forEach(chip => {
+      chip.addEventListener('click', function() {
+        memberChips.forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        selectedMember = {
+          id: this.dataset.memberId,
+          name: this.textContent
+        };
+        
+        addAIMessage(`${selectedMember.name}さんとの相性について相談モードに切り替えました。何について知りたいですか？`);
+      });
+    });
+    
+    // メッセージ送信関数
+    function sendMessage() {
+      const messageText = messageInput.value.trim();
+      if (messageText === '') return;
+      
+      // ユーザーメッセージを追加
+      addUserMessage(messageText);
+      
+      // 入力フィールドをクリア
+      messageInput.value = '';
+      messageInput.style.height = 'auto';
+      sendButton.disabled = true;
+      
+      // AIの応答 (モック)
+      setTimeout(() => {
+        let aiResponse;
+        
+        switch(currentMode) {
+          case 'personal':
+            aiResponse = "今日のあなたの運勢は上昇傾向です。水の気が強く、創造性が高まっています。新しいアイデアを試す良い日でしょう。特に午後からは対人運も良くなります。";
+            break;
+          case 'team-member':
+            aiResponse = selectedMember 
+              ? `あなたと${selectedMember.name}さんは四柱推命の観点から見ると補完関係にあります。あなたの「土」の性質と相手の「金」の性質が協力し合うと、より効果的なプロジェクト進行が期待できます。コミュニケーションを心がけましょう。`
+              : "相談したいチームメンバーを選択してください。";
+            break;
+          case 'team-goal':
+            aiResponse = "チームの目標達成には、今週は計画フェーズに集中するのが良いでしょう。来週からの実行フェーズに備えて、メンバー間で役割を明確にしておくことをお勧めします。";
+            break;
+        }
+        
+        addAIMessage(aiResponse);
+      }, 1000);
+    }
+    
+    // ユーザーメッセージ追加
+    function addUserMessage(text) {
+      const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message user-message';
+      messageDiv.innerHTML = `
+        <div class="avatar user-avatar">
+          <span class="material-icons">person</span>
+        </div>
+        <div>
+          <div class="message-bubble">${text}</div>
+          <div class="message-time">${time}</div>
+        </div>
+      `;
+      
+      messagesContainer.appendChild(messageDiv);
+      scrollToBottom();
+    }
+    
+    // AIメッセージ追加
+    function addAIMessage(text) {
+      const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message ai-message';
+      messageDiv.innerHTML = `
+        <div class="avatar ai-avatar">
+          <span class="material-icons">psychology</span>
+        </div>
+        <div>
+          <div class="message-bubble">${text}</div>
+          <div class="message-time">${time}</div>
+        </div>
+      `;
+      
+      messagesContainer.appendChild(messageDiv);
+      scrollToBottom();
+    }
+    
+    // 最下部にスクロール
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  </script>
+</body>
+</html>
