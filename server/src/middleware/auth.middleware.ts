@@ -13,10 +13,10 @@ export enum UserRole {
  */
 export interface AuthRequest extends Request {
   user?: {
-    uid: string;
+    // uid: string; // Firebase UID式のフィールドは非推奨です
+    id: string; // MongoDB ObjectIDを文字列化した値
     email: string;
     role: UserRole;
-    id: string;
     organizationId?: string;
   };
 }
@@ -105,7 +105,6 @@ export const authenticate = async (
     
     // リクエストオブジェクトにユーザー情報を添付
     req.user = {
-      uid: decodedToken.uid,
       email: decodedToken.email || '',
       role,
       id: decodedToken.uid,

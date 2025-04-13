@@ -94,7 +94,8 @@ export const getTeamById = async (
   
   // 標準化された関数を使用してメンバーシップを確認
   const isMember = await isTeamMember(teamId, userId);
-  const isAdmin = team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
+  const adminIdStr = team.adminId.toString();
+  const isAdmin = adminIdStr === userIdStr;
 
   if (!isMember && !isAdmin) {
     throw new UnauthorizedError('このチームにアクセスする権限がありません');
@@ -119,10 +120,10 @@ export const updateTeam = async (
     throw new NotFoundError('チームが見つかりません');
   }
 
-  // 管理者権限チェック
+  // 管理者権限チェック - 常にObjectIDを文字列化して比較
   const userIdStr = userId.toString();
-  
-  const isAdmin = team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
+  const adminIdStr = team.adminId.toString();
+  const isAdmin = adminIdStr === userIdStr;
   
   if (!isAdmin) {
     throw new UnauthorizedError('チーム情報の更新は管理者のみ可能です');
@@ -155,10 +156,10 @@ export const deleteTeam = async (teamId: string | mongoose.Types.ObjectId, userI
     throw new NotFoundError('チームが見つかりません');
   }
 
-  // 管理者権限チェック
+  // 管理者権限チェック - 常にObjectIDを文字列化して比較
   const userIdStr = userId.toString();
-  
-  const isAdmin = team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
+  const adminIdStr = team.adminId.toString();
+  const isAdmin = adminIdStr === userIdStr;
   
   if (!isAdmin) {
     throw new UnauthorizedError('チームの削除は管理者のみ可能です');
@@ -191,9 +192,10 @@ export const isTeamAdmin = async (teamId: string | mongoose.Types.ObjectId, user
     return true;
   }
   
-  // 通常のチーム管理者確認
+  // 通常のチーム管理者確認 - 常に文字列化して比較
   const userIdStr = userId.toString();
-  return team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
+  const adminIdStr = team.adminId.toString();
+  return adminIdStr === userIdStr;
 };
 
 /**

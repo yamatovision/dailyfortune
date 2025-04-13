@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { ChatMode } from '../../types';
 import { ChatHistory, IChatHistoryDocument } from '../../models/ChatHistory';
 import { User } from '../../models/User';
@@ -11,6 +11,19 @@ import { CHAT_SYSTEM_PROMPT, createContextPrompt, formatChatHistory } from './ch
  * ユーザーのメッセージ処理、チャット履歴管理、AIレスポンス生成などを担当
  */
 export class ChatService {
+  /**
+   * ユーザーを検索するヘルパー - MongoDB ObjectIDのみを使用
+   * @param userId ユーザーID（MongoDBのObjectID）
+   * @returns ユーザーオブジェクト
+   */
+  private async findUserById(userId: string): Promise<any> {
+    try {
+      return await User.findById(new mongoose.Types.ObjectId(userId));
+    } catch (error) {
+      console.error('User search error:', error);
+      throw error;
+    }
+  }
   /**
    * 新しいメッセージを処理し、AI応答を返す
    */
@@ -28,7 +41,8 @@ export class ChatService {
   }> {
     try {
       // ユーザー情報の取得（エリートかライトプランかを判断するため）
-      const user = await User.findById(userId);
+      // 柔軟な検索ヘルパーを使用
+      const user = await this.findUserById(userId);
       if (!user) {
         throw new Error('ユーザーが見つかりません');
       }
@@ -53,7 +67,7 @@ export class ChatService {
       
       // メッセージをAPIフォーマットに変換
       const messages = chatHistory.messages.map(m => ({
-        role: m.sender === 'user' ? 'user' : 'assistant',
+        role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
         content: m.content
       }));
       
@@ -98,7 +112,9 @@ export class ChatService {
   ): AsyncGenerator<string, { chatHistory: IChatHistoryDocument }, unknown> {
     try {
       // ユーザー情報の取得（エリートかライトプランかを判断するため）
-      const user = await User.findById(userId);
+      // 柔軟な検索ヘルパーを使用
+      const user = await this.findUserById(userId);
+      
       if (!user) {
         throw new Error('ユーザーが見つかりません');
       }
@@ -120,7 +136,7 @@ export class ChatService {
 
       // メッセージと役割をマッピング
       const messages = chatHistory.messages.map(m => ({
-        role: m.sender === 'user' ? 'user' : 'assistant',
+        role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
         content: m.content
       }));
 
@@ -184,8 +200,8 @@ export class ChatService {
     chatHistory: IChatHistoryDocument;
   }> {
     try {
-      // ユーザー情報の取得
-      const user = await User.findById(userId);
+      // ユーザー情報の取得 - 柔軟な検索ヘルパーを使用
+      const user = await this.findUserById(userId);
       if (!user) {
         throw new Error('ユーザーが見つかりません');
       }
@@ -237,7 +253,7 @@ export class ChatService {
 
     try {
       // クエリの構築
-      const query: any = { userId: userId }; // Firebase UIDはそのまま文字列として検索
+      const query: any = { userId }; // そのままuserIdを使用（文字列のまま）
       if (mode) {
         query.chatType = mode;
       }
@@ -277,7 +293,8 @@ export class ChatService {
     const { mode, chatId } = options;
 
     try {
-      let query: any = { userId: userId }; // Firebase UIDはそのまま文字列として検索
+      const objectId = new mongoose.Types.ObjectId(userId);
+      let query: any = { userId: objectId };
 
       // 特定のチャットIDが指定されている場合
       if (chatId) {
@@ -312,9 +329,9 @@ export class ChatService {
     },
     aiModel: 'sonnet' | 'haiku' = 'haiku'
   ): Promise<IChatHistoryDocument> {
-    // クエリの構築
+    // クエリの構築 - MongoDB ObjectIDを使用
     const query: any = {
-      userId: userId, // Firebase UIDはそのまま文字列として検索
+      userId: new mongoose.Types.ObjectId(userId),
       chatType: mode
     };
 
@@ -362,7 +379,7 @@ export class ChatService {
 
     // 新しいチャット履歴の作成
     const chatHistory = new ChatHistory({
-      userId: userId, // Firebase UIDはそのまま文字列として保存
+      userId: new mongoose.Types.ObjectId(userId),
       chatType: mode,
       relatedInfo: Object.keys(relatedInfo).length > 0 ? relatedInfo : undefined,
       aiModel,
@@ -427,8 +444,8 @@ export class ChatService {
 
       case ChatMode.TEAM_MEMBER:
         if (contextInfo?.memberId) {
-          // メンバー名を取得
-          const member = await User.findById(contextInfo.memberId);
+          // メンバー名を取得 - 柔軟な検索を使用
+          const member = await this.findUserById(contextInfo.memberId);
           if (member) {
             return `${member.displayName}さんとの相性について相談モードに切り替えました。何について知りたいですか？`;
           }
