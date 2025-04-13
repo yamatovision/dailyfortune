@@ -642,7 +642,7 @@ export interface JwtRefreshTokenResponse {
 
 export interface JwtMigrateRequest {
   password: string;
-  firebaseUid?: string;
+  // Firebase関連フィールドは削除されました
 }
 
 // 登録リクエスト

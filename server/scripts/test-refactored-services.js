@@ -14,10 +14,10 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { Types } = mongoose;
 
-// サービスをインポート
-const { harmonyCompassService } = require('../src/services/harmony-compass.service');
-const { luckyItemsService } = require('../src/services/lucky-items.service');
-const { memberCardService } = require('../src/services/member-card.service');
+// サービスをインポート (コンパイル済みのJSファイルを使用)
+const { harmonyCompassService } = require('../dist/services/harmony-compass.service');
+const { luckyItemsService } = require('../dist/services/lucky-items.service');
+const { memberCardService } = require('../dist/services/member-card.service');
 
 // MongoDB接続
 const connectDB = async () => {

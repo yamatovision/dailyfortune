@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SystemSetting } from '../models/SystemSetting';
 import { User } from '../models/User';
-import { AuthRequest, UserRole } from '../middleware/auth.middleware';
+import { AuthRequest, UserRole } from '../middleware/hybrid-auth.middleware';
 import mongoose from 'mongoose';
 
 /**
@@ -58,7 +58,7 @@ export const updateSystemSetting = async (req: AuthRequest, res: Response) => {
       {
         value,
         description: description || '管理者による設定',
-        updatedBy: new mongoose.Types.ObjectId(req.user.uid)
+        updatedBy: new mongoose.Types.ObjectId(req.user.id)
       },
       { new: true, upsert: true }
     );

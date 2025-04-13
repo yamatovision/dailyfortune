@@ -22,9 +22,7 @@ export interface IUser {
   tokenVersion?: number;            // リフレッシュトークンの無効化に使用するバージョン
   lastLogin?: Date;                 // 最終ログイン日時
   
-  // Firebase 関連（移行期間中に使用）
-  firebaseUid?: string;             // Firebase UID (Firebase認証からの移行用)
-  uid?: string;                     // 後方互換のためのUID（移行完了後に削除）
+  // Firebase関連フィールドは移行完了により削除しました
   
   // 基本的な誕生情報
   birthDate?: Date;                 // 生年月日
@@ -146,11 +144,7 @@ const userSchema = new Schema<IUserDocument>(
       required: true,
       auto: true // 自動生成
     },
-    uid: {
-      type: String,
-      index: true,
-      sparse: true // すべてのドキュメントにこのフィールドがあるとは限らない
-    },
+    // UIDフィールドは移行完了により削除しました
     email: {
       type: String,
       required: [true, 'メールアドレスは必須です'],
@@ -435,11 +429,7 @@ const userSchema = new Schema<IUserDocument>(
     lastLogin: {
       type: Date
     },
-    firebaseUid: {
-      type: String,
-      index: true,
-      sparse: true  // 移行期間中のみ使用
-    },
+    // FirebaseUIDフィールドは移行完了により削除しました
     
     // レガシーフィールドは削除しました
     plan: {

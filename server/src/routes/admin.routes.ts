@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import * as adminController from '../controllers/admin';
-import { authenticate, requireSuperAdmin as originalRequireSuperAdmin } from '../middleware/auth.middleware';
 import { hybridAuthenticate, requireSuperAdmin } from '../middleware/hybrid-auth.middleware';
 import { ADMIN } from '../types/index';
 

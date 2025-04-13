@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { AuthRequest } from '../middleware/hybrid-auth.middleware';
 import { User } from '../models';
 import { handleError, ValidationError, AuthenticationError, NotFoundError } from '../utils';
 import { SajuEngineService } from '../services/saju-engine.service';
@@ -73,7 +73,7 @@ export class UserController {
       
       // ユーザーを更新
       const user = await User.findByIdAndUpdate(
-        req.user.uid,
+        req.user.id,
         { $set: updateData },
         { new: true, runValidators: true }
       ).exec();
@@ -105,7 +105,7 @@ export class UserController {
         throw new AuthenticationError('認証されていません');
       }
 
-      const user = await User.findById(req.user.uid).exec();
+      const user = await User.findById(req.user.id).exec();
       
       if (!user) {
         throw new NotFoundError('ユーザーが見つかりません');
@@ -226,7 +226,7 @@ export class UserController {
       if (localTimeOffset !== undefined) updateData.localTimeOffset = localTimeOffset;
       
       // 現在のユーザー情報を取得
-      let user = await User.findById(req.user.uid).exec();
+      let user = await User.findById(req.user.id).exec();
       if (!user) {
         throw new NotFoundError('ユーザーが見つかりません');
       }
@@ -258,7 +258,7 @@ export class UserController {
       
       // ユーザー情報を更新
       user = await User.findByIdAndUpdate(
-        req.user.uid,
+        req.user.id, // uidではなくidを使用
         { $set: updateData },
         { new: true, runValidators: true }
       ).exec();
@@ -494,7 +494,7 @@ export class UserController {
 
           // 四柱推命情報を更新
           user = await User.findByIdAndUpdate(
-            req.user.uid,
+            req.user.id,
             { $set: sajuUpdateData },
             { new: true, runValidators: true }
           ).exec();
@@ -621,7 +621,7 @@ export class UserController {
       
       // ユーザーを更新
       const user = await User.findByIdAndUpdate(
-        req.user.uid,
+        req.user.id,
         { $set: updateData },
         { new: true, runValidators: true }
       ).exec();
@@ -656,7 +656,7 @@ export class UserController {
       }
 
       // ユーザー情報を取得
-      const user = await User.findById(req.user.uid).exec();
+      const user = await User.findById(req.user.id).exec();
       
       if (!user) {
         throw new NotFoundError('ユーザーが見つかりません');
@@ -974,7 +974,7 @@ export class UserController {
       
       // ユーザー情報を更新
       const updatedUser = await User.findByIdAndUpdate(
-        req.user.uid,
+        req.user.id,
         { $set: updateData },
         { new: true, runValidators: true }
       ).exec();

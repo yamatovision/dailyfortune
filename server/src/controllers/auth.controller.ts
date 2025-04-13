@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthRequest } from '../middleware/auth.middleware';
+import { AuthRequest } from '../middleware/hybrid-auth.middleware';
 import { LoginRequest, RegisterRequest, IUser } from '../types/index';
 import { AuthService } from '../services';
 import { handleError, AuthenticationError, ValidationError } from '../utils';
@@ -14,7 +14,7 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     }
     
     const authService = new AuthService();
-    const userData = await authService.getProfile(req.user.uid);
+    const userData = await authService.getProfile(req.user.id);
     
     return res.status(200).json(userData);
   } catch (error) {
@@ -38,7 +38,7 @@ export const register = async (req: AuthRequest, res: Response) => {
     
     const authService = new AuthService();
     const newUser = await authService.register({
-      uid: req.user.uid,
+      id: req.user.id, // MongoDB ObjectID
       email: req.user.email || '',
       displayName
     });

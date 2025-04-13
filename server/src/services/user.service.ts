@@ -39,7 +39,7 @@ interface CreateUserData {
 }
 
 interface UserCreator {
-  uid: string;
+  id: string;  // MongoDB ObjectID（文字列化）
   role: string;
 }
 

@@ -4,7 +4,8 @@ import {
   User, 
   TeamMemberCard, 
   Team, 
-  TeamGoal 
+  TeamGoal,
+  IUserDocument
 } from '../../models';
 import { AuthRequest } from '../../middleware/auth.middleware';
 import { memberCardService } from '../../services/member-card.service';
@@ -26,16 +27,14 @@ export const getMemberCard = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'チームが見つかりません' });
     }
     
-    // いずれかの条件でユーザーを検索
+    // ObjectIDでユーザーを検索
     console.log(`ユーザー検索開始: ID=${userId}`);
-    let user = await User.findById(userId);
+    let user = await User.findById(userId) as IUserDocument | null;
     
-    if (!user) {
-      // MongoDBの_idとしてもFirebaseのUIDとしても検索
-      user = await User.findOne({ $or: [{ _id: userId }, { uid: userId }] });
-      console.log(`代替検索結果(${userId}):`, user ? '見つかりました' : '見つかりませんでした');
-    } else {
+    if (user) {
       console.log(`ユーザー検索結果(${userId}):`, '見つかりました');
+    } else {
+      console.log(`ユーザー検索結果(${userId}):`, '見つかりませんでした');
     }
     
     if (!user) {
@@ -49,10 +48,9 @@ export const getMemberCard = async (req: AuthRequest, res: Response) => {
     let memberCard = await TeamMemberCard.findOne({ teamId, userId });
     
     // ユーザー情報（四柱推命データを含む）を準備
-    const userIdStr = typeof user._id === 'object' && user._id !== null ? 
-                     user._id.toString() : userId.toString();
+    // MongoDB ObjectIDをすべて文字列に変換
     const userInfo = {
-      userId: userIdStr,
+      userId: user._id ? user._id.toString() : userId,
       displayName: user.displayName || '名前なし',
       role: user.jobTitle || '未設定',
       mainElement: user.elementAttribute || 'water',
@@ -111,13 +109,19 @@ export const getMemberCard = async (req: AuthRequest, res: Response) => {
 /**
  * メンバーカルテを生成する関数
  */
-const generateMemberCard = async (teamId: string, userId: string, user: any, teamGoal: any) => {
+const generateMemberCard = async (teamId: string, userId: string, user: IUserDocument, teamGoal: any) => {
   try {
     // 既存のカードがある場合は再利用（重複エラー回避）
     const existingCard = await TeamMemberCard.findOne({ teamId, userId });
     if (existingCard) {
       console.log(`既存のカルテが見つかりました: teamId=${teamId}, userId=${userId}`);
       return existingCard;
+    }
+    
+    // チーム情報を取得
+    const team = await Team.findById(teamId);
+    if (!team) {
+      throw new Error(`チームが見つかりません: teamId=${teamId}`);
     }
     
     // チーム情報を構築

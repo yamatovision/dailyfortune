@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { auth } from '../config/firebase';
-import { User } from '../models/User';
+import { User, IUserDocument } from '../models/User';
 import { JwtService } from '../services/jwt.service';
+import mongoose from 'mongoose';
 
 // Userモデルに合わせた独自の権限列挙型
 export enum UserRole {
@@ -15,13 +15,11 @@ export enum UserRole {
  */
 export interface AuthRequest extends Request {
   user?: {
-    uid: string;
+    id: string;
     email: string;
     role: UserRole;
-    id: string;
     organizationId?: string;
   };
-  authMethod?: 'firebase' | 'jwt'; // どの認証方式で認証されたかを保持
 }
 
 /**
@@ -53,92 +51,8 @@ const isPublicPath = (path: string): boolean => {
 };
 
 /**
- * Firebase認証を試行
- * @param token 認証トークン
- * @returns 認証結果とユーザー情報
- */
-const tryFirebaseAuth = async (token: string) => {
-  try {
-    const decodedToken = await auth.verifyIdToken(token);
-    
-    if (!decodedToken.uid) {
-      return { authenticated: false };
-    }
-    
-    // カスタムクレームから権限情報を取得
-    let role = UserRole.USER;
-    
-    if (decodedToken.role === 'super_admin') {
-      role = UserRole.SUPER_ADMIN;
-    } else if (decodedToken.role === 'admin') {
-      role = UserRole.ADMIN;
-    } else if (decodedToken.role) {
-      role = decodedToken.role as UserRole;
-    }
-    
-    // ユーザー情報を返す
-    return {
-      authenticated: true,
-      user: {
-        uid: decodedToken.uid,
-        email: decodedToken.email || '',
-        role,
-        id: decodedToken.uid,
-        organizationId: decodedToken.organizationId
-      },
-      method: 'firebase' as const
-    };
-  } catch (error) {
-    console.error('Firebase認証エラー:', error);
-    return { authenticated: false };
-  }
-};
-
-/**
- * JWT認証を試行
- * @param token 認証トークン
- * @returns 認証結果とユーザー情報
- */
-const tryJwtAuth = async (token: string) => {
-  try {
-    const verification = JwtService.verifyAccessToken(token);
-    
-    if (!verification.valid || !verification.payload) {
-      return { authenticated: false };
-    }
-    
-    const userId = verification.payload.sub;
-    if (!userId) {
-      return { authenticated: false };
-    }
-    
-    // データベースからユーザー情報を取得
-    const user = await User.findById(userId);
-    if (!user) {
-      return { authenticated: false };
-    }
-    
-    // ユーザー情報を返す
-    return {
-      authenticated: true,
-      user: {
-        uid: user._id ? user._id.toString() : '',
-        email: user.email,
-        role: user.role as UserRole,
-        id: user._id ? user._id.toString() : '',
-        organizationId: user.organizationId?.toString()
-      },
-      method: 'jwt' as const
-    };
-  } catch (error) {
-    console.error('JWT認証エラー:', error);
-    return { authenticated: false };
-  }
-};
-
-/**
- * ハイブリッド認証ミドルウェア
- * Firebase認証とJWT認証の両方をサポート
+ * JWT認証ミドルウェア
+ * トークンの検証とユーザー情報の取得を行います
  */
 export const hybridAuthenticate = async (
   req: AuthRequest,
@@ -168,30 +82,45 @@ export const hybridAuthenticate = async (
       return res.status(401).json({ message: '認証トークンがありません' });
     }
     
-    // JWT認証を最初に試行
-    const jwtAuthResult = await tryJwtAuth(token);
+    // JWTトークンの検証
+    const verification = JwtService.verifyAccessToken(token);
     
-    if (jwtAuthResult.authenticated) {
-      // JWT認証成功
-      req.user = jwtAuthResult.user;
-      req.authMethod = jwtAuthResult.method;
-      return next();
+    if (!verification.valid || !verification.payload) {
+      return res.status(401).json({ message: '無効なトークンです' });
     }
     
-    // Firebase認証を試行
-    const firebaseAuthResult = await tryFirebaseAuth(token);
-    
-    if (firebaseAuthResult.authenticated) {
-      // Firebase認証成功
-      req.user = firebaseAuthResult.user;
-      req.authMethod = firebaseAuthResult.method;
-      return next();
+    const userId = verification.payload.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'トークンにユーザーIDがありません' });
     }
     
-    // 両方の認証に失敗
-    return res.status(401).json({ message: '認証に失敗しました' });
+    // データベースからユーザー情報を取得
+    const user = await User.findById(userId) as IUserDocument;
+    if (!user) {
+      return res.status(401).json({ message: 'ユーザーが見つかりません' });
+    }
+    
+    // トークンバージョンの検証
+    if (user.tokenVersion !== undefined && 
+        verification.payload.tokenVersion !== undefined &&
+        user.tokenVersion > verification.payload.tokenVersion) {
+      return res.status(401).json({ 
+        message: 'トークンバージョンが無効です', 
+        code: 'TOKEN_VERSION_INVALID' 
+      });
+    }
+    
+    // ユーザー情報をリクエストに添付
+    req.user = {
+      id: user._id ? user._id.toString() : userId,
+      email: user.email,
+      role: user.role as UserRole,
+      organizationId: user.organizationId ? user.organizationId.toString() : undefined
+    };
+    
+    next();
   } catch (error) {
-    console.error('ハイブリッド認証エラー:', error);
+    console.error('JWT認証エラー:', error);
     return res.status(401).json({ message: '認証処理中にエラーが発生しました' });
   }
 };

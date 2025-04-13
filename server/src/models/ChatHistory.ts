@@ -66,9 +66,10 @@ const chatMessageSchema = new Schema<IChatMessage>(
 const chatHistorySchema = new Schema<IChatHistoryDocument>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId, // MongoDB ObjectID型に標準化
       ref: 'User',
-      required: [true, 'ユーザーIDは必須です']
+      required: [true, 'ユーザーIDは必須です'],
+      index: true
     },
     chatType: {
       type: String,

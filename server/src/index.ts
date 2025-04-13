@@ -125,7 +125,7 @@ app.use((err: any, req: Request, res: Response, next: any) => {
       method: req.method,
       query: req.query,
       body: req.body,
-      user: (req as any).user?.uid,
+      user: (req as any).user?.id,
       stack: err.stack,
       name: err.name
     } 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthRequest } from '../../middleware/auth.middleware';
+import { AuthRequest } from '../../middleware/hybrid-auth.middleware';
 import { generateDayPillars } from '../../batch/day-pillar-generator';
 import { BatchJobLog } from '../../models/BatchJobLog';
 import { DayPillar } from '../../models/DayPillar';
@@ -165,7 +165,7 @@ export const runDayPillarGeneration = async (req: AuthRequest, res: Response) =>
       status: 'started', // 'scheduled'から'started'に変更（モデルで定義された有効な値）
       startTime: new Date(),
       params: { days: daysNumber },
-      scheduledBy: req.user.uid // Firebase UIDを使用
+      scheduledBy: req.user.id // MongoDB ObjectIDを使用
     });
     
     await batchLog.save();

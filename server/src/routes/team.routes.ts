@@ -1,5 +1,4 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth.middleware';
 import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 import { 
   teamController, 

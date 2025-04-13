@@ -196,9 +196,9 @@ export const addMember = async (
         displayName: displayName || userEmail.split('@')[0]
       });
       
-      // MongoDBにユーザー情報を作成
+      // MongoDBにユーザー情報を作成（MongoDB ObjectIDを使用）
       user = new User({
-        _id: userRecord.uid,
+        _id: new mongoose.Types.ObjectId(), // 自動生成されるMongoDBのObjectID
         email: userEmail,
         password: password, // モンゴースのミドルウェアでハッシュ化される
         displayName: displayName || userEmail.split('@')[0],

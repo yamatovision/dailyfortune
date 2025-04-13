@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware';
 import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 import { UserController } from '../controllers/users.controller';
 

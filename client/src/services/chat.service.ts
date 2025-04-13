@@ -65,36 +65,18 @@ export class ChatService {
           
           console.log('ストリーミングリクエスト送信:', url);
           
-          // APIのaxiosインスタンスを使用してリクエストを作成（認証を処理）
-          // 注意: axios自体はストリーミングには対応していないため、レスポンスヘッダーだけ取得
-          console.log('認証情報を取得中...');
-         
-          // Firebase SDK経由で直接トークンを取得
-          let token = '';
-          try {
-            const { getAuth } = await import('firebase/auth');
-            const auth = getAuth();
-            const user = auth.currentUser;
-            if (user) {
-              console.log('Firebase currentUserからトークン取得');
-              token = await user.getIdToken(true);
-            } else {
-              console.warn('Firebase currentUserがnull');
-            }
-          } catch (firebaseError) {
-            console.error('Firebaseトークン取得エラー:', firebaseError);
-          }
+          // JWT認証トークンを取得
+          console.log('JWT認証情報を取得中...');
+          
+          // JWT認証トークンの取得
+          const tokenService = await import('./auth/token.service').then(m => m.default);
+          const token = tokenService.getAccessToken();
           
           if (!token) {
-            token = localStorage.getItem('authToken') || '';
-            console.log('localStorage経由でトークン取得:', token ? '成功' : '失敗');
+            throw new Error('JWT認証トークンが取得できませんでした。再ログインしてください。');
           }
           
-          if (!token) {
-            throw new Error('認証トークンが取得できませんでした');
-          }
-          
-          console.log('認証トークン取得成功 (先頭20文字):', token.substring(0, 20));
+          console.log('JWT認証トークン取得成功 (先頭20文字):', token.substring(0, 20));
 
           // fetchリクエストを作成（手動で認証ヘッダーを設定）
           console.log('fetch APIでリクエスト送信');

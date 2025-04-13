@@ -255,17 +255,18 @@ export class JwtAuthController {
   }
 
   /**
-   * Firebase認証からJWT認証へのユーザー移行
+   * JWT認証へのユーザー移行
    * @param req リクエスト
    * @param res レスポンス
+   * @deprecated Firebase移行は完了しました。このメソッドは互換性のために維持されています。
    */
   static async migrateToJwt(req: Request, res: Response): Promise<void> {
     try {
-      // このエンドポイントはFirebase認証によって保護されている必要がある
+      // 認証情報の確認
       const { user } = req as any;
-      const { password, firebaseUid } = req.body;
+      const { password } = req.body; // firebaseUid パラメータは不要になりました
 
-      if (!user || !user.uid) {
+      if (!user || !user.id) {
         res.status(401).json({ message: '認証が必要です' });
         return;
       }
@@ -275,13 +276,8 @@ export class JwtAuthController {
         return;
       }
 
-      // Firebase UIDからユーザーを検索
-      const existingUser = await User.findOne({
-        $or: [
-          { _id: user.uid },
-          { uid: user.uid }
-        ]
-      });
+      // ユーザーを検索
+      const existingUser = await User.findById(user.id);
 
       if (!existingUser) {
         res.status(404).json({ message: 'ユーザーが見つかりません' });
@@ -290,7 +286,6 @@ export class JwtAuthController {
 
       // ユーザー情報を更新
       existingUser.password = password;
-      existingUser.firebaseUid = firebaseUid || user.uid; // Firebase UIDを保存（移行期間中に使用）
       existingUser.tokenVersion = 0; // 初期トークンバージョン
 
       // JWTトークンを生成

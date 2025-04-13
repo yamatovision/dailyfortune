@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { fortuneController } from '../controllers/fortune.controller';
-import { authenticate } from '../middleware/auth.middleware';
 import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 
 const router = Router();

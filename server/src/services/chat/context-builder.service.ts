@@ -69,20 +69,13 @@ async function buildPersonalContext(user: any): Promise<Record<string, any>> {
 
     // 目標情報を取得
     const UserGoal = require('../../models/UserGoal').UserGoal;
-    // Firebaseの文字列UIDを使用している場合の処理
     let goals = [];
     try {
-      // MongoDBのObjectIDとして処理を試みる
+      // MongoDBのObjectIDとして目標を取得
       goals = await UserGoal.find({ userId: user._id });
     } catch (error: any) {
-      console.warn('ObjectIDによる目標取得に失敗、文字列UIDとして再試行', error?.message || 'エラー詳細なし');
-      // 互換性のため: 文字列UIDを使用している場合、別のフィールドで検索
-      try {
-        goals = await UserGoal.find({ firebaseUid: user.uid || user.id });
-      } catch (fallbackError: any) {
-        console.error('目標情報の取得に失敗:', fallbackError?.message || 'エラー詳細なし');
-        goals = [];
-      }
+      console.error('目標情報の取得に失敗:', error?.message || 'エラー詳細なし');
+      goals = [];
     }
 
     // チーム情報を取得

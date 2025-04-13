@@ -17,11 +17,9 @@ export class AuthManagementController {
       // ユーザー認証タイプの集計（JWT認証・Firebase認証・両方対応）
       const totalUsers = await User.countDocuments();
       const usersWithJwt = await User.countDocuments({ refreshToken: { $exists: true, $ne: null } });
-      const usersWithFirebase = await User.countDocuments({ firebaseUid: { $exists: true, $ne: null } });
-      const hybridUsers = await User.countDocuments({ 
-        refreshToken: { $exists: true, $ne: null },
-        firebaseUid: { $exists: true, $ne: null }
-      });
+      // Firebase関連の参照は削除されたため、これらの値は0に固定
+      const usersWithFirebase = 0;
+      const hybridUsers = 0;
       
       // トークンバージョン統計
       const tokenVersionStats = await User.aggregate([
@@ -112,15 +110,13 @@ export class AuthManagementController {
         displayName: user.displayName,
         authMethods: {
           jwt: user.refreshToken ? true : false,
-          firebase: user.firebaseUid ? true : false
+          firebase: false // Firebase認証は完全に廃止されました
         },
         tokenVersion: user.tokenVersion || 0,
         lastLogin: user.lastLogin || null,
         // リフレッシュトークンそのものは安全のため返さない
         hasRefreshToken: !!user.refreshToken,
-        firebaseUid: user.firebaseUid || null,
-        // 追加のユーザー識別情報
-        uid: user.uid || null,
+        // Firebase関連フィールドは削除されました
       };
       
       res.status(200).json(authState);
@@ -195,17 +191,11 @@ export class AuthManagementController {
         refreshToken: { $exists: true, $ne: null }
       });
       
-      // Firebase認証のみのユーザー数
-      const firebaseOnlyUsers = await User.countDocuments({
-        firebaseUid: { $exists: true, $ne: null },
-        refreshToken: { $exists: false }
-      });
+      // Firebase認証は完全に廃止されました
+      const firebaseOnlyUsers = 0;
       
-      // ハイブリッド認証のユーザー数（両方のトークンを持つ）
-      const hybridUsers = await User.countDocuments({
-        firebaseUid: { $exists: true, $ne: null },
-        refreshToken: { $exists: true, $ne: null }
-      });
+      // ハイブリッド認証のユーザーも存在しません
+      const hybridUsers = 0;
       
       // 7日以内にログインしたが移行していないユーザー
       const activeNonMigratedUsers = await User.countDocuments({

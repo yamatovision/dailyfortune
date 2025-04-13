@@ -70,7 +70,7 @@ export const updateFortuneUpdateSettings = async (req: AuthRequest, res: Respons
       {
         value,
         description: description || '毎日の運勢更新実行時間',
-        updatedBy: req.user.uid // FirebaseのUIDを直接使用
+        updatedBy: req.user.id // MongoDBのObjectID
       },
       { new: true, upsert: true }
     );
@@ -210,7 +210,7 @@ export const runFortuneUpdate = async (req: AuthRequest, res: Response) => {
       successCount: 0,
       failedCount: 0,
       isAutomaticRetry: false,
-      createdBy: req.user.uid // FirebaseのUIDを直接使用
+      createdBy: req.user.id // MongoDBのObjectID
     });
     
     await newLog.save();
@@ -219,7 +219,7 @@ export const runFortuneUpdate = async (req: AuthRequest, res: Response) => {
     // TODO: 本格的な実装は別途行う予定
     try {
       // 動的インポートではなく、直接バッチ関数を呼び出す
-      const userId = req.user?.uid || '';
+      const userId = req.user?.id || '';
       
       // 非同期で実行するが結果は待たない
       setTimeout(async () => {

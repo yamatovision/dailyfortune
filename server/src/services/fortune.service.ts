@@ -726,12 +726,10 @@ export class FortuneService {
         }
       }
       
-      // 見つからなければFirebaseのUIDまたは他のフィールドで検索
+      // 見つからなければメールアドレスまたは古いIDフィールドで検索
       if (!user) {
         const query = { 
           $or: [
-            { uid: normalizedUserId },
-            { firebaseUid: normalizedUserId },
             { email: normalizedUserId }
           ]
         };

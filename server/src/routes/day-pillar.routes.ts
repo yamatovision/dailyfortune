@@ -6,7 +6,6 @@ import {
   getTimezoneInfo,
   getAvailableCities
 } from '../controllers/day-pillar.controller';
-import { authenticate } from '../middleware/auth.middleware';
 import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
 
 const router = Router();

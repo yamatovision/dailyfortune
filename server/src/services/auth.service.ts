@@ -11,7 +11,7 @@ enum UserRole {
 
 interface RegisterUserData {
   displayName: string;
-  uid: string;
+  id: string;
   email: string;
 }
 
@@ -19,13 +19,13 @@ export class AuthService {
   /**
    * プロフィール情報を取得する
    */
-  async getProfile(uid: string): Promise<any> {
-    if (!uid) {
+  async getProfile(id: string): Promise<any> {
+    if (!id) {
       throw new AuthenticationError('認証情報が無効です');
     }
     
     // データベースからユーザー情報を取得
-    const user = await User.findById(uid).select('-password');
+    const user = await User.findById(id).select('-password');
     
     if (!user) {
       throw new NotFoundError('ユーザーが見つかりません');
@@ -46,12 +46,12 @@ export class AuthService {
    */
   async register(data: RegisterUserData): Promise<any> {
     // 入力検証
-    if (!data.uid || !data.displayName) {
+    if (!data.id || !data.displayName) {
       throw new ValidationError('ユーザーIDと表示名は必須です');
     }
     
     // ユーザー情報が既に存在するか確認
-    const existingUser = await User.findById(data.uid);
+    const existingUser = await User.findById(data.id);
     
     if (existingUser) {
       throw new ValidationError('ユーザーは既に登録されています');
@@ -59,7 +59,7 @@ export class AuthService {
     
     // 新規ユーザー情報をデータベースに保存
     const newUser = new User({
-      _id: new mongoose.Types.ObjectId(data.uid),
+      _id: mongoose.Types.ObjectId.isValid(data.id) ? new mongoose.Types.ObjectId(data.id) : data.id,
       email: data.email,
       displayName: data.displayName,
       role: UserRole.USER,
