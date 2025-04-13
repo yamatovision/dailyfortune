@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { User } from '../../models/User';
 import { Team } from '../../models/Team';
 import { NotFoundError, UnauthorizedError, BadRequestError } from '../../utils/error-handler';
-import { isTeamAdmin } from './team.service';
+import { isTeamAdmin as checkTeamAdmin } from './team.service';
 
 // 具体的なドキュメント型を定義
 interface IUserDocument extends mongoose.Document {
@@ -38,7 +38,7 @@ export const getTeamMembers = async (teamId: string | mongoose.Types.ObjectId, u
     throw new NotFoundError('ユーザーが見つかりません');
   }
   
-  const isAdmin = await isTeamAdmin(teamId, userId);
+  const isAdmin = await checkTeamAdmin(teamId, userId);
   
   // User.teamIdを使用して一貫したメンバーシップ確認を行う
   const isMember = requestUser.teamId && requestUser.teamId.toString() === teamIdStr;
@@ -123,7 +123,7 @@ export const addMemberById = async (
   // 管理者チェックをスキップしない場合（通常のケース）
   if (!skipAdminCheck) {
     // 実行者が管理者かどうかを確認
-    const isAdmin = await isTeamAdmin(teamId, userId);
+    const isAdmin = await checkTeamAdmin(teamId, userId);
     if (!isAdmin) {
       throw new UnauthorizedError('チームメンバーの追加は管理者のみ可能です');
     }
@@ -173,8 +173,9 @@ export const addMember = async (
   const teamIdStr = teamId.toString();
   const adminIdStr = adminId.toString();
 
-  // チーム管理者権限チェック (isTeamAdminを使わない)
-  if (team.adminId.toString() !== adminIdStr) {
+  // チーム管理者権限チェック（checkTeamAdmin関数を使用）
+  const isAdmin = await checkTeamAdmin(teamId, adminId);
+  if (!isAdmin) {
     throw new UnauthorizedError('チームメンバーの追加は管理者のみ可能です');
   }
 
@@ -266,8 +267,9 @@ export const updateMemberRole = async (
   const adminIdStr = adminId.toString();
   const userIdStr = userId.toString();
 
-  // 管理者権限チェック
-  if (team.adminId.toString() !== adminIdStr) {
+  // 管理者権限チェック（checkTeamAdmin関数を使用）
+  const isAdmin = await checkTeamAdmin(teamId, adminId);
+  if (!isAdmin) {
     throw new UnauthorizedError('チームメンバーの役割変更は管理者のみ可能です');
   }
 
@@ -278,10 +280,10 @@ export const updateMemberRole = async (
   }
 
   // ユーザーがチーム管理者であるかチェック
-  const isTeamAdmin = team.adminId.toString() === userIdStr;
+  const isUserTeamAdmin = team.adminId && team.adminId.toString() === userIdStr;
 
   // チーム管理者であるがまだチームメンバーとして登録されていない場合、自動追加
-  if (isTeamAdmin && (!user.teamId || user.teamId.toString() !== teamIdStr)) {
+  if (isUserTeamAdmin && (!user.teamId || user.teamId.toString() !== teamIdStr)) {
     console.log(`チーム管理者(${userIdStr})がチームメンバーではないため、自動的に追加します`);
     
     // 管理者をチームメンバーとして追加
@@ -322,8 +324,9 @@ export const removeMember = async (
   const adminIdStr = adminId.toString();
   const userIdStr = userId.toString();
 
-  // 管理者権限チェック
-  if (team.adminId.toString() !== adminIdStr) {
+  // 管理者権限チェック（checkTeamAdmin関数を使用）
+  const isAdmin = await checkTeamAdmin(teamId, adminId);
+  if (!isAdmin) {
     throw new UnauthorizedError('チームメンバーの削除は管理者のみ可能です');
   }
 

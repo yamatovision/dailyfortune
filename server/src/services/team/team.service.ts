@@ -180,6 +180,18 @@ export const isTeamAdmin = async (teamId: string | mongoose.Types.ObjectId, user
     return false;
   }
   
+  // ユーザー情報を取得してSuperAdmin権限も確認
+  const user = await User.findById(userId);
+  if (!user) {
+    return false;
+  }
+  
+  // SuperAdminロールの場合、常に管理者権限があると見なす
+  if (user.role === 'SuperAdmin') {
+    return true;
+  }
+  
+  // 通常のチーム管理者確認
   const userIdStr = userId.toString();
   return team.adminId === userId || (team.adminId && team.adminId.toString() === userIdStr);
 };

@@ -73,33 +73,46 @@ class CompatibilityController {
     try {
       const { teamId, userId1, userId2 } = req.params;
       
-      // 2人のユーザー間の相性を取得
-      const compatibility = await compatibilityService.getTeamMemberCompatibility(teamId, userId1, userId2);
+      console.log(`チーム相性リクエスト受信 - teamId: ${teamId}, userId1: ${userId1}, userId2: ${userId2}`);
       
-      // ユーザー情報を取得
+      // ユーザー情報を直接取得
       const [user1, user2] = await Promise.all([
-        User.findById(compatibility.user1Id),
-        User.findById(compatibility.user2Id)
+        User.findById(userId1),
+        User.findById(userId2)
       ]);
       
       if (!user1 || !user2) {
-        throw new Error('ユーザーが見つかりません');
+        console.error(`ユーザーが見つかりません: user1=${!!user1}, user2=${!!user2}`);
+        throw new Error(`ユーザーが見つかりません (id1: ${userId1}, id2: ${userId2})`);
       }
       
+      // IDが確実に存在することを確認
+      if (!user1._id || !user2._id) {
+        throw new Error('ユーザーIDが不正です');
+      }
+      
+      // 2人のユーザー間の相性を取得
+      const compatibility = await compatibilityService.getTeamMemberCompatibility(
+        teamId, 
+        user1._id.toString(), 
+        user2._id.toString()
+      );
+      
       // ユーザーIDがレスポンスのユーザー順序と一致するように調整
-      const isUser1First = compatibility.user1Id.toString() === userId1;
+      const user1IdStr = user1._id.toString();
+      const isUser1First = compatibility.user1Id.toString() === user1IdStr;
       
       // レスポンスデータを整形
       const formattedCompatibility = {
         id: compatibility._id,
         users: [
           {
-            id: isUser1First ? user1._id : user2._id,
+            id: userId1, // 元のリクエストで使用したIDを返す
             displayName: isUser1First ? user1.displayName : user2.displayName,
             element: isUser1First ? compatibility.user1Element : compatibility.user2Element
           },
           {
-            id: isUser1First ? user2._id : user1._id,
+            id: userId2, // 元のリクエストで使用したIDを返す
             displayName: isUser1First ? user2.displayName : user1.displayName,
             element: isUser1First ? compatibility.user2Element : compatibility.user1Element
           }

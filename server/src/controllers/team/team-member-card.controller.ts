@@ -133,17 +133,27 @@ ${user.fourPillars ? `- 天干: ${user.fourPillars.day.heavenlyStem}
 - 地支: ${user.fourPillars.day.earthlyBranch}` : ''}
 ${user.elementProfile ? `- 五行バランス: 木(${user.elementProfile.wood}) 火(${user.elementProfile.fire}) 土(${user.elementProfile.earth}) 金(${user.elementProfile.metal}) 水(${user.elementProfile.water})` : ''}
 
+【格局・用神情報】
+- 格局: ${user.kakukyoku?.type || '未設定'} (${user.kakukyoku?.strength === 'strong' ? '身強' : user.kakukyoku?.strength === 'weak' ? '身弱' : '未設定'})
+- 格局説明: ${user.kakukyoku?.description || '未設定'}
+- 用神: ${user.yojin?.tenGod || '未設定'} (${user.yojin?.element || '未設定'})
+- 喜神: ${user.yojin?.kijin?.tenGod || '未設定'} (${user.yojin?.kijin?.element || '未設定'})
+- 忌神: ${user.yojin?.kijin2?.tenGod || '未設定'} (${user.yojin?.kijin2?.element || '未設定'})
+- 仇神: ${user.yojin?.kyujin?.tenGod || '未設定'} (${user.yojin?.kyujin?.element || '未設定'})
+
 【チーム目標】
 - 内容: ${teamGoal ? teamGoal.content : '未設定'}
 - 期限: ${teamGoal && teamGoal.deadline ? new Date(teamGoal.deadline).toLocaleDateString('ja-JP') : '未設定'}
 
 以下の構成で作成してください：
-1. 基本プロファイル（五行属性と意味）
+1. 基本プロファイル（五行属性と格局タイプの意味）
 2. 特性と才能（箇条書き）
-3. チーム貢献分析（目標達成への貢献方法）
-4. 最適な役割と貢献方法（箇条書き）
-5. 強化すべき領域（箇条書き）
-6. コミュニケーションガイド（効果的/避けるべきアプローチ）
+3. 用神と喜神に基づく強み（箇条書き）
+4. チーム貢献分析（目標達成への貢献方法）
+5. 最適な役割と貢献方法（箇条書き）
+6. 強化すべき領域と避けるべき領域（箇条書き、忌神・仇神を考慮）
+7. コミュニケーションガイド（効果的/避けるべきアプローチ）
+8. 将来の成長ポテンシャル（用神を活かした長期的な成長方向）
 `;
 
     // ClaudeAI APIを呼び出す
