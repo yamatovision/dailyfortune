@@ -528,46 +528,42 @@ const AisyouPage: React.FC = () => {
                 </Box>
               </Box>
               
-              {/* 詳細説明 */}
-              <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
-                <Typography variant="h6" gutterBottom>
-                  相性の詳細
-                </Typography>
-                <Typography variant="body1">
-                  {compatibility.detailDescription}
-                </Typography>
-              </Paper>
-              
-              {/* チーム内での関係性 */}
-              {compatibility.teamInsight && (
-                <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
-                  <Typography variant="h6" gutterBottom>
-                    チーム内での関係性
-                  </Typography>
-                  <Typography variant="body1">
-                    {compatibility.teamInsight}
-                  </Typography>
-                </Paper>
-              )}
-              
-              {/* 協力のためのアドバイス */}
-              {compatibility.collaborationTips && (
-                <Box mb={2}>
-                  <Typography variant="h6" gutterBottom>
-                    効果的な協力のためのアドバイス
-                  </Typography>
-                  <Box component="ul" sx={{ pl: 2 }}>
-                    {Array.isArray(compatibility.collaborationTips) ? 
-                      compatibility.collaborationTips.map((tip: string, index: number) => (
-                        <Typography component="li" key={index} variant="body1" sx={{ mb: 1 }}>
-                          {tip}
+              {/* 詳細説明（テキストをセクションに分割して表示） */}
+              {compatibility.detailDescription && (
+                <Box>
+                  {/* 正規表現で各セクションを抽出して表示 */}
+                  {compatibility.detailDescription.split(/【(.+?)】/).filter(Boolean).map((section, index) => {
+                    if (index % 2 === 0) { // セクションタイトル
+                      return (
+                        <Typography variant="h6" gutterBottom key={`title-${index}`} sx={{ mt: 2 }}>
+                          【{section}】
                         </Typography>
-                      )) : 
-                      <Typography component="li" variant="body1">
-                        {compatibility.collaborationTips}
-                      </Typography>
+                      );
+                    } else { // セクション内容
+                      const content = section.trim();
+                      
+                      // 協力のポイントセクションは箇条書きとして処理
+                      if (section.includes('協力のポイント')) {
+                        const points = content.split(/・/).filter(Boolean);
+                        return (
+                          <Box key={`content-${index}`} sx={{ mb: 2 }}>
+                            <ul>
+                              {points.map((point, i) => (
+                                <li key={i}><Typography variant="body1">{point.trim()}</Typography></li>
+                              ))}
+                            </ul>
+                          </Box>
+                        );
+                      }
+                      
+                      // 通常のセクションはそのまま表示
+                      return (
+                        <Paper elevation={0} sx={{ p: 2, mb: 3, backgroundColor: '#f5f5f5', borderRadius: '8px' }} key={`content-${index}`}>
+                          <Typography variant="body1">{content}</Typography>
+                        </Paper>
+                      );
                     }
-                  </Box>
+                  })}
                 </Box>
               )}
             </Box>

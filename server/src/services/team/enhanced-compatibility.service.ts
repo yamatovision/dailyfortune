@@ -471,88 +471,88 @@ class EnhancedCompatibilityService {
       },
       relationshipType: string
     }
-  ): Promise<{ detailDescription: string, teamInsight: string, collaborationTips: string[] }> {
+  ): Promise<string> {
     // Claude AI APIに送信するプロンプト
     const prompt = `
     あなたは四柱推命と五行相性の専門家です。以下の情報から二人の相性について詳細な説明を生成してください。
 
-    ユーザー情報:
+    # ユーザー情報
     - ユーザー1: ${user1DisplayName} (五行属性: ${this.ELEMENT_JP_MAP[user1Element as keyof typeof this.ELEMENT_JP_MAP]})
     - ユーザー2: ${user2DisplayName} (五行属性: ${this.ELEMENT_JP_MAP[user2Element as keyof typeof this.ELEMENT_JP_MAP]})
     
-    相性詳細:
+    # 四柱推命相性診断結果
     - 総合スコア: ${compatibilityDetails.totalScore}/100点
     - 関係性タイプ: ${this.RELATIONSHIP_TYPE_JP[compatibilityDetails.relationshipType as keyof typeof this.RELATIONSHIP_TYPE_JP]}
-    - 陰陽バランス: ${compatibilityDetails.details.yinYangBalance}/100点
-    - 身強弱バランス: ${compatibilityDetails.details.strengthBalance}/100点
-    - 日支関係: ${compatibilityDetails.details.dayBranchRelationship.relationship} (${compatibilityDetails.details.dayBranchRelationship.score}/100点)
-    - 用神・喜神の相性: ${compatibilityDetails.details.usefulGods}/100点
-    - 日干の関係: ${compatibilityDetails.details.dayGanCombination.isGangou ? '干合あり' : '干合なし'} (${compatibilityDetails.details.dayGanCombination.score}/100点)
+    
+    ## 診断詳細
+    1. 陰陽バランス評価 (${compatibilityDetails.details.yinYangBalance}/100点)
+       - 陽の気: 甲、丙、戊、庚、壬
+       - 陰の気: 乙、丁、己、辛、癸
+       - 陰陽が異なる場合は良い相性、同質の場合は衝突の可能性あり
+    
+    2. 身強弱バランス評価 (${compatibilityDetails.details.strengthBalance}/100点)
+       - 身強: 命式に自らの五行が多く、エネルギーが外向きの人
+       - 身弱: 命式に自らの五行が少なく、エネルギーが内向きの人
+       - 身強弱が異なる場合は相補的、同質の場合は穏やかな関係
+    
+    3. 日支関係評価 (${compatibilityDetails.details.dayBranchRelationship.score}/100点)
+       - 関係性: ${compatibilityDetails.details.dayBranchRelationship.relationship}
+       - 三合会局（最良・相互補完的）、支合（安定・調和的）、支沖（刺激的・緊張感）
+    
+    4. 用神・喜神評価 (${compatibilityDetails.details.usefulGods}/100点)
+       - 用神: 自分の日干から生まれる五行（相手が持つと良い）
+       - 喜神: 自分の日干を克する五行（相手が持つと良い）
+    
+    5. 日干干合評価 (${compatibilityDetails.details.dayGanCombination.score}/100点)
+       - 干合の有無: ${compatibilityDetails.details.dayGanCombination.isGangou ? 'あり' : 'なし'}
+       - 干合の組み合わせ: 甲乙、丙丁、戊己、庚辛、壬癸
+       - 干合があると強い結びつきがある
 
-    以下の3つの情報を生成してください:
-
-    1. detailDescription: 二人の四柱推命相性の詳細な説明を300文字以内で簡潔にまとめてください。相性の各要素（陰陽バランス、日支関係など）に触れてください。
-
-    2. teamInsight: チーム内での二人の関係性について、どのようにして最大のパフォーマンスを発揮できるかの洞察を200文字以内で説明してください。
-
-    3. collaborationTips: 二人が効果的に協力するための具体的なアドバイスを3つ挙げてください。それぞれ40文字以内の簡潔な文にしてください。
-
-    応答は以下のJSON形式で返してください:
-    {
-      "detailDescription": "...",
-      "teamInsight": "...",
-      "collaborationTips": ["...", "...", "..."]
-    }
+    以下の内容を含む相性分析レポートを作成してください。全部で800文字程度に収めてください：
+    
+    1. 【相性概要】この二人の相性の総合的な概要と特徴（200文字程度）
+    
+    2. 【詳細分析】五行相性や四柱推命の観点からの詳細な分析（200文字程度）
+    
+    3. 【チーム内での関係】チーム内でこの二人がどのように機能するかの洞察（200文字程度）
+    
+    4. 【協力のポイント】二人が効果的に協力するための具体的なアドバイス3点（各40字程度）
+    
+    レポートは明確に「【相性概要】」「【詳細分析】」「【チーム内での関係】」「【協力のポイント】」の4つのセクションで構成し、
+    読みやすい日本語で記述してください。
     `;
 
     try {
       // Claude AI APIを使用して相性の詳細説明を生成
       const response = await claudeAI.callClaudeAI(prompt);
-      
-      // JSON形式の応答をパース
-      let parsedResponse;
-      try {
-        // 応答テキストからJSONを抽出
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedResponse = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('JSONフォーマットの応答が見つかりませんでした');
-        }
-      } catch (parseError) {
-        console.error('AI応答のパースに失敗しました:', parseError);
-        
-        // パースに失敗した場合はデフォルト応答を返す
-        return {
-          detailDescription: `${user1DisplayName}(${this.ELEMENT_JP_MAP[user1Element as keyof typeof this.ELEMENT_JP_MAP]})と${user2DisplayName}(${this.ELEMENT_JP_MAP[user2Element as keyof typeof this.ELEMENT_JP_MAP]})は${compatibilityDetails.relationshipType === 'goodCooperation' ? '良好な協力関係' : compatibilityDetails.relationshipType === 'stableRelationship' ? '安定した関係' : '一般的な関係'}にあります。総合相性スコアは${compatibilityDetails.totalScore}点です。`,
-          teamInsight: '二人はそれぞれの特性を理解し、互いの強みを活かすことでチームに貢献できます。',
-          collaborationTips: [
-            '定期的な情報共有を心がける',
-            '互いの違いを尊重する',
-            '共通の目標を明確にする'
-          ]
-        };
-      }
-      
-      return {
-        detailDescription: parsedResponse.detailDescription || '',
-        teamInsight: parsedResponse.teamInsight || '',
-        collaborationTips: parsedResponse.collaborationTips || []
-      };
+      return response || this.generateDefaultResponse(user1DisplayName, user2DisplayName, user1Element, user2Element, compatibilityDetails);
     } catch (error) {
       console.error('AI応答の取得に失敗しました:', error);
-      
-      // APIエラーの場合はデフォルト応答を返す
-      return {
-        detailDescription: `${user1DisplayName}(${this.ELEMENT_JP_MAP[user1Element as keyof typeof this.ELEMENT_JP_MAP]})と${user2DisplayName}(${this.ELEMENT_JP_MAP[user2Element as keyof typeof this.ELEMENT_JP_MAP]})は${this.RELATIONSHIP_TYPE_JP[compatibilityDetails.relationshipType as keyof typeof this.RELATIONSHIP_TYPE_JP]}の関係にあります。`,
-        teamInsight: '二人はそれぞれの特性を活かした協力が可能です。',
-        collaborationTips: [
-          '定期的なコミュニケーションを取る',
-          '互いの強みを認め合う',
-          '共通目標を設定する'
-        ]
-      };
+      return this.generateDefaultResponse(user1DisplayName, user2DisplayName, user1Element, user2Element, compatibilityDetails);
     }
+  }
+
+  // デフォルトレスポンスの生成メソッドを追加
+  private generateDefaultResponse(
+    user1DisplayName: string,
+    user2DisplayName: string,
+    user1Element: string,
+    user2Element: string,
+    compatibilityDetails: any
+  ): string {
+    return `【相性概要】
+${user1DisplayName}(${this.ELEMENT_JP_MAP[user1Element as keyof typeof this.ELEMENT_JP_MAP]})と${user2DisplayName}(${this.ELEMENT_JP_MAP[user2Element as keyof typeof this.ELEMENT_JP_MAP]})は${this.RELATIONSHIP_TYPE_JP[compatibilityDetails.relationshipType as keyof typeof this.RELATIONSHIP_TYPE_JP]}の関係にあります。総合相性スコアは${compatibilityDetails.totalScore}点です。
+
+【詳細分析】
+陰陽バランスは${compatibilityDetails.details.yinYangBalance}点、身強弱バランスは${compatibilityDetails.details.strengthBalance}点、日支関係は${compatibilityDetails.details.dayBranchRelationship.relationship}で${compatibilityDetails.details.dayBranchRelationship.score}点、用神・喜神の相性は${compatibilityDetails.details.usefulGods}点、日干の関係は${compatibilityDetails.details.dayGanCombination.isGangou ? '干合あり' : '干合なし'}で${compatibilityDetails.details.dayGanCombination.score}点です。
+
+【チーム内での関係】
+二人はそれぞれの特性を理解し、互いの強みを活かすことでチームに貢献できます。${user1DisplayName}の${this.ELEMENT_JP_MAP[user1Element as keyof typeof this.ELEMENT_JP_MAP]}の特性と${user2DisplayName}の${this.ELEMENT_JP_MAP[user2Element as keyof typeof this.ELEMENT_JP_MAP]}の特性を組み合わせることで、より効果的な協力が可能です。
+
+【協力のポイント】
+・定期的な情報共有を心がける
+・互いの違いを尊重し、補完関係を築く
+・共通の目標に向けて役割分担を明確にする`;
   }
   
   /**
@@ -617,7 +617,7 @@ class EnhancedCompatibilityService {
       const compatibilityDetails = this.calculateCompatibilityScore(user1, user2);
       
       // 相性の詳細説明を生成
-      const { detailDescription, teamInsight, collaborationTips } = await this.generateDetailDescription(
+      const detailDescription = await this.generateDetailDescription(
         user1.displayName,
         user2.displayName,
         user1.elementAttribute,
@@ -640,8 +640,8 @@ class EnhancedCompatibilityService {
         user1Element: user1.elementAttribute,
         user2Element: user2.elementAttribute,
         detailDescription,
-        teamInsight,
-        collaborationTips,
+        teamInsight: "", // 廃止（詳細説明に含める）
+        collaborationTips: [], // 廃止（詳細説明に含める）
         enhancedDetails: {
           yinYangBalance: compatibilityDetails.details.yinYangBalance,
           strengthBalance: compatibilityDetails.details.strengthBalance,
