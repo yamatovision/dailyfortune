@@ -343,7 +343,7 @@ const AisyouPage: React.FC = () => {
                 p={1}
                 mb={1}
                 sx={{ 
-                  backgroundColor: (user && item.userId === user.uid) ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
+                  backgroundColor: (user && item.userId === user.id) ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
                   borderRadius: '8px'
                 }}
               >
@@ -354,7 +354,7 @@ const AisyouPage: React.FC = () => {
                 <Box flexGrow={1}>
                   <Typography variant="body1">
                     {item.displayName}
-                    {user && item.userId === user.uid && (
+                    {user && item.userId === user.id && (
                       <Chip 
                         label="あなた" 
                         size="small" 
@@ -410,7 +410,7 @@ const AisyouPage: React.FC = () => {
                     <Box>
                       <Typography variant="h6">
                         {member.displayName}
-                        {user && member.userId === user.uid && (
+                        {user && member.userId === user.id && (
                           <Chip 
                             label="あなた" 
                             size="small" 
@@ -444,7 +444,7 @@ const AisyouPage: React.FC = () => {
                     ) : '未設定'}
                   </Typography>
                   
-                  {user && member.userId !== user.uid && (
+                  {user && member.userId !== user.id && (
                     <Button 
                       variant="outlined" 
                       fullWidth
