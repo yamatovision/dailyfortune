@@ -30,3 +30,7 @@ coverage/
 .idea/
 *.swp
 *.swo
+
+# 機密情報を含むスクリプト
+scripts/test-lucky-items/
+scripts/.jwt_token_cache.json
