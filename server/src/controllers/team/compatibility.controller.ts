@@ -69,7 +69,7 @@ class CompatibilityController {
    * @param req リクエスト
    * @param res レスポンス
    */
-  async getMemberCompatibility(req: Request, res: Response): Promise<void> {
+  async getMemberCompatibility(req: Request, res: Response): Promise<any> {
     try {
       const { teamId, userId1, userId2 } = req.params;
       

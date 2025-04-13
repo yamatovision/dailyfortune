@@ -70,7 +70,7 @@ class EnhancedCompatibilityController {
    * @param req リクエスト
    * @param res レスポンス
    */
-  async getMemberEnhancedCompatibility(req: Request, res: Response): Promise<void> {
+  async getMemberEnhancedCompatibility(req: Request, res: Response): Promise<any> {
     try {
       const { teamId, userId1, userId2 } = req.params;
       
