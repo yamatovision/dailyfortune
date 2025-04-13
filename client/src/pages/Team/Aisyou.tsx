@@ -132,7 +132,7 @@ const RelationshipChip = styled(Chip)(
  */
 const AisyouPage: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>();
-  const { currentUser: user, isAdmin, isSuperAdmin } = useAuth();
+  const { currentUser: user, userProfile, isAdmin, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +221,8 @@ const AisyouPage: React.FC = () => {
 
   // 相性詳細ダイアログを開く
   const handleOpenCompatibility = async (member: any) => {
-    if (!user || !teamId || !user.id || !member.userId) {
+    if (!userProfile || !teamId || !userProfile.id || !member.userId) {
+      console.error('相性取得エラー:', { userProfile, teamId, memberId: member.userId });
       setError('ユーザー情報が不足しているため、相性を取得できません');
       return;
     }
@@ -231,10 +232,16 @@ const AisyouPage: React.FC = () => {
     setDialogLoading(true);
     
     try {
+      console.log('相性取得開始:', { 
+        teamId, 
+        userId: userProfile.id, 
+        memberId: member.userId 
+      });
+      
       // 選択されたメンバーと現在のユーザーの相性を取得
       const compatibilityData = await teamService.getMemberCompatibility(
         teamId, 
-        user.id, // MongoDBのObjectID
+        userProfile.id, // MongoDBのObjectID
         member.userId
       );
       console.log('相性データ:', compatibilityData);
@@ -346,7 +353,7 @@ const AisyouPage: React.FC = () => {
                 p={1}
                 mb={1}
                 sx={{ 
-                  backgroundColor: (user && item.userId === user.id) ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
+                  backgroundColor: (userProfile && item.userId === userProfile.id) ? 'rgba(33, 150, 243, 0.08)' : 'transparent',
                   borderRadius: '8px'
                 }}
               >
@@ -357,7 +364,7 @@ const AisyouPage: React.FC = () => {
                 <Box flexGrow={1}>
                   <Typography variant="body1">
                     {item.displayName}
-                    {user && item.userId === user.id && (
+                    {userProfile && item.userId === userProfile.id && (
                       <Chip 
                         label="あなた" 
                         size="small" 
@@ -413,7 +420,7 @@ const AisyouPage: React.FC = () => {
                     <Box>
                       <Typography variant="h6">
                         {member.displayName}
-                        {user && member.userId === user.id && (
+                        {userProfile && member.userId === userProfile.id && (
                           <Chip 
                             label="あなた" 
                             size="small" 
@@ -447,7 +454,7 @@ const AisyouPage: React.FC = () => {
                     ) : '未設定'}
                   </Typography>
                   
-                  {user && member.userId !== user.id && (
+                  {userProfile && member.userId !== userProfile.id && (
                     <Button 
                       variant="outlined" 
                       fullWidth
@@ -478,7 +485,7 @@ const AisyouPage: React.FC = () => {
         fullWidth
       >
         <DialogTitle>
-          {user?.displayName || 'あなた'} と {selectedMember?.displayName || 'メンバー'} の相性
+          {userProfile?.displayName || 'あなた'} と {selectedMember?.displayName || 'メンバー'} の相性
         </DialogTitle>
         
         <DialogContent dividers>
