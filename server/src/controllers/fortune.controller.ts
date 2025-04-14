@@ -253,7 +253,20 @@ export class FortuneController {
       const teamId = req.query.teamId as string | undefined;
 
       // ダッシュボード情報を取得
+      console.log(`🌟 運勢ダッシュボード取得開始 - userId: ${userId}, teamId: ${teamId || 'なし'}`);
       const dashboardData = await fortuneService.getFortuneDashboard(userId, teamId);
+      console.log(`🌟 運勢ダッシュボード取得完了:`, {
+        hasPersonalFortune: !!dashboardData.personalFortune,
+        personalFortuneId: dashboardData.personalFortune?.id,
+        personalFortuneDate: dashboardData.personalFortune?.date
+      });
+
+      // レスポンス送信前の最終チェック
+      if (!dashboardData.personalFortune) {
+        console.error(`🌟 警告: personalFortune がありません！`);
+      } else if (typeof dashboardData.personalFortune.advice !== 'string' || dashboardData.personalFortune.advice.length < 10) {
+        console.error(`🌟 警告: personalFortune.advice が不正です: ${dashboardData.personalFortune.advice}`);
+      }
 
       res.status(200).json(dashboardData);
     } catch (error: any) {

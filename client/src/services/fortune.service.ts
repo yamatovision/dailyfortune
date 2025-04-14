@@ -157,10 +157,24 @@ class FortuneService {
     this.cacheExpiration = null;
     
     try {
+      console.log('💫 運勢ダッシュボード取得開始：', FORTUNE.GET_FORTUNE_DASHBOARD(teamId));
+      const startTime = Date.now();
       const response = await apiService.get(FORTUNE.GET_FORTUNE_DASHBOARD(teamId));
+      console.log(`💫 運勢ダッシュボード取得完了 (${Date.now() - startTime}ms)：`, JSON.stringify(response.data, null, 2));
+      
+      // レスポンスの内容を検証
+      if (!response.data || !response.data.personalFortune) {
+        console.error('💫 運勢ダッシュボードのレスポンスに期待されるデータがありません', response.data);
+      } else {
+        console.log('💫 personalFortune ID:', response.data.personalFortune.id);
+        console.log('💫 personalFortune Date:', response.data.personalFortune.date);
+        console.log('💫 personalFortune Advice (先頭100文字):', 
+          response.data.personalFortune.advice ? response.data.personalFortune.advice.substring(0, 100) + '...' : 'undefined');
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('運勢ダッシュボードの取得に失敗しました', error);
+      console.error('💫 運勢ダッシュボードの取得に失敗しました', error);
       throw error;
     }
   }

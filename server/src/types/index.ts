@@ -1,8 +1,6 @@
 /**
  * ===== 統合型定義・APIパスガイドライン =====
  * 
- * FIX: 2025-04-14 FortuneScoreResult インターフェースを追加
- * 
  * 【重要】このファイルはフロントエンド（client）からは直接インポートして使用します。
  * バックエンド（server）では、このファイルをリファレンスとして、
  * server/src/types/index.ts に必要な型定義をコピーして使用してください。
@@ -521,6 +519,32 @@ export interface IFortune {
   updatedAt: Date;
 }
 
+// 運勢スコア計算結果（サーバー内部で使用）
+export interface FortuneScoreResult {
+  score: number;
+  advice: string;
+  luckyItems: {
+    color: string;
+    item: string;
+    drink: string;
+  };
+  stemElement: string;
+  branchElement: string;
+  balanceStatus?: {
+    wood: string;
+    fire: string;
+    earth: string;
+    metal: string;
+    water: string;
+  };
+  yojinRelation?: string;
+  dayIsGeneratingYojin?: boolean;
+  dayIsControllingYojin?: boolean;
+  useBalancedAlgorithm: boolean;
+  useEnhancedAlgorithm: boolean;
+  fortuneType?: string;
+}
+
 // チームコンテキスト運勢データ
 export interface ITeamContextFortune {
   id: string;
@@ -608,26 +632,6 @@ export interface ISystemSetting {
 }
 
 // ========== リクエスト/レスポンス型 ==========
-
-// 運勢スコア計算結果
-export interface FortuneScoreResult {
-  score: number;
-  advice: string;
-  luckyItems: {
-    color: string;
-    item: string;
-    drink: string;
-  };
-  stemElement?: string;
-  branchElement?: string;
-  useBalancedAlgorithm?: boolean;
-  useEnhancedAlgorithm?: boolean;
-  fortuneType?: string;
-  balanceStatus?: string;
-  yojinRelation?: string;
-  dayIsGeneratingYojin?: boolean;
-  dayIsControllingYojin?: boolean;
-}
 
 // ログインリクエスト
 export interface LoginRequest {

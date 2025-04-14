@@ -19,11 +19,24 @@ export class FortuneService {
    */
   public async getFortuneDashboard(userId: string, teamId?: string): Promise<any> {
     try {
+      console.log(`🔍 ダッシュボード取得開始 - userId: ${userId}, teamId: ${teamId || 'なし'}`);
+      
       // 個人運勢を取得
+      console.log(`🔍 getUserFortune 開始 - userId: ${userId}`);
       const personalFortune = await this.getUserFortune(userId);
+      console.log(`🔍 getUserFortune 完了 - 結果:`, JSON.stringify({
+        id: personalFortune?.id,
+        userId: personalFortune?.userId,
+        date: personalFortune?.date,
+        fortuneScore: personalFortune?.fortuneScore,
+        adviceLength: personalFortune?.advice ? personalFortune.advice.length : 0
+      }, null, 2));
       
       // ユーザー情報を取得
+      console.log(`🔍 User.findById 開始 - userId: ${userId}`);
       const user = await User.findById(userId);
+      console.log(`🔍 User.findById 完了 - ユーザー見つかりました: ${!!user}`);
+      
       if (!user) {
         throw new Error('ユーザーが見つかりません');
       }
@@ -32,6 +45,9 @@ export class FortuneService {
       const response: any = {
         personalFortune
       };
+      
+      console.log(`🔍 ダッシュボードレスポンス作成 - personalFortune 含まれています: ${!!response.personalFortune}`);
+      
       
       // チームIDが指定されていない場合は、ユーザーのデフォルトチームを使用
       let targetTeamId = teamId;
@@ -649,21 +665,31 @@ export class FortuneService {
     // 日付が指定されていない場合は今日の日付を使用
     const targetDate = date || new Date();
     targetDate.setHours(0, 0, 0, 0); // 時刻部分をリセット
+    console.log(`🔎 getUserFortune - ユーザーID: ${userId}, 対象日: ${targetDate.toISOString()}`);
 
     // ユーザーIDがObjectIDかどうかを確認
     let userIdQuery: string | mongoose.Types.ObjectId = userId;
     if (mongoose.Types.ObjectId.isValid(userId)) {
       userIdQuery = new mongoose.Types.ObjectId(userId);
+      console.log(`🔎 ユーザーIDは有効なObjectID: ${userIdQuery}`);
+    } else {
+      console.log(`🔎 ユーザーIDはObjectIDではありません: ${userIdQuery}`);
     }
 
-    // 既存の運勢データを検索
-    const fortune = await DailyFortune.findOne({
+    // 既存の運勢データを検索（日付に関係なく、ユーザーIDのみで最新のものを取得）
+    console.log(`🔎 運勢データ検索クエリ:`, {
       userId: userIdQuery,
-      date: {
-        $gte: targetDate,
-        $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-      }
-    }).populate('dayPillarId');
+      queryType: 'findOne with sort by updatedAt desc'
+    });
+    
+    const fortune = await DailyFortune.findOne({
+      userId: userIdQuery
+    }).sort({ updatedAt: -1 }).populate('dayPillarId');
+    
+    console.log(`🔎 検索結果: ${fortune ? '運勢データ見つかりました' : '運勢データ見つかりません'}`);
+    if (fortune) {
+      console.log(`🔎 運勢データ詳細: ID=${fortune._id}, 日付=${fortune.date}, 更新日=${fortune.updatedAt}`);
+    }
 
     // 運勢データが見つかった場合はそれを返す
     if (fortune) {
@@ -688,7 +714,7 @@ export class FortuneService {
     }
 
     // 運勢データが見つからない場合は新しく生成する
-    return this.generateFortune(userId, targetDate);
+    return this.generateFortune(userId, targetDate, true); // 常に強制上書きモードで生成
   }
 
   /**
@@ -708,6 +734,8 @@ export class FortuneService {
    * @returns 生成された運勢情報
    */
   public async generateFortune(userId: string, date: Date, forceOverwrite: boolean = false): Promise<any> {
+    console.log(`🔧 generateFortune 開始 - userId: ${userId}, date: ${date.toISOString()}, forceOverwrite: ${forceOverwrite}`);
+    
     // ユーザー情報と四柱推命プロファイルを取得
     // ユーザーIDがObjectIDかどうかを確認して適切なクエリを実行
     let user;
@@ -798,33 +826,34 @@ export class FortuneService {
       fortuneScoreResult
     );
 
-    // 既存の運勢データがあるか確認
+    // 既存の運勢データがあるか確認（日付に関係なく、ユーザーIDのみで最新のものを取得）
     let existingFortune = null;
     
-    // 強制上書きの場合は既存データを削除
+    // 常に上書き動作を行う
     if (forceOverwrite) {
-      await DailyFortune.deleteOne({
-        userId: userId,
-        date: {
-          $gte: targetDate,
-          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-        }
+      // 強制上書きの場合は既存データをすべて削除
+      console.log(`🔧 強制上書きモード: ${userId} のすべての運勢データを削除します`);
+      const deleteResult = await DailyFortune.deleteMany({
+        userId: userId
       });
+      console.log(`🔧 削除結果: ${deleteResult.deletedCount}件のデータを削除しました`);
     } else {
-      // 強制上書きでない場合は既存データをチェック
+      // 通常の上書きでは最新のものを取得して更新
+      console.log(`🔧 通常更新モード: ${userId} の最新運勢データを検索します`);
       existingFortune = await DailyFortune.findOne({
-        userId: userId,
-        date: {
-          $gte: targetDate,
-          $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000) // 翌日
-        }
-      });
+        userId: userId
+      }).sort({ updatedAt: -1 });
+      console.log(`🔧 既存データ検索結果: ${existingFortune ? '見つかりました' : '見つかりません'}`);
+      if (existingFortune) {
+        console.log(`🔧 既存データ詳細: ID=${existingFortune._id}, 日付=${existingFortune.date}`);
+      }
     }
     
     let fortune;
     
     if (existingFortune) {
       // 既存データがある場合は更新
+      console.log(`🔧 既存の運勢データを更新します: ID=${existingFortune._id}`);
       existingFortune.dayPillarId = dayPillar._id as mongoose.Types.ObjectId;
       existingFortune.fortuneScore = fortuneScoreResult.score;
       existingFortune.advice = advice;
@@ -837,10 +866,12 @@ export class FortuneService {
       }
       
       await existingFortune.save();
+      console.log(`🔧 運勢データ更新完了: ID=${existingFortune._id}, 日付=${existingFortune.date}`);
       
       fortune = existingFortune;
     } else {
       // 新規作成
+      console.log(`🔧 新規運勢データを作成します: userId=${userId}, date=${targetDate.toISOString()}`);
       fortune = new DailyFortune({
         userId: userId,
         date: targetDate,
@@ -853,6 +884,7 @@ export class FortuneService {
       });
 
       await fortune.save();
+      console.log(`🔧 新規運勢データ作成完了: ID=${fortune._id}, 日付=${fortune.date}`);
     }
 
     return {
@@ -1726,10 +1758,10 @@ ${teamGoalAdvice}`;
       
       // メンバーの運勢情報を取得（個人運勢とチームコンテキスト運勢）
       const memberFortunePromises = teamMembers.map(async (member) => {
+        // 各メンバーの最新の運勢データを取得（日付に関係なく最新のものを使用）
         const userFortune = await DailyFortune.findOne({ 
-          userId: member._id,
-          date: today
-        });
+          userId: member._id
+        }).sort({ updatedAt: -1 });
         
         // チームコンテキスト運勢は統合されたため、個人運勢のみを使用
         const fortuneScore = userFortune ? userFortune.fortuneScore : 0;
