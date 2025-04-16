@@ -10,6 +10,7 @@ sys-*-firebase-adminsdk-*.json
 # APIキーなどの機密情報
 CLAUDE.md
 server/src/tests/services/claude-api.test.ts
+deploy-history.md
 
 # ビルド出力
 dist/

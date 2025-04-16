@@ -186,17 +186,7 @@ export const addMember = async (
   // ユーザーが存在しない場合で、パスワードが提供されていれば新規作成
   if (!user && password) {
     try {
-      // Firebase Admin SDKからのインポート
-      const { auth } = require('../../config/firebase');
-      
-      // Firebase Authで新規ユーザーを作成
-      const userRecord = await auth.createUser({
-        email: userEmail,
-        password: password,
-        displayName: displayName || userEmail.split('@')[0]
-      });
-      
-      // MongoDBにユーザー情報を作成（MongoDB ObjectIDを使用）
+      // Firebase認証は廃止されたため、直接MongoDBにユーザーを作成
       user = new User({
         _id: new mongoose.Types.ObjectId(), // 自動生成されるMongoDBのObjectID
         email: userEmail,

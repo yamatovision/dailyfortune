@@ -65,13 +65,18 @@ export class ChatController {
       // ストリーミングモードの場合
       if (useStreaming) {
         // SSEヘッダーを設定（CORS対応含む）
+        // クライアントサイドのオリジンを取得
+        const clientOrigin = req.headers.origin || 'https://dailyfortune.web.app';
+        
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
-          'Access-Control-Allow-Credentials': 'true'
+          'Access-Control-Allow-Origin': clientOrigin, // ワイルドカードの代わりに具体的なオリジンを指定
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Trace-ID, X-Direct-Refresh',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Expose-Headers': 'X-Trace-ID'
         });
 
         try {

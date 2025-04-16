@@ -16,20 +16,68 @@ class JwtAuthServiceImpl implements JwtAuthService {
   // ログイン処理
   async login(email: string, password: string): Promise<any> {
     try {
-      const response = await apiService.post(JWT_AUTH.LOGIN, { email, password });
+      console.log('JWT認証ログイン開始 - リクエスト送信先:', JWT_AUTH.LOGIN);
+      
+      // Augment login data with additional information for debugging on server
+      const loginData = { 
+        email, 
+        password,
+        clientInfo: {
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          viewport: `${window.innerWidth}x${window.innerHeight}`
+        }
+      };
+      
+      const response = await apiService.post(JWT_AUTH.LOGIN, loginData);
+      
+      console.log('ログインレスポンス受信:', {
+        status: response.status,
+        hasTokens: !!response.data?.tokens,
+        user: response.data?.user ? 'データあり' : 'なし'
+      });
       
       if (response.status === 200 && response.data.tokens) {
         const { accessToken, refreshToken } = response.data.tokens;
         
+        // Tokenの形式をチェック（セキュリティのために先頭と末尾のみ表示）
+        const accessTokenPreview = accessToken ? 
+          `${accessToken.substring(0, 5)}...${accessToken.substring(accessToken.length - 5)}` : 
+          'undefined';
+        const refreshTokenPreview = refreshToken ? 
+          `${refreshToken.substring(0, 5)}...${refreshToken.substring(refreshToken.length - 5)}` : 
+          'undefined';
+          
+        console.log('トークン受信:', {
+          accessToken: accessTokenPreview,
+          refreshToken: refreshTokenPreview,
+          accessTokenLength: accessToken ? accessToken.length : 0,
+          refreshTokenLength: refreshToken ? refreshToken.length : 0
+        });
+        
         // トークンをローカルストレージに保存
         tokenService.setTokens(accessToken, refreshToken);
+        console.log('トークンを保存しました');
         
         return response.data;
       } else {
+        console.error('無効なログインレスポンス:', {
+          status: response.status,
+          data: response.data
+        });
         throw new Error('ログインレスポンスが不正です');
       }
     } catch (error: any) {
       console.error('JWT認証ログインエラー:', error);
+      // レスポンスがある場合、詳細を記録
+      if (error.response) {
+        console.error('サーバーレスポンス:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
       throw error;
     }
   }
@@ -124,9 +172,17 @@ class JwtAuthServiceImpl implements JwtAuthService {
         : '';
       
       console.log('リフレッシュトークンリクエスト送信中...');
+      // 本番環境では、baseURLは既に設定済みなのでパスの重複を防ぐ
+      const refreshUrl = baseURL 
+        ? `${baseURL}/api/v1/jwt-auth/refresh-token` // 本番環境: 完全なパスを明示
+        : JWT_AUTH.REFRESH_TOKEN; // 開発環境: 相対パスを使用
+
+      console.log('Refresh URL being used:', refreshUrl);
+      console.log('JWT_AUTH.REFRESH_TOKEN value:', JWT_AUTH.REFRESH_TOKEN);
+      
       const response = await axios({
         method: 'post',
-        url: `${baseURL}${JWT_AUTH.REFRESH_TOKEN}`,
+        url: refreshUrl,
         data: { refreshToken },
         headers: {
           'Content-Type': 'application/json',

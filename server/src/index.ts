@@ -20,13 +20,27 @@ if (missingEnvVars.length > 0) {
 
 // JWT関連の環境変数にデフォルト値を設定
 if (!process.env.JWT_ACCESS_SECRET) {
-  console.warn('JWT_ACCESS_SECRET が設定されていません。デフォルト値を使用します。');
-  process.env.JWT_ACCESS_SECRET = 'dailyfortune_access_token_secret_dev';
+  console.warn('JWT_ACCESS_SECRET が設定されていません。JWT_SECRETまたはデフォルト値を使用します。');
+  process.env.JWT_ACCESS_SECRET = process.env.JWT_SECRET || 'dailyfortune_access_token_secret_dev';
 }
 
 if (!process.env.JWT_REFRESH_SECRET) {
-  console.warn('JWT_REFRESH_SECRET が設定されていません。デフォルト値を使用します。');
-  process.env.JWT_REFRESH_SECRET = 'dailyfortune_refresh_token_secret_dev';
+  console.warn('JWT_REFRESH_SECRET が設定されていません。JWT_SECRETまたはデフォルト値を使用します。');
+  process.env.JWT_REFRESH_SECRET = process.env.JWT_SECRET || 'dailyfortune_refresh_token_secret_dev';
+}
+
+// デバッグ: 環境変数を確認（本番環境では値は出力しない）
+if (process.env.NODE_ENV === 'development') {
+  console.log('環境変数確認:');
+  console.log('JWT_SECRET設定:', !!process.env.JWT_SECRET);
+  console.log('JWT_ACCESS_SECRET設定:', !!process.env.JWT_ACCESS_SECRET);
+  console.log('JWT_REFRESH_SECRET設定:', !!process.env.JWT_REFRESH_SECRET);
+} else {
+  console.log('JWT関連環境変数確認:',
+    !!process.env.JWT_SECRET,
+    !!process.env.JWT_ACCESS_SECRET,
+    !!process.env.JWT_REFRESH_SECRET
+  );
 }
 
 // ロガーのインポート
@@ -63,6 +77,9 @@ import { API_BASE_PATH } from './types/index';
 
 // Expressアプリケーションの作成
 const app = express();
+
+// Cloud Runで実行する場合、リバースプロキシ背後で動作するため信頼設定が必要
+app.set('trust proxy', true);
 
 // ロギングミドルウェアを最初に適用
 app.use(requestTracer); // トレースIDを各リクエストに追加
@@ -143,8 +160,13 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 
   // CORSヘッダーの強制追加（クライアント側でのエラー表示のため）
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Trace-ID');
+  // クライアントサイドのオリジンを取得
+  const clientOrigin = req.headers.origin || process.env.CLIENT_URL || 'https://dailyfortune.web.app';
+  
+  res.header('Access-Control-Allow-Origin', clientOrigin); // ワイルドカードではなく具体的なオリジンを指定
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Trace-ID, X-Direct-Refresh');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // エラーレスポンスの送信
   res.status(500).json({

@@ -133,6 +133,17 @@ export class JwtAuthController {
 
       // パスワード照合
       try {
+        // リクエストの詳細情報をログに出力（デバッグのみ、後で削除）
+        if (req.body.clientInfo) {
+          console.log('クライアント情報:', req.body.clientInfo);
+        }
+        
+        console.log('ユーザーパスワード状態:', { 
+          hasPassword: !!user.password, 
+          passwordLength: user.password?.length || 0,
+          passwordType: typeof user.password
+        });
+        
         const isPasswordValid = await user.comparePassword(password);
         console.log('パスワード検証結果:', isPasswordValid);
         
@@ -143,16 +154,32 @@ export class JwtAuthController {
         }
       } catch (pwError: any) {
         console.error('パスワード検証中にエラーが発生しました:', pwError);
-        res.status(500).json({ message: 'パスワード検証中にエラーが発生しました', debug: process.env.NODE_ENV === 'development' ? pwError.message : undefined });
+        console.error('エラー詳細:', pwError.stack);
+        res.status(500).json({ 
+          message: 'パスワード検証中にエラーが発生しました', 
+          debug: process.env.NODE_ENV === 'development' ? pwError.message : undefined,
+          stack: process.env.NODE_ENV === 'development' ? pwError.stack : undefined
+        });
         return;
       }
 
       // アクセストークンとリフレッシュトークンの生成
       try {
         console.log('トークン生成中...');
+        
+        // 環境変数の存在確認ログ
+        console.log('JWT環境変数確認:',
+          'JWT_SECRET =', process.env.JWT_SECRET ? `設定済み(${process.env.JWT_SECRET.length}文字)` : '未設定',
+          'JWT_ACCESS_SECRET =', process.env.JWT_ACCESS_SECRET ? `設定済み(${process.env.JWT_ACCESS_SECRET.length}文字)` : '未設定',
+          'JWT_REFRESH_SECRET =', process.env.JWT_REFRESH_SECRET ? `設定済み(${process.env.JWT_REFRESH_SECRET.length}文字)` : '未設定'
+        );
+        
         const accessToken = JwtService.generateAccessToken(user);
         const refreshToken = JwtService.generateRefreshToken(user);
         console.log('トークン生成完了');
+        
+        // トークンの長さを確認
+        console.log(`生成されたトークン情報: アクセストークン長=${accessToken.length}, リフレッシュトークン長=${refreshToken.length}`);
 
         // リフレッシュトークンをデータベースに保存
         user.refreshToken = refreshToken;
@@ -177,7 +204,18 @@ export class JwtAuthController {
         });
       } catch (tokenError: any) {
         console.error('トークン生成中にエラーが発生しました:', tokenError);
-        res.status(500).json({ message: 'トークン生成中にエラーが発生しました', debug: process.env.NODE_ENV === 'development' ? tokenError.message : undefined });
+        // より詳細なエラー情報を記録
+        console.error('エラーのスタックトレース:', tokenError.stack);
+        console.error('JWT環境変数状態:', {
+          JWT_SECRET_EXISTS: !!process.env.JWT_SECRET,
+          JWT_ACCESS_SECRET_EXISTS: !!process.env.JWT_ACCESS_SECRET,
+          JWT_REFRESH_SECRET_EXISTS: !!process.env.JWT_REFRESH_SECRET
+        });
+        
+        res.status(500).json({ 
+          message: 'トークン生成中にエラーが発生しました', 
+          debug: process.env.NODE_ENV === 'development' ? tokenError.message : undefined 
+        });
         return;
       }
     } catch (error: any) {

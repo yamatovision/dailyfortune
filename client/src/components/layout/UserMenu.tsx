@@ -10,11 +10,9 @@ import ListItemIcon from '@mui/material/ListItemIcon'
 import Tooltip from '@mui/material/Tooltip'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
-import Badge from '@mui/material/Badge'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
-import FingerprintIcon from '@mui/icons-material/Fingerprint'
 
 const UserMenu = () => {
   const { userProfile, logout } = useAuth()

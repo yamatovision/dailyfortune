@@ -1,10 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { IUser } from '../models/User';
 
-// シークレットキーは環境変数から取得するのが理想
-const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET || 'dailyfortune_access_token_secret';
-const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET || 'dailyfortune_refresh_token_secret';
-
 // トークンの有効期限設定
 const ACCESS_TOKEN_EXPIRY = '15m';  // アクセストークンは短め（15分）
 const REFRESH_TOKEN_EXPIRY = '7d';  // リフレッシュトークンは長め（7日）
@@ -14,6 +10,22 @@ const REFRESH_TOKEN_EXPIRY = '7d';  // リフレッシュトークンは長め�
  * トークンの生成と検証を行う
  */
 export class JwtService {
+  /**
+   * 現在の環境変数からアクセストークンシークレットを取得
+   * index.tsで設定された値を使用するため、実行時に取得
+   */
+  private static getAccessTokenSecret(): string {
+    return process.env.JWT_ACCESS_SECRET || 'dailyfortune_access_token_secret_dev';
+  }
+
+  /**
+   * 現在の環境変数からリフレッシュトークンシークレットを取得
+   * index.tsで設定された値を使用するため、実行時に取得
+   */
+  private static getRefreshTokenSecret(): string {
+    return process.env.JWT_REFRESH_SECRET || 'dailyfortune_refresh_token_secret_dev';
+  }
+
   /**
    * アクセストークンを生成
    * @param user ユーザー情報
@@ -26,7 +38,13 @@ export class JwtService {
       role: user.role
     };
 
-    return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
+    // シークレットを実行時に取得
+    const secretKey = this.getAccessTokenSecret();
+    
+    // デバッグログ（本番環境では削除または無効化する）
+    console.log('アクセストークン生成: シークレットの長さ =', secretKey.length);
+
+    return jwt.sign(payload, secretKey, {
       expiresIn: ACCESS_TOKEN_EXPIRY
     });
   }
@@ -43,7 +61,13 @@ export class JwtService {
       tokenVersion: user.tokenVersion || 0 // トークン無効化のためのバージョン
     };
 
-    return jwt.sign(payload, REFRESH_TOKEN_SECRET, {
+    // シークレットを実行時に取得
+    const secretKey = this.getRefreshTokenSecret();
+    
+    // デバッグログ（本番環境では削除または無効化する）
+    console.log('リフレッシュトークン生成: シークレットの長さ =', secretKey.length);
+
+    return jwt.sign(payload, secretKey, {
       expiresIn: REFRESH_TOKEN_EXPIRY
     });
   }
@@ -55,7 +79,9 @@ export class JwtService {
    */
   static verifyAccessToken(token: string): { valid: boolean; payload?: any; error?: any } {
     try {
-      const payload = jwt.verify(token, ACCESS_TOKEN_SECRET);
+      // シークレットを実行時に取得
+      const secretKey = this.getAccessTokenSecret();
+      const payload = jwt.verify(token, secretKey);
       return { valid: true, payload };
     } catch (error) {
       return { valid: false, error };
@@ -69,7 +95,9 @@ export class JwtService {
    */
   static verifyRefreshToken(token: string): { valid: boolean; payload?: any; error?: any } {
     try {
-      const payload = jwt.verify(token, REFRESH_TOKEN_SECRET);
+      // シークレットを実行時に取得
+      const secretKey = this.getRefreshTokenSecret();
+      const payload = jwt.verify(token, secretKey);
       return { valid: true, payload };
     } catch (error) {
       return { valid: false, error };

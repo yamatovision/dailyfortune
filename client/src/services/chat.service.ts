@@ -61,7 +61,14 @@ export class ChatService {
 
         try {
           // URLの作成（クエリパラメータでストリーミングを指定）
-          const url = `${CHAT.SEND_MESSAGE}?stream=true`;
+          // 本番環境ではベースURLを先頭に付与
+          const baseURL = import.meta.env.PROD 
+            ? import.meta.env.VITE_API_URL 
+            : '';
+            
+          const url = baseURL 
+            ? `${baseURL}${CHAT.SEND_MESSAGE}?stream=true` // 本番環境: 完全なパスを明示
+            : `${CHAT.SEND_MESSAGE}?stream=true`; // 開発環境: 相対パスを使用
           
           console.log('ストリーミングリクエスト送信:', url);
           
@@ -92,7 +99,8 @@ export class ChatService {
               contextInfo,
               stream: true
             }),
-            credentials: 'include' // CORSで必要な場合
+            // credentials: 'include' はクッキーを送信する時のみ必要
+            // JWT認証を使用しているので不要 - CORSエラーの原因になるためコメントアウト
           });
           
           console.log('サーバーレスポンス:', response.status, response.statusText);

@@ -79,8 +79,8 @@ export const corsOptions = {
       }
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Trace-ID'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Trace-ID', 'X-Direct-Refresh'],
   exposedHeaders: ['X-Trace-ID'], // クライアントに公開するヘッダー
   credentials: true,
   maxAge: 86400 // 24時間

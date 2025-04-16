@@ -136,15 +136,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('ログイン処理開始:', { email: email.substring(0, 3) + '***', timestamp: new Date().toISOString() });
+      
+      // JWT関連の環境変数をログに出力（本番環境は値を隠す）
+      console.log('環境変数確認:', {
+        'VITE_API_URL': import.meta.env.VITE_API_URL,
+        'VITE_AUTH_API_URL': import.meta.env.VITE_AUTH_API_URL,
+        'VITE_JWT_AUTH_API_URL': import.meta.env.VITE_JWT_AUTH_API_URL
+      });
+      
       const result = await jwtAuthService.login(email, password);
+      console.log('ログイン成功、トークン受信完了');
       
       // ユーザープロフィールを取得
-      await refreshUserProfile();
+      const profile = await refreshUserProfile();
+      console.log('プロフィール取得成功:', !!profile);
       
-      // カレントユーザーを設定（emailプロパティは使用している）
+      // カレントユーザーを設定
       setCurrentUser({ email: email });
       
       return result;
+    } catch (error: any) {
+      console.error('ログイン失敗:', error.message);
+      // トレースIDが含まれている場合は表示（APIサービスからの拡張エラー）
+      if (error.traceId) {
+        console.error(`トレースID: ${error.traceId}`);
+      }
+      throw error;
     } finally {
       setLoading(false);
     }

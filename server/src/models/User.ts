@@ -477,7 +477,8 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
     console.log('パスワード比較:', {
       candidateLength: candidatePassword.length,
       hashedLength: this.password?.length,
-      hasHash: !!this.password
+      hasHash: !!this.password,
+      passwordType: typeof this.password
     });
     
     if (!this.password) {
@@ -485,9 +486,35 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
       return false;
     }
     
-    const result = await bcrypt.compare(candidatePassword, this.password);
-    console.log('bcrypt比較結果:', result);
-    return result;
+    // パスワードのサニタイズ (万が一空白文字などが含まれている場合)
+    const sanitizedCandidate = String(candidatePassword).trim();
+    const sanitizedHash = String(this.password).trim();
+    
+    console.log('サニタイズ後:', {
+      candidateLength: sanitizedCandidate.length,
+      hashLength: sanitizedHash.length
+    });
+    
+    // bcryptのハッシュ形式を確認（$2b$ または $2a$ で始まるはず）
+    if (!sanitizedHash.startsWith('$2')) {
+      console.error('パスワードハッシュが正しい形式ではありません');
+      return false;
+    }
+    
+    try {
+      const result = await bcrypt.compare(sanitizedCandidate, sanitizedHash);
+      console.log('bcrypt比較結果:', result);
+      return result;
+    } catch (bcryptError) {
+      console.error('bcrypt比較エラー:', bcryptError);
+      // バックアップとして通常の文字列比較（非常に危険、テスト用）
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('警告：安全でないパスワード比較にフォールバックしています');
+        return sanitizedCandidate === sanitizedHash;
+      } else {
+        throw bcryptError;
+      }
+    }
   } catch (error) {
     console.error('パスワード比較エラー:', error);
     throw error; // エラーを投げて上位で処理できるようにする

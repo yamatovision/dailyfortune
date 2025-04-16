@@ -80,9 +80,16 @@ class ApiService {
                     ? import.meta.env.VITE_API_URL 
                     : '';
                   
+                  // Ensure proper URL construction
+                  const refreshUrl = baseURL 
+                    ? `${baseURL}/api/v1/jwt-auth/refresh-token` // Production: explicit full path
+                    : '/api/v1/jwt-auth/refresh-token'; // Development: relative path
+                  
+                  console.log('Using refresh token URL (early check):', refreshUrl);
+                  
                   const response = await axios({
                     method: 'post',
-                    url: `${baseURL}/api/v1/jwt-auth/refresh-token`,
+                    url: refreshUrl,
                     data: { refreshToken },
                     headers: {
                       'Content-Type': 'application/json',
@@ -195,9 +202,16 @@ class ApiService {
                         ? import.meta.env.VITE_API_URL 
                         : '';
                       
+                      // Ensure proper URL construction
+                      const refreshUrl = baseURL 
+                        ? `${baseURL}/api/v1/jwt-auth/refresh-token` // Production: explicit full path
+                        : '/api/v1/jwt-auth/refresh-token'; // Development: relative path
+                      
+                      console.log('Using refresh token URL:', refreshUrl);
+                      
                       const response = await axios({
                         method: 'post',
-                        url: `${baseURL}/api/v1/jwt-auth/refresh-token`,
+                        url: refreshUrl,
                         data: { refreshToken },
                         headers: {
                           'Content-Type': 'application/json',
