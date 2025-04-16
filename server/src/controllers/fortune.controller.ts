@@ -249,6 +249,23 @@ export class FortuneController {
         return;
       }
 
+      // ユーザー情報を取得して四柱推命プロファイルの存在を確認
+      const user = await User.findById(userId);
+      if (!user) {
+        res.status(404).json({ error: 'ユーザーが見つかりません' });
+        return;
+      }
+
+      // 四柱推命データの存在チェック
+      if (!user.elementAttribute || !user.dayMaster || !user.fourPillars) {
+        console.log(`🌟 警告: ユーザー ${userId} の四柱推命情報が不足しています`);
+        res.status(400).json({ 
+          error: 'ユーザーの四柱推命情報が見つかりません', 
+          code: 'MISSING_SAJU_PROFILE' 
+        });
+        return;
+      }
+
       // チームIDパラメータの取得（オプション）
       const teamId = req.query.teamId as string | undefined;
 
@@ -271,7 +288,13 @@ export class FortuneController {
       res.status(200).json(dashboardData);
     } catch (error: any) {
       console.error('運勢ダッシュボード取得エラー:', error);
-      if (error.message.includes('見つかりません')) {
+      if (error.message.includes('四柱推命情報が見つかりません')) {
+        // 四柱推命情報がない場合は400エラー（クライアント側でプロフィール設定を促すため）
+        res.status(400).json({ 
+          error: error.message, 
+          code: 'MISSING_SAJU_PROFILE' 
+        });
+      } else if (error.message.includes('見つかりません')) {
         res.status(404).json({ error: error.message });
       } else {
         res.status(500).json({ error: 'サーバーエラーが発生しました' });

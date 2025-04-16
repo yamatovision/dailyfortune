@@ -41,6 +41,7 @@ import axios from 'axios';
 import { SAJU, USER, Gender } from '@shared/index';
 import sajuProfileService from '../../services/saju-profile.service';
 import fortuneService from '../../services/fortune.service';
+import { useLocation } from 'react-router-dom';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -69,7 +70,10 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const Profile = () => {
-  const [tabValue, setTabValue] = useState(0);
+  const location = useLocation();
+  // ProtectedRoute から needProfile パラメータが渡された場合、個人情報タブを表示
+  const needProfile = location.state && (location.state as any).needProfile === true;
+  const [tabValue, setTabValue] = useState(needProfile ? 1 : 0);
   const { userProfile, loading, updateUserProfile, refreshUserProfile } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -142,6 +146,17 @@ const Profile = () => {
       console.groupEnd();
     }
   }, [userProfile]);
+
+  // プロフィール情報が必要な場合にメッセージを表示
+  useEffect(() => {
+    if (needProfile) {
+      setNotification({
+        open: true,
+        message: 'プロフィール情報が不足しています。アプリを使用するには、プロフィール情報の設定が必要です。',
+        severity: 'info'
+      });
+    }
+  }, [needProfile]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

@@ -1,11 +1,11 @@
-import React from 'react'
+// React 17以降ではJSXでReactのインポートが不要
+// import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { useAuth } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import RequireSajuProfile from './components/common/RequireSajuProfile'
-import JwtMigrationModal from './components/auth/JwtMigrationModal'
 
 // ページコンポーネント
 import Layout from './components/layout/Layout'
@@ -65,20 +65,7 @@ const theme = createTheme({
   },
 })
 
-// JWT移行モーダルを管理するコンポーネント
-const JwtMigrationManager = ({ children }: { children: React.ReactNode }) => {
-  const { shouldPromptMigration, setShouldPromptMigration } = useAuth();
-  
-  return (
-    <>
-      {children}
-      <JwtMigrationModal 
-        open={shouldPromptMigration} 
-        onClose={() => setShouldPromptMigration(false)} 
-      />
-    </>
-  );
-};
+// JWT移行モーダルは削除しました
 
 function App() {
   const { loading, userProfile } = useAuth()
@@ -91,21 +78,20 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <JwtMigrationManager>
-        <Routes>
-          {/* 公開ルート */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
+      <Routes>
+        {/* 公開ルート */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* 保護されたルート */}
-          <Route element={<Layout />}>
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
+        {/* 保護されたルート */}
+        <Route element={<Layout />}>
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
             <Route path="/fortune" element={
               <ProtectedRoute>
                 <RequireSajuProfile>
@@ -153,7 +139,6 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </JwtMigrationManager>
     </ThemeProvider>
   )
 }

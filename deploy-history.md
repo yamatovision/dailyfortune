@@ -1,5 +1,37 @@
 # DailyFortune デプロイ履歴
 
+## 2025-04-16: フロントエンドバグ修正
+
+### 1. デプロイ概要
+- デプロイコンポーネント: フロントエンド(client)
+- 主な変更点: SajuProfileForm.tsxのバグ修正（availableCitiesの存在チェック追加）
+- デプロイ担当者: Claude
+
+### 2. デプロイ手順
+```bash
+# フロントエンドビルド
+cd /Users/tatsuya/Desktop/システム開発/DailyFortune/client
+npm run build
+
+# Firebaseにデプロイ（client側のみ）
+cd /Users/tatsuya/Desktop/システム開発/DailyFortune
+firebase deploy --only hosting:client
+```
+
+### 3. 変更内容
+- SajuProfileForm.tsxを修正：availableCitiesが未定義の場合にエラーが発生する問題を修正
+- 問題箇所: 226行目 - `if (availableCities.includes(birthPlace))` に防御的チェックを追加
+- 修正内容: `if (availableCities && availableCities.includes(birthPlace))`
+
+### 4. 発生した問題と解決策
+- 問題: 本番環境でSajuProfileFormがクラッシュ（TypeError: Cannot read properties of undefined (reading 'includes')）
+  - 原因: ローカル環境と本番環境でのコンポーネントのレンダリングタイミングの違い
+  - 解決策: availableCitiesが存在するかを条件式で防御的にチェック
+
+### 5. デプロイ結果
+- フロントエンドURL: https://dailyfortune.web.app
+- 確認した機能: 四柱推命プロフィール設定画面
+
 ## 2025-04-14: 管理画面JWTログイン修正
 
 ### 1. デプロイ概要
@@ -358,3 +390,79 @@ cd /Users/tatsuya/Desktop/システム開発/DailyFortune && firebase deploy --o
 ✅ **バックエンド**: デプロイ完了 (2025-04-14)  
 ✅ **認証サービス**: 設定完了  
 ✅ **データベース**: 接続完了
+
+
+
+## 2025-04-16: バックエンド更新デプロイ
+
+### 1. デプロイ概要
+- デプロイコンポーネント: バックエンド
+- 主な変更点: JWT認証パスの修正、FortuneScoreResultインターフェースの追加
+- デプロイ担当者: Claude
+
+### 2. デプロイ手順
+```bash
+# 共有型定義を更新
+cp shared/index.ts server/src/types/index.ts
+
+# サーバーの依存関係確認
+npm install luxon date-fns-tz @types/luxon --save
+
+# ビルド
+npm run build
+
+# Cloud Runにデプロイ
+gcloud run deploy dailyfortune-api --image gcr.io/yamatovision-blue-lamp/dailyfortune-api:latest --platform managed --region asia-northeast1 --allow-unauthenticated --set-env-vars NODE_ENV=production,MONGODB_URI="mongodb+srv://[USERNAME]:[PASSWORD]@motherprompt-cluster.np3xp.mongodb.net/dailyfortune?retryWrites=true&w=majority&appName=MotherPrompt-Cluster",CLIENT_URL=https://dailyfortune.web.app,ADMIN_URL=https://dailyfortune-admin.web.app,FIREBASE_DATABASE_URL=https://sys-76614112762438486420044584.firebaseio.com,JWT_SECRET=[SECRET_KEY],FIREBASE_API_KEY=[FIREBASE_API_KEY],ANTHROPIC_API_KEY=[ANTHROPIC_API_KEY]
+```
+
+### 3. 変更内容
+- shared/index.tsとserver/src/types/index.tsのJWT_AUTH定義を同期:  → 
+- FortuneScoreResultインターフェースを共有型定義に追加
+- sajuengine_packageのソースコードをサーバーディレクトリにコピー
+
+### 4. 発生した問題と解決策
+- 問題: shared/index.tsとserver/src/types/index.tsのJWT_AUTH定義に不一致
+  - 原因: 過去の修正が片方のファイルのみに適用された
+  - 解決策: 両ファイルでJWT_AUTH定義を同期
+
+### 5. デプロイ結果
+- バックエンドURL: https://dailyfortune-api-235426778039.asia-northeast1.run.app
+- 確認した機能: サーバー基本動作
+
+
+## 2025-04-16: バックエンド更新デプロイ
+
+### 1. デプロイ概要
+- デプロイコンポーネント: バックエンド
+- 主な変更点: JWT認証パスの修正、FortuneScoreResultインターフェースの追加
+- デプロイ担当者: Claude
+
+### 2. デプロイ手順
+```bash
+# 共有型定義を更新
+cp shared/index.ts server/src/types/index.ts
+
+# サーバーの依存関係確認
+npm install luxon date-fns-tz @types/luxon --save
+
+# ビルド
+npm run build
+
+# Cloud Runにデプロイ
+gcloud run deploy dailyfortune-api --image gcr.io/yamatovision-blue-lamp/dailyfortune-api:latest --platform managed --region asia-northeast1 --allow-unauthenticated --set-env-vars NODE_ENV=production,MONGODB_URI="mongodb+srv://[USERNAME]:[PASSWORD]@motherprompt-cluster.np3xp.mongodb.net/dailyfortune?retryWrites=true&w=majority&appName=MotherPrompt-Cluster",CLIENT_URL=https://dailyfortune.web.app,ADMIN_URL=https://dailyfortune-admin.web.app,FIREBASE_DATABASE_URL=https://sys-76614112762438486420044584.firebaseio.com,JWT_SECRET=[SECRET_KEY],FIREBASE_API_KEY=[FIREBASE_API_KEY],ANTHROPIC_API_KEY=[ANTHROPIC_API_KEY]
+```
+
+### 3. 変更内容
+- shared/index.tsとserver/src/types/index.tsのJWT_AUTH定義を同期: /auth/ → /jwt-auth/
+- FortuneScoreResultインターフェースを共有型定義に追加
+- sajuengine_packageのソースコードをサーバーディレクトリにコピー
+
+### 4. 発生した問題と解決策
+- 問題: shared/index.tsとserver/src/types/index.tsのJWT_AUTH定義に不一致
+  - 原因: 過去の修正が片方のファイルのみに適用された
+  - 解決策: 両ファイルでJWT_AUTH定義を同期
+
+### 5. デプロイ結果
+- バックエンドURL: https://dailyfortune-api-235426778039.asia-northeast1.run.app
+- 確認した機能: サーバー基本動作
+EOF < /dev/null

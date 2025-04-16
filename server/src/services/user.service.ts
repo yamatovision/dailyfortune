@@ -1,5 +1,4 @@
 import { User } from '../models';
-import { auth } from '../config/firebase';
 import mongoose from 'mongoose';
 import { ValidationError, AuthorizationError, NotFoundError } from '../utils';
 
@@ -75,7 +74,7 @@ export class UserService {
   }
 
   /**
-   * 新規ユーザーを作成する
+   * 新規ユーザーを作成する - Firebase不使用・JWT+MongoDB実装
    */
   async createUser(data: CreateUserData, creator: UserCreator): Promise<any> {
     // 入力検証
@@ -97,27 +96,24 @@ export class UserService {
     const userPlan = isSuperAdmin && data.plan ? data.plan : 'lite';
     
     try {
-      // Firebase Authenticationでユーザー作成
-      const userRecord = await auth.createUser({
-        email: data.email,
-        password: data.password,
-        displayName: data.displayName
-      });
-      
-      // カスタムクレーム設定
-      await auth.setCustomUserClaims(userRecord.uid, { role: userRole });
+      // メールアドレスの重複チェック
+      const existingUser = await User.findOne({ email: data.email });
+      if (existingUser) {
+        throw new ValidationError('このメールアドレスは既に使用されています');
+      }
       
       // MongoDBにユーザー情報を保存（MongoDB ObjectIDを使用）
       const newUser = new User({
         _id: new mongoose.Types.ObjectId(), // MongoDBのObjectIDを自動生成
         email: data.email,
-        password: data.password, // パスワードも保存（ハッシュ化される）
+        password: data.password, // パスワードも保存（モデルのpre-saveフックで自動的にハッシュ化される）
         displayName: data.displayName,
         role: userRole,
         plan: userPlan,
         organizationId: data.organizationId || null,
         teamId: data.teamId || null,
-        isActive: true
+        isActive: true,
+        tokenVersion: 0 // JWT認証のためのトークンバージョン初期値
       });
       
       await newUser.save();
@@ -134,7 +130,7 @@ export class UserService {
         createdAt: newUser.createdAt
       };
     } catch (error) {
-      // Firebaseエラーのハンドリング
+      // エラーのハンドリング
       if (error instanceof Error) {
         throw new ValidationError(error.message);
       }
@@ -143,7 +139,7 @@ export class UserService {
   }
 
   /**
-   * ユーザー権限を変更する
+   * ユーザー権限を変更する - Firebase不使用・JWTのみ対応
    */
   async updateUserRole(userId: string, role: string, updater: UserCreator): Promise<any> {
     // SuperAdmin権限チェック
@@ -165,15 +161,16 @@ export class UserService {
     
     // ユーザー権限更新 - 型アサーションで変換
     user.role = role as 'SuperAdmin' | 'Admin' | 'User';
-    await user.save();
     
-    try {
-      // Firebase カスタムクレーム更新
-      await auth.setCustomUserClaims(userId, { role });
-    } catch (error) {
-      // Firebaseエラーは記録するが、データベース更新は維持
-      console.error('Firebase更新エラー:', error);
+    // JWT認証のためにトークンバージョンをインクリメント
+    // これにより既存のトークンが無効化され、新しい権限が反映されたトークンの使用が強制される
+    if (user.tokenVersion !== undefined) {
+      user.tokenVersion += 1;
+    } else {
+      user.tokenVersion = 0;
     }
+    
+    await user.save();
     
     return {
       id: user._id,
@@ -219,7 +216,7 @@ export class UserService {
   }
 
   /**
-   * ユーザーを削除する
+   * ユーザーを削除する - Firebase不使用・JWTのみ対応
    */
   async deleteUser(userId: string, deleter: UserCreator): Promise<{message: string, deletedUserId: string}> {
     // SuperAdmin権限チェック
@@ -234,18 +231,9 @@ export class UserService {
       throw new NotFoundError('ユーザーが見つかりません');
     }
     
-    // Firebaseユーザー削除を試みる（存在しない場合もエラーにしない）
-    try {
-      await auth.deleteUser(userId);
-      console.log(`Firebase ユーザー削除成功: ${userId}`);
-    } catch (error) {
-      // Firebaseユーザーが見つからない場合など、エラーはログに記録するだけで処理を続行
-      console.error('Firebase削除エラー:', error);
-      console.log(`Firebase ユーザーは存在しないか、すでに削除されています。データベースのユーザー削除を続行します。`);
-    }
-    
-    // MongoDBユーザー削除（Firebaseの結果に関わらず実行）
+    // MongoDBユーザー削除
     await User.findByIdAndDelete(userId);
+    console.log(`ユーザー削除成功: ${userId}`);
     
     return {
       message: 'ユーザーを削除しました',

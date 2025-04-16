@@ -1,17 +1,29 @@
-import { Router } from 'express';
-import * as authController from '../controllers/auth.controller';
+import express from 'express';
+import { JwtAuthController } from '../controllers/jwt-auth.controller';
 import { hybridAuthenticate } from '../middleware/hybrid-auth.middleware';
-import { AUTH } from '../types/index';
 
-const router = Router();
+const router = express.Router();
 
-// ユーザープロフィール取得
-router.get('/profile', hybridAuthenticate, authController.getProfile);
+/**
+ * 認証関連のルート定義 (Firebase認証は廃止され、JWT認証を使用)
+ */
 
-// ユーザー登録
-router.post('/register', hybridAuthenticate, authController.register);
+// 新規ユーザー登録
+router.post('/register', JwtAuthController.register);
 
-// パスワードリセット
-router.post('/password-reset', authController.requestPasswordReset);
+// ログイン
+router.post('/login', JwtAuthController.login);
+
+// トークンのリフレッシュ
+router.post('/refresh-token', JwtAuthController.refreshToken);
+
+// ログアウト
+router.post('/logout', JwtAuthController.logout);
+
+// Firebase認証からJWT認証への移行（廃止予定 - 後方互換性のために残す）
+router.post('/migrate-to-jwt', hybridAuthenticate, JwtAuthController.migrateToJwt);
+
+// プロフィール取得
+router.get('/profile', hybridAuthenticate, JwtAuthController.getProfile);
 
 export default router;

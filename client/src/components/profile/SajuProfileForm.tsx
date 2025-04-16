@@ -223,7 +223,7 @@ const SajuProfileForm: React.FC<SajuProfileFormProps> = ({ onSubmit, initialData
       // ユーザーが直接入力を変更した場合は少し遅延させて座標取得
       const timer = setTimeout(() => {
         // 既に選択された都市リストにあるかチェック
-        if (availableCities.includes(birthPlace)) {
+        if (availableCities && availableCities.includes(birthPlace)) {
           fetchCityCoordinates(birthPlace);
         } else if (birthPlace.length >= 2) {
           // リストにない場合でも、2文字以上入力されていれば座標取得を試みる

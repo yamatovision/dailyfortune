@@ -1,5 +1,8 @@
+/**
+ * @deprecated このファイルはレガシーです。代わりに hybrid-auth.middleware.ts を使用してください。
+ */
+
 import { Request, Response, NextFunction } from 'express';
-import { auth } from '../config/firebase';
 
 // Userモデルに合わせた独自の権限列挙型
 export enum UserRole {
@@ -13,7 +16,6 @@ export enum UserRole {
  */
 export interface AuthRequest extends Request {
   user?: {
-    // uid: string; // Firebase UID式のフィールドは非推奨です
     id: string; // MongoDB ObjectIDを文字列化した値
     email: string;
     role: UserRole;
@@ -22,16 +24,12 @@ export interface AuthRequest extends Request {
 }
 
 /**
- * Firebase認証を検証するミドルウェア
- */
-/**
  * 認証不要なパスのリスト
- * フォーム入力支援など、認証前に必要となるエンドポイント
  */
 const PUBLIC_PATHS = [
   // 四柱推命プロフィール関連の公開API
   '/api/v1/saju-profiles/available-cities',
-  '/api/v1/saju-profiles/city-coordinates', // 前方一致で判定
+  '/api/v1/saju-profiles/city-coordinates',
   '/api/v1/saju-profiles/local-time-offset',
 ];
 
@@ -48,78 +46,24 @@ const isPublicPath = (path: string): boolean => {
 };
 
 /**
- * Firebase認証を検証するミドルウェア
- * 特定の公開APIパスは認証をスキップする
+ * レガシー認証ミドルウェア - hybrid-auth.middleware.ts を使用してください
  */
 export const authenticate = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
+  console.warn('レガシー認証ミドルウェアが使用されています。hybrid-auth.middleware.ts に移行してください。');
+  
   // 認証不要なパスの場合はスキップ
   if (isPublicPath(req.path)) {
-    console.log(`公開APIへのアクセス: ${req.path}`);
     return next();
   }
 
-  try {
-    // トークンをヘッダーまたはクエリパラメータから取得
-    // EventSourceがヘッダーを設定できないため、SSE用にクエリパラメータからもトークンを取得できるようにする
-    let token: string | undefined;
-    
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split('Bearer ')[1];
-    }
-    
-    // クエリパラメータからのトークン取得（SSE用）
-    if (!token && req.query.token) {
-      token = req.query.token as string;
-    }
-    
-    if (!token) {
-      return res.status(401).json({ message: '認証トークンがありません' });
-    }
-    
-    // Firebaseでトークン検証
-    try {
-      const decodedToken = await auth.verifyIdToken(token);
-    
-    
-    if (!decodedToken.uid) {
-      return res.status(401).json({ message: '無効なトークンです' });
-    }
-    
-    // カスタムクレームから権限情報を取得
-    // Firebase上では'super_admin'形式、コード内では'SuperAdmin'形式で扱う
-    let role = UserRole.USER;
-    
-    // カスタムクレームのroleを適切な形式に変換
-    if (decodedToken.role === 'super_admin') {
-      role = UserRole.SUPER_ADMIN;
-    } else if (decodedToken.role === 'admin') {
-      role = UserRole.ADMIN;
-    } else if (decodedToken.role) {
-      role = decodedToken.role as UserRole;
-    }
-    
-    // リクエストオブジェクトにユーザー情報を添付
-    req.user = {
-      email: decodedToken.email || '',
-      role,
-      id: decodedToken.uid,
-      organizationId: decodedToken.organizationId
-    };
-    
-    next();
-    } catch (verifyError) {
-      console.error('トークン検証エラー:', verifyError);
-      return res.status(401).json({ message: 'トークンの検証に失敗しました' });
-    }
-  } catch (error) {
-    console.error('認証エラー:', error);
-    return res.status(401).json({ message: '認証に失敗しました' });
-  }
+  return res.status(401).json({ 
+    message: 'レガシー認証は廃止されました。JWT認証システムに移行してください。', 
+    code: 'LEGACY_AUTH_DEPRECATED' 
+  });
 };
 
 /**
@@ -159,9 +103,3 @@ export const requireSuperAdmin = (
   
   next();
 };
-
-/**
- * 認証処理はFirebase Authenticationを使用し、
- * カスタムクレームから権限情報を取得するように変更
- * データベース連携は将来的に実装予定
- */

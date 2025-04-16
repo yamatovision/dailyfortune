@@ -3,11 +3,13 @@
  * 
  * 定期的に実行する必要があるバッチジョブのスケジュール管理を行います。
  * node-cronを使用して、特定の時間にジョブを実行します。
+ * システム設定（SystemSetting）から運勢更新時間を読み込みます。
  */
 
 // @ts-ignore ここではnode-cronの型定義が不要
 const cron = require('node-cron');
 import { BatchJobLog } from '../models/BatchJobLog';
+import { SystemSetting } from '../models/SystemSetting';
 import { generateDayPillars } from './day-pillar-generator';
 import { updateDailyFortunes } from './daily-fortune-update';
 
@@ -44,8 +46,8 @@ const schedules: ScheduleConfig[] = [
     retryDelay: 5 * 60 * 1000  // 5分
   },
   {
-    // 毎日午前1時に実行（日柱生成の後に実行するため）
-    expression: '0 1 * * *',
+    // 毎日午前3時に実行（デフォルト、SystemSettingから読み込み）
+    expression: '0 3 * * *',
     jobName: 'daily-fortune-update',
     enabled: true,
     job: async () => {
@@ -68,11 +70,60 @@ const schedules: ScheduleConfig[] = [
 ];
 
 /**
+ * システム設定から運勢更新時間を取得する
+ * デフォルトは03:00
+ */
+async function getFortuneUpdateTime(): Promise<string> {
+  try {
+    // SystemSettingから運勢更新時間を取得
+    const setting = await SystemSetting.findOne({ key: 'fortuneUpdateTime' });
+    
+    if (setting && setting.value) {
+      // 値が有効なHH:MM形式かチェック
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (timeRegex.test(setting.value)) {
+        return setting.value;
+      } else {
+        console.warn(`無効な運勢更新時間形式です: ${setting.value}。デフォルト値の03:00を使用します。`);
+        return '03:00';
+      }
+    } else {
+      console.log('運勢更新時間の設定が見つかりません。デフォルト値の03:00を使用します。');
+      return '03:00';
+    }
+  } catch (error) {
+    console.error('運勢更新時間の取得中にエラーが発生しました:', error);
+    console.log('デフォルト値の03:00を使用します。');
+    return '03:00';
+  }
+}
+
+/**
+ * 時間文字列（HH:MM）をcron式に変換する
+ */
+function timeToCronExpression(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  return `${minutes} ${hours} * * *`;
+}
+
+/**
  * すべてのスケジュールジョブを開始
  */
-export function startScheduler() {
+export async function startScheduler() {
   console.log('バッチ処理スケジューラーを開始します...');
   
+  // 運勢更新時間を取得
+  const fortuneUpdateTime = await getFortuneUpdateTime();
+  console.log(`運勢更新時間: ${fortuneUpdateTime}`);
+  
+  // 運勢更新ジョブのcron式を更新
+  const fortuneJob = schedules.find(s => s.jobName === 'daily-fortune-update');
+  if (fortuneJob) {
+    fortuneJob.expression = timeToCronExpression(fortuneUpdateTime);
+    console.log(`運勢更新ジョブのcron式を更新しました: ${fortuneJob.expression}`);
+  }
+  
+  // スケジュールを設定
   schedules.forEach(schedule => {
     if (schedule.enabled) {
       cron.schedule(schedule.expression, async () => {
@@ -158,12 +209,12 @@ export function stopScheduler() {
 
 // スクリプトが直接実行された場合は、スケジューラーを開始
 if (require.main === module) {
-  const { connectDatabase } = require('../config/database');
+  const { connectToDatabase } = require('../config/database');
   
-  connectDatabase()
-    .then(() => {
+  connectToDatabase()
+    .then(async () => {
       console.log('データベースに接続しました。スケジューラーを開始します...');
-      startScheduler();
+      await startScheduler();
     })
     .catch((error: any) => {
       console.error('データベース接続エラー:', error);

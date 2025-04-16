@@ -2,7 +2,6 @@ import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import tokenService from '../../services/auth/token.service'
-// import { UserRole } from '@shared/index'
 
 type ProtectedRouteProps = {
   children: ReactNode
@@ -14,7 +13,7 @@ export const ProtectedRoute = ({
   children, 
   requiredRole = 'user'  // デフォルトは一般ユーザー
 }: ProtectedRouteProps) => {
-  const { currentUser, userProfile, loading, isAdmin, isSuperAdmin } = useAuth()
+  const { userProfile, loading, isAdmin, isSuperAdmin } = useAuth()
   const location = useLocation()
 
   // 認証状態ロード中は何も表示しない
@@ -23,16 +22,15 @@ export const ProtectedRoute = ({
   }
 
   // JWT認証のアクセストークンを確認
-  const hasJwtToken = tokenService.getAccessToken() !== null;
+  const hasJwtToken = tokenService.getAccessToken() !== null && tokenService.isAccessTokenValid();
   
   // 未ログインの場合はログインページにリダイレクト
-  // Firebase認証またはJWT認証のいずれかが有効であればOK
-  if (!currentUser && !hasJwtToken) {
-    console.log("認証情報がありません。ログイン画面へリダイレクトします。");
+  if (!hasJwtToken) {
+    console.log("JWT認証情報がありません。ログイン画面へリダイレクトします。");
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // ユーザープロフィールが取得できていない場合もログインページにリダイレクト
+  // ユーザープロフィールが取得できていない場合はログイン画面へリダイレクト
   if (!userProfile) {
     console.log("ユーザープロフィールが取得できていません。ログイン画面へリダイレクトします。");
     return <Navigate to="/login" state={{ from: location }} replace />

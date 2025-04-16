@@ -1,6 +1,4 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { getAuth } from 'firebase/auth';
-import authManager, { AuthMode } from './auth/auth-manager.service';
 import tokenService from './auth/token.service';
 
 // トレースIDを生成する関数
@@ -61,74 +59,57 @@ class ApiService {
           return config;
         }
         
-        // 現在の認証モードを取得
-        const authMode = authManager.getCurrentAuthMode();
+        // JWTトークンを設定
+        let accessToken = tokenService.getAccessToken();
         
-        // JWTトークンを使用する場合（JWT または ハイブリッドモード）
-        if (authMode === AuthMode.JWT || authMode === AuthMode.HYBRID) {
-          let accessToken = tokenService.getAccessToken();
+        if (accessToken) {
+          // JWT更新エンドポイントへのリクエストの場合は更新チェックをスキップ
+          const isTokenRefreshRequest = config.url?.includes('/jwt-auth/refresh-token');
           
-          if (accessToken) {
-            // JWT更新エンドポイントへのリクエストの場合は更新チェックをスキップ
-            const isTokenRefreshRequest = config.url?.includes('/jwt-auth/refresh-token');
-            
-            if (!isTokenRefreshRequest) {
-              // トークンの有効期限が近い場合は更新を試みる
-              await authManager.refreshJwtTokenIfNeeded();
-              // 最新のトークンを取得
-              accessToken = tokenService.getAccessToken();
-            }
-            
-            if (accessToken) {
-              config.headers['Authorization'] = `Bearer ${accessToken}`;
-              
-              if (this.isDebugMode) {
-                console.log('🔐 JWT Authorization トークンをセットしました');
-              }
-            }
-          }
-        }
-        
-        // Firebase認証を使用する場合（Firebase または ハイブリッドモード）
-        if ((authMode === AuthMode.FIREBASE || authMode === AuthMode.HYBRID) && 
-            !config.headers['Authorization']) {
-          const auth = getAuth();
-          const user = auth.currentUser;
-          
-          if (user) {
-            try {
-              // 現在のトークン情報をログ
-              const currentToken = await user.getIdTokenResult();
-              if (this.isDebugMode) {
-                console.group('🔐 Firebase Token Info');
-                console.log('Token exists:', !!currentToken.token);
-                console.log('Token length:', currentToken.token.length);
-                console.log('Token expiration:', currentToken.expirationTime);
-                console.log('Claims:', currentToken.claims);
-                console.groupEnd();
-                
-                // トークン有効性確認
-                const tokenAge = new Date(currentToken.expirationTime).getTime() - Date.now();
-                if (tokenAge < 0) {
-                  console.warn('⚠️ Token is expired! Forcing refresh...');
-                  // 強制更新
-                  const freshToken = await user.getIdToken(true);
-                  config.headers['Authorization'] = `Bearer ${freshToken}`;
-                } else {
-                  console.log(`🔐 Token valid for ${Math.floor(tokenAge / 1000 / 60)} minutes`);
-                  config.headers['Authorization'] = `Bearer ${currentToken.token}`;
+          if (!isTokenRefreshRequest) {
+            // トークンの有効期限が近い場合は更新
+            const remainingTime = tokenService.getRemainingTime();
+            if (remainingTime !== null && remainingTime < 5 * 60 * 1000) {
+              try {
+                // リフレッシュトークンがあるか確認
+                const refreshToken = tokenService.getRefreshToken();
+                if (refreshToken) {
+                  // 直接リフレッシュリクエストを行う（APIサービスインスタンスを使用しない）
+                  const axios = (await import('axios')).default;
+                  const baseURL = import.meta.env.PROD 
+                    ? import.meta.env.VITE_API_URL 
+                    : '';
+                  
+                  const response = await axios({
+                    method: 'post',
+                    url: `${baseURL}/api/v1/jwt-auth/refresh-token`,
+                    data: { refreshToken },
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Direct-Refresh': 'true'
+                    }
+                  });
+                  
+                  if (response.status === 200 && response.data.tokens) {
+                    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.tokens;
+                    tokenService.setTokens(newAccessToken, newRefreshToken);
+                    accessToken = newAccessToken;
+                  }
                 }
-              } else {
-                // デバッグモード以外では通常のトークン設定のみ
-                const token = await user.getIdToken(true);
-                config.headers['Authorization'] = `Bearer ${token}`;
+              } catch (refreshError) {
+                console.error('トークン更新エラー:', refreshError);
               }
-            } catch (error) {
-              console.error('トークン取得エラー:', error);
             }
-          } else if (this.isDebugMode) {
-            console.warn('⚠️ No user logged in, request will be unauthorized');
           }
+          
+          // リクエストヘッダーにトークンを設定
+          config.headers['Authorization'] = `Bearer ${accessToken}`;
+          
+          if (this.isDebugMode) {
+            console.log('🔐 JWT Authorization トークンをセットしました');
+          }
+        } else if (this.isDebugMode) {
+          console.warn('⚠️ アクセストークンがありません、認証されないリクエストになります');
         }
         
         this.logRequest(config, traceId);
@@ -160,15 +141,11 @@ class ApiService {
         const enhancedError = error as any;
         enhancedError.traceId = responseTraceId;
         
-        // 現在の認証モードを取得
-        const authMode = authManager.getCurrentAuthMode();
-        
         if (error.response) {
           const status = error.response.status;
           
           // JWT認証の場合のトークン期限切れ対応
           if (status === 401 && 
-             (authMode === AuthMode.JWT || authMode === AuthMode.HYBRID) && 
               tokenService.getRefreshToken() && 
               error.config) {
             
@@ -209,24 +186,42 @@ class ApiService {
                   this.isRefreshingToken = true;
                   
                   try {
-                    // トークンをリフレッシュ
-                    const refreshSuccess = await authManager.refreshJwtTokenIfNeeded();
-                    
-                    if (refreshSuccess) {
-                      // リフレッシュに成功したら新しいトークンを取得
-                      newToken = tokenService.getAccessToken();
+                    // リフレッシュトークンがあるか確認
+                    const refreshToken = tokenService.getRefreshToken();
+                    if (refreshToken) {
+                      // 直接リフレッシュリクエストを行う（APIサービスインスタンスを使用しない）
+                      const axios = (await import('axios')).default;
+                      const baseURL = import.meta.env.PROD 
+                        ? import.meta.env.VITE_API_URL 
+                        : '';
                       
-                      // キューにたまっているリクエストを処理
-                      this.tokenRefreshQueue.forEach(({ resolve }) => {
-                        if (newToken) resolve(newToken);
+                      const response = await axios({
+                        method: 'post',
+                        url: `${baseURL}/api/v1/jwt-auth/refresh-token`,
+                        data: { refreshToken },
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'X-Direct-Refresh': 'true'
+                        }
                       });
-                      this.tokenRefreshQueue = [];
-                    } else {
-                      // リフレッシュに失敗したらエラーを伝播
-                      this.tokenRefreshQueue.forEach(({ reject }) => {
-                        reject(new Error('トークンのリフレッシュに失敗しました'));
-                      });
-                      this.tokenRefreshQueue = [];
+                      
+                      if (response.status === 200 && response.data.tokens) {
+                        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.tokens;
+                        tokenService.setTokens(newAccessToken, newRefreshToken);
+                        newToken = newAccessToken;
+                        
+                        // キューにたまっているリクエストを処理
+                        this.tokenRefreshQueue.forEach(({ resolve }) => {
+                          if (newToken) resolve(newToken);
+                        });
+                        this.tokenRefreshQueue = [];
+                      } else {
+                        // リフレッシュに失敗したらエラーを伝播
+                        this.tokenRefreshQueue.forEach(({ reject }) => {
+                          reject(new Error('トークンのリフレッシュに失敗しました'));
+                        });
+                        this.tokenRefreshQueue = [];
+                      }
                     }
                   } finally {
                     this.isRefreshingToken = false;
@@ -252,33 +247,6 @@ class ApiService {
               } catch (retryError) {
                 console.error('トークンリフレッシュに失敗しました', retryError);
               }
-            }
-          } else if (status === 401 && 
-                    (authMode === AuthMode.FIREBASE || authMode === AuthMode.HYBRID) && 
-                     getAuth().currentUser) {
-            // Firebase認証の場合のトークン更新
-            try {
-              // Firebase認証のトークンを強制的に更新
-              const auth = getAuth();
-              const user = auth.currentUser;
-              
-              if (user && error.config && !error.config.headers?._retry) {
-                console.log('Firebase認証エラー発生、トークン再取得を試みます');
-                // 強制的に新しいトークンを取得
-                const freshToken = await user.getIdToken(true);
-                
-                // リクエスト設定を更新
-                const config = error.config;
-                config.headers = config.headers || {};
-                config.headers.Authorization = `Bearer ${freshToken}`;
-                config.headers._retry = true; // リトライフラグを設定
-                
-                console.log('Firebase トークン再取得成功、リクエストを再試行します');
-                // 更新した設定で再リクエスト
-                return this.api(config);
-              }
-            } catch (retryError) {
-              console.error('Firebase トークン再取得に失敗しました', retryError);
             }
           } else if (status === 403) {
             console.error(`権限エラー: 必要な権限がありません [TraceID: ${responseTraceId}]`);

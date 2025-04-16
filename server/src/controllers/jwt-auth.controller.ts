@@ -8,6 +8,35 @@ import { JwtService } from '../services/jwt.service';
  */
 export class JwtAuthController {
   /**
+   * ユーザープロフィールを取得
+   * @param req リクエスト
+   * @param res レスポンス
+   */
+  static async getProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const { user } = req as any;
+      
+      if (!user || !user.id) {
+        res.status(401).json({ message: '認証が必要です' });
+        return;
+      }
+      
+      // データベースからユーザー情報を取得
+      const userData = await User.findById(user.id).select('-password -refreshToken');
+      
+      if (!userData) {
+        res.status(404).json({ message: 'ユーザーが見つかりません' });
+        return;
+      }
+      
+      // ユーザー情報を返す
+      res.status(200).json(userData);
+    } catch (error) {
+      console.error('プロフィール取得エラー:', error);
+      res.status(500).json({ message: 'プロフィール取得中にエラーが発生しました' });
+    }
+  }
+  /**
    * ユーザー登録
    * @param req リクエスト
    * @param res レスポンス

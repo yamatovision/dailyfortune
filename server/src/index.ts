@@ -7,7 +7,7 @@ import { connectToDatabase } from './config/database';
 dotenv.config();
 
 // 重要な環境変数が設定されていることを確認
-const requiredEnvVars = ['MONGODB_URI', 'FIREBASE_API_KEY'];
+const requiredEnvVars = ['MONGODB_URI'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -16,6 +16,17 @@ if (missingEnvVars.length > 0) {
   if (require.main === module) {
     process.exit(1);
   }
+}
+
+// JWT関連の環境変数にデフォルト値を設定
+if (!process.env.JWT_ACCESS_SECRET) {
+  console.warn('JWT_ACCESS_SECRET が設定されていません。デフォルト値を使用します。');
+  process.env.JWT_ACCESS_SECRET = 'dailyfortune_access_token_secret_dev';
+}
+
+if (!process.env.JWT_REFRESH_SECRET) {
+  console.warn('JWT_REFRESH_SECRET が設定されていません。デフォルト値を使用します。');
+  process.env.JWT_REFRESH_SECRET = 'dailyfortune_refresh_token_secret_dev';
 }
 
 // ロガーのインポート
@@ -80,10 +91,10 @@ app.get(`${API_BASE_PATH}/status`, (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 認証ルーターには厳しいレート制限を適用
-app.use(`${API_BASE_PATH}/auth`, authLimiter, authRoutes);
-
 // JWT認証ルーターを設定（リフレッシュトークン再利用検出付き）
+app.use(`${API_BASE_PATH}/auth`, authLimiter, refreshTokenReuseDetector, authRoutes);
+
+// JWT認証専用のルーターを設定
 app.use(`${API_BASE_PATH}/jwt-auth`, authLimiter, refreshTokenReuseDetector, jwtAuthRoutes);
 
 // JWT のエッジケースハンドラーを保護されたルートに適用
@@ -162,30 +173,19 @@ if (require.main === module) {
   app.listen(PORT, async () => {
     logger.info(`サーバーが起動しました: ポート ${PORT}`);
     
-    // Firebase Adminの初期化
-    try {
-      // Firebase Adminの初期化ログを確認（config/firebase.tsで初期化済み）
-      logger.info('Firebase Admin SDKが初期化されました');
-    } catch (error) {
-      logger.error('Firebase Admin SDKの初期化に失敗しました', { meta: { error } });
-    }
-    
     // MongoDBへの接続
     try {
       await connectToDatabase();
       logger.info('MongoDBに接続しました');
       
-      // バッチ処理スケジューラーの開始（本番環境のみ）
-      if (process.env.NODE_ENV === 'production') {
-        try {
-          const { startScheduler } = require('./batch/scheduler');
-          startScheduler();
-          logger.info('バッチスケジューラーを開始しました');
-        } catch (error) {
-          logger.error('バッチスケジューラーの開始に失敗しました', { meta: { error } });
-        }
-      } else {
-        logger.info('開発環境のため、バッチスケジューラーは開始されていません');
+      // バッチ処理スケジューラーの開始（全ての環境で実行）
+      try {
+        // importではなくrequireを使用することで、startSchedulerがPromiseを返してもawaitできるようにする
+        const { startScheduler } = require('./batch/scheduler');
+        await startScheduler();
+        logger.info('バッチスケジューラーを開始しました');
+      } catch (error) {
+        logger.error('バッチスケジューラーの開始に失敗しました', { meta: { error } });
       }
     } catch (error) {
       logger.error('MongoDBへの接続に失敗しました', { meta: { error } });

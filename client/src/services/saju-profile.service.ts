@@ -1,6 +1,6 @@
 import { SAJU, USER, Gender, ISajuProfile, ExtendedLocation, TimezoneAdjustmentInfo } from '@shared/index';
 import apiService from './api.service';
-import axios from 'axios';
+// axios は必要なくなったので削除
 import dayPillarService from './day-pillar.service';
 
 // 地理座標インターフェース
@@ -25,9 +25,18 @@ interface SajuProfileData {
 export class SajuProfileService {
   // 利用可能な都市のリストを取得
   async getAvailableCities(): Promise<string[]> {
-    // パブリックAPIなので通常のaxiosを使用（認証不要）
-    const response = await axios.get(SAJU.GET_AVAILABLE_CITIES);
-    return response.data.cities;
+    try {
+      console.log('都市リスト取得開始 - apiServiceを使用');
+      // 本番環境でのベースURL問題を解決するためapiServiceを使用
+      const response = await apiService.get(SAJU.GET_AVAILABLE_CITIES);
+      console.log('都市リスト取得成功:', response.data);
+      return response.data.cities || [];
+    } catch (error) {
+      console.error('都市リスト取得エラー:', error);
+      // エラー時のフォールバックリスト
+      console.log('デフォルトの都市リストを使用します');
+      return ['東京', '大阪', '名古屋', '札幌', '福岡', 'ソウル', '北京', 'ニューヨーク', 'ロンドン', 'パリ'];
+    }
   }
   
   // 都市名から座標情報を取得
@@ -38,9 +47,11 @@ export class SajuProfileService {
     }
     
     try {
+      console.log(`座標取得開始: "${cityName}"`);
       const encodedCityName = encodeURIComponent(cityName.trim());
-      // パブリックAPIなので通常のaxiosを使用（認証不要）
-      const response = await axios.get(SAJU.GET_CITY_COORDINATES(encodedCityName));
+      // 本番環境でのベースURL問題を解決するためapiServiceを使用
+      const response = await apiService.get(SAJU.GET_CITY_COORDINATES(encodedCityName));
+      console.log(`"${cityName}"の座標取得成功:`, response.data);
       
       if (response.data && response.data.coordinates) {
         // 座標の範囲を検証
@@ -57,7 +68,7 @@ export class SajuProfileService {
       
       return null;
     } catch (error) {
-      console.error('Error fetching city coordinates:', error);
+      console.error(`"${cityName}"の座標取得エラー:`, error);
       return null;
     }
   }
@@ -73,17 +84,19 @@ export class SajuProfileService {
         throw new Error('Invalid coordinates');
       }
       
-      // パブリックAPIなので通常のaxiosを使用（認証不要）
-      const response = await axios.post(SAJU.CALCULATE_LOCAL_TIME_OFFSET, { coordinates });
+      console.log('地方時オフセット計算開始:', coordinates);
+      // 本番環境でのベースURL問題を解決するためapiServiceを使用
+      const response = await apiService.post(SAJU.CALCULATE_LOCAL_TIME_OFFSET, { coordinates });
       
       if (response.data && typeof response.data.offsetMinutes === 'number') {
+        console.log(`地方時オフセット計算結果: ${response.data.offsetMinutes}分`);
         return response.data.offsetMinutes;
       } else {
         console.error('Invalid offset minutes in response:', response.data);
         return 0; // デフォルトとして0分（オフセットなし）を返す
       }
     } catch (error) {
-      console.error('Error calculating local time offset:', error);
+      console.error('地方時オフセット計算エラー:', error);
       // エラー時は0分（オフセットなし）を返す
       return 0;
     }
